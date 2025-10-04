@@ -8,11 +8,13 @@ export const FRONTEND_URL = process.env.FRONTEND_URL;
 
 export const MONGO_URL = process.env.MONGO_URL || "";
 
-export const JWT_SECRET = process.env.JWT_SECRET || "defaultsecret";
-export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
+export const JWT_SECRET = process.env.JWT_SECRET ;
+export const JWT_EXPIRES_IN: `${number}${"s" | "m" | "h" | "d"}` | number =
+  (process.env.JWT_EXPIRES_IN as any) || "15m";
 
 export const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
-export const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN;
+export const REFRESH_TOKEN_EXPIRES_IN: `${number}${"s" | "m" | "h" | "d"}` | number =
+  (process.env.REFRESH_TOKEN_EXPIRES_IN as any) || "7d";
 
 export const SMTP_HOST = process.env.SMTP_HOST;
 export const SMTP_PORT = process.env.SMTP_PORT;
