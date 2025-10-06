@@ -6,6 +6,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import authRoutes from "./modules/auth/auth.routes";
+import categoryRoutes from "./modules/inventory/category/category.routes";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.get("/",(req:Request, res:Response)=>{
 })
 
 app.use("/api/auth", authRoutes);
+app.use("/api/categories",categoryRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));
