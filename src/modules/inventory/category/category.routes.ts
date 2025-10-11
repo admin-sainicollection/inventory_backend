@@ -6,9 +6,9 @@ import { createCategorySchema, deleteCategorySchema, updateCategorySchema } from
 
 const router = Router();
 
-router.post("/add-category",protect, restrictToRoles("admin"), validate(createCategorySchema), Controller.addCategory);
-router.put("/update-category/:id",protect, restrictToRoles("admin"), validate(updateCategorySchema), Controller.updateCategory);
-router.delete("/delete-category",protect, restrictToRoles("admin"), validate(deleteCategorySchema), Controller.deleteCategory);
-router.get("/get-all-category", Controller.getAllCategories);
+router.post("/category/add-category",protect, restrictToRoles("admin"), validate(createCategorySchema), Controller.addCategory);
+router.put("/category/update-category/:id",protect, restrictToRoles("admin"), validate(updateCategorySchema), Controller.updateCategory);
+router.delete("/category/delete-category",protect, restrictToRoles("admin"), validate(deleteCategorySchema), Controller.deleteCategory);
+router.get("/category/get-all-category", Controller.getAllCategories);
 
 export default router;

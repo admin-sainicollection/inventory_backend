@@ -1,0 +1,342 @@
+tags:
+  - name: Auth
+    description: Authentication & authorization endpoints
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: Registers a new user and sends an email verification link.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterInput'
+      responses:
+        201:
+          description: User created successfully, verify email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        400:
+          description: Validation or email already used
+
+  /auth/verify-email:
+    get:
+      summary: Verify user email
+      description: Called when a user clicks the verification link sent to their email.
+      tags: [Auth]
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: User ID
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Email verification token
+      responses:
+        200:
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        400:
+          description: Invalid or expired token
+
+  /auth/login:
+    post:
+      summary: Login
+      description: Login using email or username and password.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+      responses:
+        200:
+          description: Login successful, returns access & refresh tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        401:
+          description: Invalid credentials or inactive account
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Generates a new access and refresh token.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshInput'
+      responses:
+        200:
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        401:
+          description: Invalid or expired refresh token
+
+  /auth/forgot-password:
+    post:
+      summary: Forgot password
+      description: Sends password reset email if account exists.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordInput'
+      responses:
+        200:
+          description: Email sent (or silently ignored)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        400:
+          description: Invalid request
+
+  /auth/reset-password:
+    post:
+      summary: Reset password
+      description: Resets the password with a valid reset token.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordInput'
+      responses:
+        200:
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        400:
+          description: Invalid or expired token
+
+  /invite:
+    post:
+      summary: Invite a new user (Admin only)
+      description: Admin can invite a new user. A temporary password and verification email will be sent.
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteUserInput'
+      responses:
+        201:
+          description: User invited successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteResponse'
+        400:
+          description: Validation error
+        401:
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterInput:
+      type: object
+      required:
+        - name
+        - userName
+        - email
+        - password
+        - roleName
+      properties:
+        name:
+          type: string
+          example: "John Doe"
+        userName:
+          type: string
+          example: "johndoe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          format: password
+          example: "Passw0rd!"
+        phoneNumber:
+          type: string
+          example: "+919876543210"
+        address:
+          type: object
+          properties:
+            line1: { type: string, example: "123 Street" }
+            city: { type: string, example: "Delhi" }
+            state: { type: string, example: "DL" }
+            country: { type: string, example: "India" }
+        roleName:
+          type: string
+          example: "user"
+
+    RegisterResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "User created. Verify email."
+        user:
+          type: object
+          properties:
+            id: { type: string, example: "6524f1ef930b5a3d64fd9f22" }
+            email: { type: string, example: "john@example.com" }
+
+    LoginInput:
+      type: object
+      required: [identifier, password]
+      properties:
+        identifier:
+          type: string
+          example: "john@example.com"
+        password:
+          type: string
+          example: "Passw0rd!"
+
+    LoginResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        access:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user:
+          type: object
+          properties:
+            _id: { type: string }
+            name: { type: string }
+            userName: { type: string }
+            email: { type: string }
+            role: { type: string }
+            status: { type: string }
+            isEmailVerified: { type: boolean }
+
+    RefreshInput:
+      type: object
+      required: [refresh]
+      properties:
+        refresh:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    RefreshResponse:
+      type: object
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+
+    ForgotPasswordInput:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+
+    ResetPasswordInput:
+      type: object
+      required: [id, token, newPassword]
+      properties:
+        id:
+          type: string
+          example: "6524f1ef930b5a3d64fd9f22"
+        token:
+          type: string
+          example: "f9a8a7..."
+        newPassword:
+          type: string
+          example: "NewPassw0rd!"
+
+    InviteUserInput:
+      type: object
+      required:
+        - name
+        - userName
+        - email
+        - role
+      properties:
+        name:
+          type: string
+          example: "Jane Doe"
+        userName:
+          type: string
+          example: "janedoe"
+        email:
+          type: string
+          format: email
+          example: "jane@example.com"
+        phoneNumber:
+          type: string
+          example: "+919812345678"
+        address:
+          type: object
+          properties:
+            line1: { type: string, example: "45 Street" }
+            city: { type: string, example: "Mumbai" }
+        role:
+          type: string
+          example: "manager"
+
+    InviteResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "6524f1ef930b5a3d64fd9f33"
+            email:
+              type: string
+              example: "jane@example.com"
+
+    SuccessMessage:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Success"

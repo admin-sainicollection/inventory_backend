@@ -8,12 +8,12 @@ import { forgotPasswordSchema, inviteUserSchema, loginSchema, refreshTokenSchema
 const router = Router();
 
 // Public
-router.post("/register",validate(registerUserSchema), Controller.register);
-router.get("/verify-email", validate(verifyEmailSchema), Controller.verifyEmail);
-router.post("/login",validate(loginSchema), Controller.login);
-router.post("/refresh",validate(refreshTokenSchema), Controller.refresh);
-router.post("/forgot-password",validate(forgotPasswordSchema), Controller.forgotPassword);
-router.post("/reset-password",validate(resetPasswordSchema), Controller.resetPassword);
+router.post("/auth/register",validate(registerUserSchema), Controller.register);
+router.get("/auth/verify-email", validate(verifyEmailSchema), Controller.verifyEmail);
+router.post("/auth/login",validate(loginSchema), Controller.login);
+router.post("/auth/refresh",validate(refreshTokenSchema), Controller.refresh);
+router.post("/auth/forgot-password",validate(forgotPasswordSchema), Controller.forgotPassword);
+router.post("/auth/reset-password",validate(resetPasswordSchema), Controller.resetPassword);
 
 // Protected admin invite (requires "user:create" permission)
 router.post("/invite", protect, authorizePermission("user:create"), validate(inviteUserSchema), Controller.inviteUser);
