@@ -1,0 +1,177 @@
+tags:
+  - name: Compatibility
+    description: API endpoints for managing car models
+
+paths:
+  /compatibility/add-car-model:
+    post:
+      summary: Add a new car model
+      description: Only admins can add car models
+      tags: [Compatibility]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarModelCreateInput'
+      responses:
+        201:
+          description: Car model added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarModelResponse'
+        400:
+          description: Car model already exists
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /compatibility/update-car-model/{id}:
+    put:
+      summary: Update a car model
+      description: Update car model name or brand. Only admins can update.
+      tags: [Compatibility]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the car model to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarModelUpdateInput'
+      responses:
+        200:
+          description: Car model updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarModelResponse'
+        404:
+          description: Car model not found
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /compatibility/delete-car-model:
+    delete:
+      summary: Delete a car model
+      description: Delete a car model by its ID. Only admins can delete.
+      tags: [Compatibility]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarModelDeleteInput'
+      responses:
+        200:
+          description: Car model deleted successfully
+        404:
+          description: Car model not found
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /compatibility/get-all-car-models:
+    get:
+      summary: Get all car models
+      description: Returns a list of all car models sorted by name.
+      tags: [Compatibility]
+      responses:
+        200:
+          description: Successfully fetched car models
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  models:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CarModel'
+        500:
+          description: Server error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CarModel:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "6524f0ef930b5a3d64fd8f12"
+        name:
+          type: string
+          example: "Civic"
+        brand:
+          type: string
+          example: "Honda"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-10T12:34:56.789Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-10-10T12:34:56.789Z"
+
+    CarModelCreateInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Civic"
+        brand:
+          type: string
+          example: "Honda"
+
+    CarModelUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Civic Updated"
+        brand:
+          type: string
+          example: "Honda Updated"
+
+    CarModelDeleteInput:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: "6524f0ef930b5a3d64fd8f12"
+
+    CarModelResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Car model added successfully"
+        model:
+          $ref: '#/components/schemas/CarModel'

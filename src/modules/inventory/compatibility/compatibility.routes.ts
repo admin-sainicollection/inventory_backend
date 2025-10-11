@@ -6,9 +6,9 @@ import { addCarModelSchema, deleteCarModelSchema, updatedCarModelSchema } from "
 
 const router = Router();
 
-router.post('/add-car-model', protect, restrictToRoles('admin'),validate(addCarModelSchema), Controller.addCarModel);
-router.put('/update-car-model/:id', protect, restrictToRoles('admin'), validate(updatedCarModelSchema), Controller.updateCarModel);
-router.delete('/delete-car-model', protect, restrictToRoles('admin'),validate(deleteCarModelSchema), Controller.deleteCarModel);
-router.get('/get-all-car-models', Controller.getAllCarModels);
+router.post('/compatibility/add-car-model', protect, restrictToRoles('admin'),validate(addCarModelSchema), Controller.addCarModel);
+router.put('/compatibility/update-car-model/:id', protect, restrictToRoles('admin'), validate(updatedCarModelSchema), Controller.updateCarModel);
+router.delete('/compatibility/delete-car-model', protect, restrictToRoles('admin'),validate(deleteCarModelSchema), Controller.deleteCarModel);
+router.get('/compatibility/get-all-car-models', Controller.getAllCarModels);
 
 export default router;

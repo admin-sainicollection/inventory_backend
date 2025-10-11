@@ -1,0 +1,211 @@
+tags:
+  - name: Category
+    description: API endpoints for managing product categories
+
+paths:
+  /category/add-category:
+    post:
+      summary: Create a new category
+      description: Only admins can create categories.
+      tags: [Category]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreateInput'
+      responses:
+        201:
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        400:
+          description: Category with this name already exists
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /category/update-category/{id}:
+    put:
+      summary: Update a category
+      description: Update category name, description, or attributes. Only admins can update categories.
+      tags: [Category]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the category to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdateInput'
+      responses:
+        200:
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        404:
+          description: Category not found
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /category/delete-category:
+    delete:
+      summary: Delete a category
+      description: Delete a category by its ID. Only admins can delete categories.
+      tags: [Category]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryDeleteInput'
+      responses:
+        200:
+          description: Category deleted successfully
+        404:
+          description: Category not found
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /category/get-all-category:
+    get:
+      summary: Get all categories
+      description: Returns a list of all categories sorted by creation date (latest first).
+      tags: [Category]
+      responses:
+        200:
+          description: Successfully fetched categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+        500:
+          description: Server error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AttributeTemplate:
+      type: object
+      properties:
+        key:
+          type: string
+          example: "engineModel"
+        label:
+          type: string
+          example: "Engine Model"
+        type:
+          type: string
+          example: "text"
+        options:
+          type: array
+          items:
+            type: string
+          example: ["Option 1", "Option 2"]
+      required:
+        - key
+        - label
+        - type
+
+    Category:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "6524eecf930b5a3d64fd8e1a"
+        name:
+          type: string
+          example: "Engine"
+        description:
+          type: string
+          example: "All engine components and parts"
+        attributesTemplate:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeTemplate'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-10T12:34:56.789Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-10-10T12:34:56.789Z"
+
+    CategoryCreateInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Engine"
+        description:
+          type: string
+          example: "All engine related parts"
+        attributesTemplate:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeTemplate'
+
+    CategoryUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Engine Updated"
+        description:
+          type: string
+          example: "Updated engine description"
+        attributesTemplate:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeTemplate'
+
+    CategoryDeleteInput:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: "6524eecf930b5a3d64fd8e1a"
+
+    CategoryResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Category created successfully"
+        category:
+          $ref: '#/components/schemas/Category'
