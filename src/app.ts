@@ -9,6 +9,7 @@ import categoryRoutes from "./modules/inventory/category/category.routes";
 import compatibilityRoutes from "./modules/inventory/compatibility/compatibility.routes";
 import productRoutes from "./modules/inventory/product/product.routes";
 import dotenv from "dotenv";
+import { swaggerSpecs, swaggerUi } from "./docs/swagger";
 dotenv.config();
 
 const app = express();
@@ -20,6 +21,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
+app.use("/api/v1/inventory/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs))
+
 // rate limiter (tweak for production)
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
 
@@ -28,10 +31,10 @@ app.get("/",(req:Request, res:Response)=>{
     res.send("Hey Frontend, It's a Backend server of Inventory. Do you want something from me?")
 })
 
-app.use("/api/auth", authRoutes);
-app.use("/api/categories",categoryRoutes)
-app.use("/api/compatibility",compatibilityRoutes)
-app.use('/api/products',productRoutes)
+app.use("/api/v1/inventory", authRoutes);
+app.use("/api/v1/inventory",categoryRoutes)
+app.use("/api/v1/inventory",compatibilityRoutes)
+app.use('/api/v1/inventory',productRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));
