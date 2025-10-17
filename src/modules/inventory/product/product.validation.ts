@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { addCarModelSchema } from "../compatibility/compatibility.validation";
 
 // Zod schema for product
 export const createProductSchema = z.object({
@@ -11,11 +12,11 @@ export const createProductSchema = z.object({
   vender: z.string().min(1, "Vendor is required"),
   purchasePrice: z.number().nonnegative("Purchase price cannot be negative"),
   sellingPrice: z.number().nonnegative("Selling price cannot be negative"),
-  vendorPrice: z.number().nonnegative("Vendor price cannot be negative").optional(),
-  description: z.string().optional(),
-  compatibility: z.array(z.string().min(1, "Compatibility name cannot be empty")).optional(),
-  attributes: z.record(z.any(), z.string()).optional(),
-  status: z.enum(["active", "inactive"]).optional(),
+  vendorPrice: z.number().nonnegative("Vendor price cannot be negative"),
+  description: z.string(),
+  compatibility: z.array(addCarModelSchema),
+  attributes: z.record(z.any(), z.string()),
+  status: z.enum(["active", "inactive"]),
 });
 
 

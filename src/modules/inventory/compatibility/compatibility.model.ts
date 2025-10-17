@@ -1,18 +1,31 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ICarModel extends Document {
-    name: String,
-    brand?: String
+    name: string;
+    brand: string;
+    variants: string[];
+    fuelType: string[];
+    year: { from: number; to: number }[];
+    transmission: string[];
 }
 
-const carModelSchema = new Schema<ICarModel>(
+export const carModelSchema = new Schema<ICarModel>(
     {
-        name: { type: String, required: true, unique: true, trim: true },
-        brand: { type: String }
+        name: { type: String, required: true, trim: true },
+        brand: { type: String, required: true, trim: true },
+        variants: { type: [String], default: [] },
+        fuelType: { type: [String], default: [] },
+        year: [
+            {
+                from: { type: Number, required: true },
+                to: { type: Number, required: true },
+            },
+        ],
+        transmission: { type: [String], default: [] },
     },
     {
-        timestamps: true
+        timestamps: true,
     }
-)
+);
 
-export default mongoose.model<ICarModel>("CarModel", carModelSchema)
+export default mongoose.model<ICarModel>("CarModel", carModelSchema);

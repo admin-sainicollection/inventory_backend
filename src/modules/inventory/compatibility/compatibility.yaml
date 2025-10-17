@@ -33,7 +33,7 @@ paths:
   /compatibility/update-car-model/{id}:
     put:
       summary: Update a car model
-      description: Update car model name or brand. Only admins can update.
+      description: Update car model details. Only admins can update.
       tags: [Compatibility]
       security:
         - bearerAuth: []
@@ -127,6 +127,32 @@ components:
         brand:
           type: string
           example: "Honda"
+        variants:
+          type: array
+          items:
+            type: string
+          example: ["V", "VX", "ZX"]
+        fuelType:
+          type: array
+          items:
+            type: string
+          example: ["Petrol", "Diesel", "CNG"]
+        year:
+          type: array
+          items:
+            type: object
+            properties:
+              from:
+                type: number
+                example: 2018
+              to:
+                type: number
+                example: 2022
+        transmission:
+          type: array
+          items:
+            type: string
+          example: ["Manual", "Automatic"]
         createdAt:
           type: string
           format: date-time
@@ -140,6 +166,11 @@ components:
       type: object
       required:
         - name
+        - brand
+        - variants
+        - fuelType
+        - year
+        - transmission
       properties:
         name:
           type: string
@@ -147,9 +178,42 @@ components:
         brand:
           type: string
           example: "Honda"
+        variants:
+          type: array
+          items:
+            type: string
+          example: ["V", "VX", "ZX"]
+        fuelType:
+          type: array
+          items:
+            type: string
+          example: ["Petrol", "Diesel"]
+        year:
+          type: array
+          items:
+            type: object
+            properties:
+              from:
+                type: number
+                example: 2018
+              to:
+                type: number
+                example: 2022
+        transmission:
+          type: array
+          items:
+            type: string
+          example: ["Manual", "Automatic"]
 
     CarModelUpdateInput:
       type: object
+      required:
+        - name
+        - brand
+        - variants
+        - fuelType
+        - year
+        - transmission
       properties:
         name:
           type: string
@@ -157,6 +221,32 @@ components:
         brand:
           type: string
           example: "Honda Updated"
+        variants:
+          type: array
+          items:
+            type: string
+          example: ["V", "VX", "ZX"]
+        fuelType:
+          type: array
+          items:
+            type: string
+          example: ["Petrol", "Diesel"]
+        year:
+          type: array
+          items:
+            type: object
+            properties:
+              from:
+                type: number
+                example: 2018
+              to:
+                type: number
+                example: 2022
+        transmission:
+          type: array
+          items:
+            type: string
+          example: ["Manual", "Automatic"]
 
     CarModelDeleteInput:
       type: object

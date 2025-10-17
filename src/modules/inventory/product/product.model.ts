@@ -1,4 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { ICarModel, carModelSchema } from "../compatibility/compatibility.model";
+
 
 export interface IProduct extends Document {
     name: string;
@@ -12,7 +14,7 @@ export interface IProduct extends Document {
     sellingPrice: number;
     vendorPrice: number;
     description?: string;
-    compatibility: string[]; // store array of car model names
+    compatibility: ICarModel[]; // store array of car model names
     attributes?: Record<string, any>;
     status?: "active" | "inactive";
 }
@@ -30,7 +32,7 @@ const productSchema = new Schema<IProduct>(
         sellingPrice: { type: Number, required: true },
         vendorPrice: { type: Number, required: true },
         description: { type: String, trim: true },
-        compatibility: [{ type: String, trim: true }],
+        compatibility: [{ type: carModelSchema, default: [] }],
         attributes: { type: Schema.Types.Mixed , default: {} },
         status: { type: String, enum: ["active", "inactive"], default: "active" },
     },
