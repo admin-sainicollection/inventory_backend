@@ -6,7 +6,7 @@ paths:
   /product/add-product:
     post:
       summary: Create a new product
-      description: Only admins or managers can create products.
+      description: Only admins or managers can create products. Checks for duplicate SKU or Name before creating.
       tags: [Product]
       security:
         - bearerAuth: []
@@ -16,6 +16,29 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ProductCreateInput'
+            example:
+              name: "Engine Oil"
+              sku: "EO-001"
+              image: "https://example.com/image.jpg"
+              quantity: 100
+              category: "Engine"
+              brand: "Mobil"
+              vender: "AutoVendor"
+              purchasePrice: 50
+              sellingPrice: 80
+              vendorPrice: 55
+              description: "High performance engine oil"
+              compatibility:
+                - name: "Civic"
+                  brand: "Honda"
+                  variants: ["LX", "EX"]
+                  fuelType: ["Petrol"]
+                  year: [{from: 2015, to: 2020}]
+                  transmission: ["Manual", "Automatic"]
+              attributes:
+                engineModel: "300V"
+                engineCapacity: "20l"
+              status: "active"
       responses:
         201:
           description: Product created successfully
@@ -24,7 +47,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProductResponse'
         400:
-          description: Validation or category error
+          description: Validation or category error (or duplicate product)
         401:
           description: Unauthorized
         500:
@@ -33,7 +56,7 @@ paths:
   /product/update-product/{id}:
     put:
       summary: Update a product
-      description: Only admins or managers can update products.
+      description: Only admins or managers can update products. Supports updating attributes and compatibility details.
       tags: [Product]
       security:
         - bearerAuth: []
@@ -50,6 +73,19 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ProductUpdateInput'
+            example:
+              name: "Updated Engine Oil"
+              quantity: 150
+              brand: "Shell"
+              compatibility:
+                - name: "City"
+                  brand: "Honda"
+                  variants: ["EX"]
+                  fuelType: ["Petrol"]
+                  year: [{from: 2017, to: 2021}]
+                  transmission: ["Automatic"]
+              attributes:
+                engineModel: "400X"
       responses:
         200:
           description: Product updated successfully
@@ -57,6 +93,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProductResponse'
+        400:
+          description: Validation or category error
         404:
           description: Product not found
         401:
@@ -81,6 +119,14 @@ paths:
       responses:
         200:
           description: Product deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Product deleted
         404:
           description: Product not found
         401:
@@ -99,12 +145,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  products:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Product'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
         404:
           description: No products found
         500:
@@ -142,6 +185,45 @@ components:
       bearerFormat: JWT
 
   schemas:
+    YearRange:
+      type: object
+      properties:
+        from:
+          type: number
+          example: 2015
+        to:
+          type: number
+          example: 2020
+
+    CarModel:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Civic"
+        brand:
+          type: string
+          example: "Honda"
+        variants:
+          type: array
+          items:
+            type: string
+          example: ["LX", "EX"]
+        fuelType:
+          type: array
+          items:
+            type: string
+          example: ["Petrol"]
+        year:
+          type: array
+          items:
+            $ref: '#/components/schemas/YearRange'
+        transmission:
+          type: array
+          items:
+            type: string
+          example: ["Manual", "Automatic"]
+
     Product:
       type: object
       properties:
@@ -184,24 +266,19 @@ components:
         compatibility:
           type: array
           items:
-            type: string
-          example: ["Civic", "Accord"]
+            $ref: '#/components/schemas/CarModel'
         attributes:
           type: object
           additionalProperties: true
-          example: { engineModel: "300V", engineCapacity: "20l" }
         status:
           type: string
           enum: ["active", "inactive"]
-          example: "active"
         createdAt:
           type: string
           format: date-time
-          example: "2025-10-10T12:34:56.789Z"
         updatedAt:
           type: string
           format: date-time
-          example: "2025-10-10T12:34:56.789Z"
 
     ProductCreateInput:
       type: object
@@ -240,7 +317,7 @@ components:
         compatibility:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/CarModel'
         attributes:
           type: object
           additionalProperties: true
@@ -249,46 +326,5 @@ components:
           enum: ["active", "inactive"]
 
     ProductUpdateInput:
-      type: object
-      properties:
-        name:
-          type: string
-        sku:
-          type: string
-        image:
-          type: string
-        quantity:
-          type: number
-        category:
-          type: string
-        brand:
-          type: string
-        vender:
-          type: string
-        purchasePrice:
-          type: number
-        sellingPrice:
-          type: number
-        vendorPrice:
-          type: number
-        description:
-          type: string
-        compatibility:
-          type: array
-          items:
-            type: string
-        attributes:
-          type: object
-          additionalProperties: true
-        status:
-          type: string
-          enum: ["active", "inactive"]
-
-    ProductResponse:
-      type: object
-      properties:
-        message:
-          type: string
-          example: "Product created"
-        product:
-          $ref: '#/components/schemas/Product'
+      allOf:
+        - $ref: '#/components/schemas/ProductCreateInput'

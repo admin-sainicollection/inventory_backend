@@ -9,7 +9,7 @@ export interface ICarModel extends Document {
     transmission: string[];
 }
 
-const carModelSchema = new Schema<ICarModel>(
+export const carModelSchema = new Schema<ICarModel>(
     {
         name: { type: String, required: true, trim: true },
         brand: { type: String, required: true, trim: true },
