@@ -67,7 +67,10 @@ paths:
   /category/delete-category:
     delete:
       summary: Delete a category
-      description: Delete a category by its ID. Only admins can delete categories.
+      description: >
+        Deletes a category by ID. Only admins can delete categories. 
+        ❌ If any product is using this category, deletion is prevented. 
+        Remove or reassign products using this category first.
       tags: [Category]
       security:
         - bearerAuth: []
@@ -80,8 +83,34 @@ paths:
       responses:
         200:
           description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Category deleted successfully"
+        400:
+          description: Category in use by one or more products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cannot delete category 'Engine'. Remove or reassign products using this category first."
         404:
           description: Category not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Category not found"
         401:
           description: Unauthorized
         500:

@@ -1,5 +1,6 @@
 import CarModel from "./compatibility.model";
 import { Request, Response } from "express";
+import Product from "../product/product.model";
 
 export const addCarModel = async (req: Request, res: Response) => {
     try {
@@ -47,19 +48,35 @@ export const updateCarModel = async (req: Request, res: Response) => {
 };
 
 export const deleteCarModel = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.body;
-        const deleted = await CarModel.findByIdAndDelete(id);
+  try {
+    const { id } = req.body;
 
-        if (!deleted) {
-            return res.status(404).json({ message: "Car model not found" });
-        }
-
-        res.json({ message: "Deleted successfully" });
-    } catch (error: any) {
-        return res.status(500).json({ message: error.message });
+    // ✅ Check if CarModel exists
+    const carModel = await CarModel.findById(id);
+    if (!carModel) {
+      return res.status(404).json({ message: "Car model not found" });
     }
+
+    // ✅ Check if this CarModel is used in any product's compatibility
+    const usedInProduct = await Product.findOne({
+      "compatibility.name": carModel.name,
+      "compatibility.brand": carModel.brand,
+    });
+
+    if (usedInProduct) {
+      return res.status(400).json({
+        message: `This car model is used in product "${usedInProduct.name}". Please remove it from product compatibility before deleting.`,
+      });
+    }
+
+    // ✅ Safe to delete
+    await CarModel.findByIdAndDelete(id);
+    res.json({ message: "Car model deleted successfully" });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
 };
+
 
 export const getAllCarModels = async (req: Request, res: Response) => {
     try {
