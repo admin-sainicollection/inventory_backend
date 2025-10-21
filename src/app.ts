@@ -1,5 +1,5 @@
 
-import express,{Response, Request} from "express";
+import express, { Response, Request } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -8,6 +8,7 @@ import authRoutes from "./modules/auth/auth.routes";
 import categoryRoutes from "./modules/inventory/category/category.routes";
 import compatibilityRoutes from "./modules/inventory/compatibility/compatibility.routes";
 import productRoutes from "./modules/inventory/product/product.routes";
+import vendorRoutes from "./modules/vendor/vendor.routes"
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
 dotenv.config();
@@ -27,14 +28,15 @@ app.use("/api/v1/inventory/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSp
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
 
 // routes
-app.get("/",(req:Request, res:Response)=>{
+app.get("/", (req: Request, res: Response) => {
     res.send("Hey Frontend, It's a Backend server of Inventory. Do you want something from me?")
 })
 
 app.use("/api/v1/inventory", authRoutes);
-app.use("/api/v1/inventory",categoryRoutes)
-app.use("/api/v1/inventory",compatibilityRoutes)
-app.use('/api/v1/inventory',productRoutes)
+app.use("/api/v1/inventory", categoryRoutes)
+app.use("/api/v1/inventory", compatibilityRoutes)
+app.use('/api/v1/inventory', productRoutes)
+app.use('/api/v1/inventory', vendorRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));
