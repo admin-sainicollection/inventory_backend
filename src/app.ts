@@ -25,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/v1/inventory/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs))
 
 // rate limiter (tweak for production)
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 10000 }));
 
 // routes
 app.get("/", (req: Request, res: Response) => {
