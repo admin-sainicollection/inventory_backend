@@ -18,6 +18,7 @@ export const addCategory = async (req: Request, res: Response) => {
         });
 
         res.status(201).json({
+            status:"success",
             message: "Category created successfully",
             category,
         });
@@ -46,6 +47,7 @@ export const updateCategory = async (req: Request, res: Response) => {
         }
 
         res.status(200).json({
+            status:"success",
             message: "Category updated successfully",
             category,
         });

@@ -20,7 +20,7 @@ export const addCarModel = async (req: Request, res: Response) => {
             transmission: transmission || []
         });
 
-        return res.status(201).json({ message: "Car model added", model: carModel });
+        return res.status(201).json({status:"success", message: "Car model added", model: carModel });
     } catch (error: any) {
         return res.status(500).json({ message: error.message });
     }
@@ -41,7 +41,7 @@ export const updateCarModel = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Car model not found" });
         }
 
-        return res.status(200).json({ message: "Car model updated", model: updated });
+        return res.status(200).json({status:"success", message: "Car model updated", model: updated });
     } catch (error: any) {
         return res.status(500).json({ message: error.message });
     }

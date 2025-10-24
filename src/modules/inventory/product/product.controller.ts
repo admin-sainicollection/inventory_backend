@@ -5,6 +5,7 @@ export const createProduct = async (req: Request, res: Response) => {
     try {
         const product = await ProductService.create(req.body);
         return res.status(201).json({
+            status:"success",
             message: "Product created successfully",
             product,
         });
@@ -24,6 +25,7 @@ export const updateProduct = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Product not found" });
         }
         return res.status(200).json({
+            status:"success",
             message: "Product updated successfully",
             product,
         });
