@@ -74,7 +74,11 @@ export const login = async (emailOrUserName: string, password: string) => {
     await Audit.create({ actorId: user._id, action: "user:login", targetId: user._id });
 
     return {
-        status: "success", access, refresh, user: {
+        status: "success", 
+        message:"User Logined in Successfully!",
+        access, 
+        refresh,
+         user: {
             _id: user._id,
             name: user.name,
             userName: user.userName,

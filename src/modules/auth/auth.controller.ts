@@ -4,7 +4,7 @@ import * as Service from "./auth.service";
 export const register = async (req: Request, res: Response) => {
   try {
     const user = await Service.registerUser(req.body);
-    res.status(201).json({ message: "User created. Verify email.", user: { id: user._id, email: user.email } });
+    res.status(201).json({status:"success", message: "User created. Verify email.", user: { id: user._id, email: user.email } });
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }
