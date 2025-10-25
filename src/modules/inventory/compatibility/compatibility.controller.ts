@@ -86,3 +86,20 @@ export const getAllCarModels = async (req: Request, res: Response) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+
+export const getCarModelById = async (req:Request, res: Response)=>{
+     try {
+            const { id } = req.params;
+            const carModel = await CarModel.findById(id);
+            if (!carModel) {
+                return res.status(404).json({ message: "carModel not found" });
+            }
+            return res.status(200).json(carModel);
+        } catch (err: any) {
+            console.error("Get carModel By ID Error:", err);
+            return res.status(404).json({
+                message: err.message || "Failed to fetch carModel",
+            });
+        }
+}

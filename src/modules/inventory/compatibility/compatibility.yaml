@@ -107,6 +107,36 @@ paths:
         500:
           description: Server error
 
+  /compatibility/get-car-model/{id}:
+    get:
+      summary: Get car model by ID
+      description: Fetch a single car model's compatibility details using its ID. Only admins can access this endpoint.
+      tags: [Compatibility]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the car model to fetch
+      responses:
+        200:
+          description: Successfully fetched car model
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarModel'
+        400:
+          description: Invalid car model ID format
+        404:
+          description: Car model not found
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
 components:
   securitySchemes:
     bearerAuth:
