@@ -1,0 +1,236 @@
+openapi: 3.0.3
+info:
+  title: Brand Management API
+  version: 1.0.0
+  description: API endpoints for managing brands, including image upload for logos.
+
+tags:
+  - name: Brand
+    description: Brand-related operations
+
+paths:
+  /brand/add-brand:
+    post:
+      summary: Create a new brand
+      description: Only admins can create a brand.
+      tags: [Brand]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BrandCreateInput'
+      responses:
+        201:
+          description: Brand created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandResponse'
+        400:
+          description: Validation error or duplicate brand
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /brand/update-brand/{id}:
+    put:
+      summary: Update an existing brand
+      description: Only admins can update brand details. Supports partial updates and logo replacement.
+      tags: [Brand]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Brand ID to update
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Honda Updated"
+                parentCompany:
+                  type: string
+                  example: "Honda Motors"
+                brandLogo:
+                  type: string
+                  format: binary
+                  description: Upload a new logo to replace the existing one
+      responses:
+        200:
+          description: Brand updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandResponse'
+        400:
+          description: Validation error
+        404:
+          description: Brand not found
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /brand/delete-brand:
+    delete:
+      summary: Delete a brand
+      description: Only admins can delete brands. The brand ID must be provided in the request body.
+      tags: [Brand]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: string
+                  example: "6524eecf930b5a3d64fd8e1a"
+                  description: The ID of the brand to delete
+      responses:
+        200:
+          description: Brand deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Brand deleted successfully"
+        404:
+          description: Brand not found
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /brand/get-all-brands:
+    get:
+      summary: Get all brands
+      description: Returns a list of all brands.
+      tags: [Brand]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successfully fetched all brands
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  brands:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Brand'
+        500:
+          description: Server error
+
+  /brand/get-brand/{id}:
+    get:
+      summary: Get a single brand by ID
+      description: Returns brand details by brand ID.
+      tags: [Brand]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Brand ID
+      responses:
+        200:
+          description: Brand details fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandResponse'
+        404:
+          description: Brand not found
+        500:
+          description: Server error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Brand:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "6524eecf930b5a3d64fd8e1a"
+        name:
+          type: string
+          example: "Honda"
+        parentCompany:
+          type: string
+          example: "Honda Motors"
+        brandLogo:
+          type: string
+          example: "/uploads/brand/honda-logo.png"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-10T12:34:56.789Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-10-10T12:34:56.789Z"
+
+    BrandCreateInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Honda"
+        parentCompany:
+          type: string
+          example: "Honda Motors"
+        brandLogo:
+          type: string
+          format: binary
+          description: Brand logo image (upload file)
+
+    BrandResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        message:
+          type: string
+          example: "Brand created successfully"
+        brand:
+          $ref: '#/components/schemas/Brand'

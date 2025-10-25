@@ -95,7 +95,7 @@ export const getCarModelById = async (req:Request, res: Response)=>{
             if (!carModel) {
                 return res.status(404).json({ message: "carModel not found" });
             }
-            return res.status(200).json(carModel);
+            return res.status(200).json({singleCar:carModel});
         } catch (err: any) {
             console.error("Get carModel By ID Error:", err);
             return res.status(404).json({
