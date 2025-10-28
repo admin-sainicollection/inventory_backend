@@ -13,6 +13,11 @@ const defaultBrands = [
         brandLogo: "https://logos-world.net/wp-content/uploads/2021/10/Tata-Symbol.png",
     },
     {
+        name: "Nissan",
+        parentCompany: "Nissan Motor Co. Ltd.",
+        brandLogo: "https://www.edigitalagency.com.au/wp-content/uploads/new-Nissan-logo-black-png-large-size.png",
+    },
+    {
         name: "Hyundai",
         parentCompany: "Hyundai Motor Company",
         brandLogo: "https://logos-world.net/wp-content/uploads/2021/03/Hyundai-Logo.png",
