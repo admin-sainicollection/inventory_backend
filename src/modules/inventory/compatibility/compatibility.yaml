@@ -1,3 +1,9 @@
+openapi: 3.0.3
+info:
+  title: Car Model Compatibility API
+  version: 1.0.0
+  description: API endpoints for managing car models, including images and brand info.
+
 tags:
   - name: Compatibility
     description: API endpoints for managing car models
@@ -13,9 +19,58 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CarModelCreateInput'
+              type: object
+              required:
+                - name
+                - brandName
+                - variants
+                - fuelTypes
+                - transmissions
+                - baseImage
+              properties:
+                name:
+                  type: string
+                  example: "Civic"
+                brandName:
+                  type: string
+                  example: "Honda"
+                brandLogo:
+                  type: string
+                  format: binary
+                  description: Brand logo image
+                parentCompany:
+                  type: string
+                  example: "Honda Motor Co., Ltd."
+                variants:
+                  type: array
+                  items:
+                    type: string
+                  example: ["V", "VX", "ZX"]
+                fuelTypes:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Petrol", "Diesel"]
+                transmissions:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Manual", "Automatic"]
+                baseImage:
+                  type: string
+                  format: binary
+                  description: Main image of the car
+                generations:
+                  type: string
+                  description: JSON string of generations array [{from,to,images:[filename1,filename2]}]
+                generationImages:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Multiple images for each generation
       responses:
         201:
           description: Car model added successfully
@@ -47,9 +102,50 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CarModelUpdateInput'
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Civic Updated"
+                brandName:
+                  type: string
+                  example: "Honda Updated"
+                brandLogo:
+                  type: string
+                  format: binary
+                parentCompany:
+                  type: string
+                  example: "Honda Motor Co., Ltd."
+                variants:
+                  type: array
+                  items:
+                    type: string
+                  example: ["V", "VX", "ZX"]
+                fuelTypes:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Petrol", "Diesel"]
+                transmissions:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Manual", "Automatic"]
+                baseImage:
+                  type: string
+                  format: binary
+                  description: Main image of the car
+                generations:
+                  type: string
+                  description: JSON string of generations array [{from,to,images:[filename1,filename2]}]
+                generationImages:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Multiple images for each generation
       responses:
         200:
           description: Car model updated successfully
@@ -100,6 +196,9 @@ paths:
               schema:
                 type: object
                 properties:
+                  status:
+                    type: string
+                    example: "success"
                   models:
                     type: array
                     items:
@@ -155,34 +254,51 @@ components:
           type: string
           example: "Civic"
         brand:
-          type: string
-          example: "Honda"
+          type: object
+          properties:
+            name:
+              type: string
+              example: "Honda"
+            logo:
+              type: string
+              example: "/uploads/brand/honda-logo.png"
+            parentCompany:
+              type: string
+              example: "Honda Motor Co., Ltd."
         variants:
           type: array
           items:
             type: string
           example: ["V", "VX", "ZX"]
-        fuelType:
+        fuelTypes:
           type: array
           items:
             type: string
-          example: ["Petrol", "Diesel", "CNG"]
-        year:
+          example: ["Petrol", "Diesel"]
+        transmissions:
+          type: array
+          items:
+            type: string
+          example: ["Manual", "Automatic"]
+        baseImage:
+          type: string
+          example: "/uploads/cars/civic-base.png"
+        generations:
           type: array
           items:
             type: object
             properties:
               from:
-                type: number
-                example: 2018
+                type: string
+                example: "2018"
               to:
-                type: number
-                example: 2022
-        transmission:
-          type: array
-          items:
-            type: string
-          example: ["Manual", "Automatic"]
+                type: string
+                example: "2022"
+              images:
+                type: array
+                items:
+                  type: string
+                example: ["/uploads/cars/civic-2018.png"]
         createdAt:
           type: string
           format: date-time
@@ -191,92 +307,6 @@ components:
           type: string
           format: date-time
           example: "2025-10-10T12:34:56.789Z"
-
-    CarModelCreateInput:
-      type: object
-      required:
-        - name
-        - brand
-        - variants
-        - fuelType
-        - year
-        - transmission
-      properties:
-        name:
-          type: string
-          example: "Civic"
-        brand:
-          type: string
-          example: "Honda"
-        variants:
-          type: array
-          items:
-            type: string
-          example: ["V", "VX", "ZX"]
-        fuelType:
-          type: array
-          items:
-            type: string
-          example: ["Petrol", "Diesel"]
-        year:
-          type: array
-          items:
-            type: object
-            properties:
-              from:
-                type: number
-                example: 2018
-              to:
-                type: number
-                example: 2022
-        transmission:
-          type: array
-          items:
-            type: string
-          example: ["Manual", "Automatic"]
-
-    CarModelUpdateInput:
-      type: object
-      required:
-        - name
-        - brand
-        - variants
-        - fuelType
-        - year
-        - transmission
-      properties:
-        name:
-          type: string
-          example: "Civic Updated"
-        brand:
-          type: string
-          example: "Honda Updated"
-        variants:
-          type: array
-          items:
-            type: string
-          example: ["V", "VX", "ZX"]
-        fuelType:
-          type: array
-          items:
-            type: string
-          example: ["Petrol", "Diesel"]
-        year:
-          type: array
-          items:
-            type: object
-            properties:
-              from:
-                type: number
-                example: 2018
-              to:
-                type: number
-                example: 2022
-        transmission:
-          type: array
-          items:
-            type: string
-          example: ["Manual", "Automatic"]
 
     CarModelDeleteInput:
       type: object
@@ -290,6 +320,9 @@ components:
     CarModelResponse:
       type: object
       properties:
+        status:
+          type: string
+          example: "success"
         message:
           type: string
           example: "Car model added successfully"

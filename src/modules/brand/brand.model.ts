@@ -12,7 +12,7 @@ const brandSchema = new Schema<IBrand>(
     {
         name: { type: String, required: true, trim: true },
         parentCompany: { type: String, trim: true },
-        brandLogo: { type: String, trim: true },
+        brandLogo: { type: String, required:true, trim: true },
     },
     { timestamps: true }
 );
