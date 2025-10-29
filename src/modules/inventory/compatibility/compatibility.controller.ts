@@ -181,7 +181,7 @@ export const deleteCarModel = async (req: Request, res: Response) => {
         }
 
         await CarModel.findByIdAndDelete(id);
-        res.json({ status: "success", message: "Car model deleted successfully" });
+        res.json({ status: "success", message: "Car model deleted successfully", carModel });
     } catch (error: any) {
         return res.status(500).json({ message: error.message });
     }

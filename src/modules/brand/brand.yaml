@@ -86,7 +86,10 @@ paths:
   /brand/delete-brand:
     delete:
       summary: Delete a brand
-      description: Only admins can delete brands. The brand ID must be provided in the request body.
+      description: >
+        Only admins can delete brands.  
+        The brand ID must be provided in the request body.  
+        If the brand is associated with one or more cars, the deletion will be prevented and an error will be returned.
       tags: [Brand]
       security:
         - bearerAuth: []
@@ -117,6 +120,21 @@ paths:
                   message:
                     type: string
                     example: "Brand deleted successfully"
+        400:
+          description: >
+            Bad Request — occurs if the brand is used in any car  
+            or if the request body is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "This brand is associated with one or more cars. Please remove those cars before deleting the brand."
         404:
           description: Brand not found
         401:
@@ -197,7 +215,7 @@ components:
           example: "Honda Motors"
         brandLogo:
           type: string
-          example: "/uploads/brand/honda-logo.png"
+          example: "https://res.cloudinary.com/demo/image/upload/v1723456789/brands/honda.png"
         createdAt:
           type: string
           format: date-time

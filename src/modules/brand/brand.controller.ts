@@ -81,13 +81,14 @@ export const updateBrand = async (req: Request, res: Response) => {
 
 
 export const deleteBrand = async (req: Request, res: Response) => {
-    try {
-        const brand = await BrandService.deleteBrand(req.body.id);
-        res.status(200).json({ status: "success", message: "Brand deleted successfully", brand });
-    } catch (error: any) {
-        res.status(400).json({ status: "error", message: error.message });
-    }
+  try {
+    const brand = await BrandService.deleteBrand(req.body.id);
+    res.status(200).json({ status: "success", message: "Brand deleted successfully", brand });
+  } catch (error: any) {
+    res.status(400).json({ status: "error", message: error.message });
+  }
 };
+
 
 export const getAllBrands = async (req: Request, res: Response) => {
     try {

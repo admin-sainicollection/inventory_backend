@@ -1,3 +1,4 @@
+import CarModel from "../inventory/compatibility/compatibility.model";
 import Brand, { IBrand } from "./brand.model";
 
 /**
@@ -24,9 +25,16 @@ export const updateBrand = async (id: string, data: Partial<IBrand>) => {
  * Delete a brand by ID
  */
 export const deleteBrand = async (id: string) => {
-    const deleted = await Brand.findByIdAndDelete(id);
-    if (!deleted) throw new Error("Brand not found");
-    return deleted;
+  const brand = await Brand.findById(id);
+  if (!brand) throw new Error("Brand not found");
+
+  // ✅ Prevent deletion if used in any car
+  const usedInCar = await CarModel.findOne({ "brand.name": brand.name });
+  if (usedInCar)
+    throw new Error("This brand is associated with one or more cars. Please remove those cars before deleting the brand.");
+
+  await Brand.findByIdAndDelete(id);
+  return brand;
 };
 
 /**
