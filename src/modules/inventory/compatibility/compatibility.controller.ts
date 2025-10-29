@@ -93,6 +93,7 @@ export const updateCarModel = async (req: Request, res: Response) => {
       brandName,
       brandLogo,
       parentCompany,
+      baseImageUrl, // Get baseImageUrl from body if provided
     } = req.body;
 
     let brandObj: any = null;
@@ -106,19 +107,35 @@ export const updateCarModel = async (req: Request, res: Response) => {
     const parsedGenerations = typeof generations === "string" ? JSON.parse(generations) : (generations || []);
 
     const files = req.files as any;
-    let baseImageUrl: string | undefined;
+    
+    // Handle base image
+    let finalBaseImageUrl = baseImageUrl; // Start with existing base image URL
+    
+    // If new base image is uploaded, use it
     if (files?.baseImage?.[0]) {
-      baseImageUrl = await uploadBuffer(files.baseImage[0].buffer, "inventory/cars/baseImages");
+      finalBaseImageUrl = await uploadBuffer(files.baseImage[0].buffer, "inventory/cars/baseImages");
     }
 
+    // Handle generation images - FIXED VERSION
     const genFiles = files?.generationImages || [];
     let pointer = 0;
+    
     for (const gen of parsedGenerations) {
-      const count = Number(gen.imagesCount || 0);
-      const slice = genFiles.slice(pointer, pointer + count);
-      const uploaded = await Promise.all(slice.map((f: any) => uploadBuffer(f.buffer, "inventory/cars/generations")));
-      gen.images = uploaded;
-      pointer += count;
+      const newImagesCount = Number(gen.imagesCount || 0);
+      
+      if (newImagesCount > 0) {
+        const slice = genFiles.slice(pointer, pointer + newImagesCount);
+        const uploadedUrls = await Promise.all(
+          slice.map((f: any) => uploadBuffer(f.buffer, "inventory/cars/generations"))
+        );
+        
+        // Merge existing images with new images instead of replacing
+        const existingImages = Array.isArray(gen.images) ? gen.images : [];
+        gen.images = [...existingImages, ...uploadedUrls];
+        
+        pointer += newImagesCount;
+      }
+      // If no new images, keep the existing images array as is
     }
 
     const updateData: any = {};
@@ -128,7 +145,7 @@ export const updateCarModel = async (req: Request, res: Response) => {
     if (parsedFuelTypes) updateData.fuelTypes = parsedFuelTypes;
     if (parsedTransmissions) updateData.transmissions = parsedTransmissions;
     if (parsedGenerations) updateData.generations = parsedGenerations;
-    if (baseImageUrl) updateData.baseImage = baseImageUrl;
+    if (finalBaseImageUrl) updateData.baseImage = finalBaseImageUrl;
 
     const updated = await CarModel.findByIdAndUpdate(id, updateData, { new: true });
     if (!updated) return res.status(404).json({ message: "Car model not found" });
