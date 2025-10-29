@@ -2,65 +2,61 @@ import { Request, Response } from "express";
 import CarModel from "./compatibility.model";
 import Product from "../product/product.model";
 import { addCarModelSchema, updateCarModelSchema } from "./compatibility.validation";
+import { uploadBuffer } from "../../../config/cloudinary/cloudinary";
 
 /**
  * Add a new car model
  */
 const REL_UPLOAD_BASE = "/uploads/carModels"; // used in URLs returned to client
 
+
 export const addCarModel = async (req: Request, res: Response) => {
   try {
-    // multer will populate req.files for fields
-    // req.body.generations expected to be a JSON string or array with imagesCount per generation
     const {
       name,
-      brand,            // brand expected as JSON string or object
       variants,
       fuelTypes,
       transmissions,
       generations,
+      brand,
       brandName,
       brandLogo,
       parentCompany,
     } = req.body;
 
-    // parse brand if sent as brandName / brandLogo pattern (we support both)
+    // Build brand object (support both patterns)
     let brandObj: any = null;
-    if (brand) {
-      brandObj = typeof brand === "string" ? JSON.parse(brand) : brand;
-    } else if (brandName || brandLogo || parentCompany) {
+    if (brand) brandObj = typeof brand === "string" ? JSON.parse(brand) : brand;
+    else if (brandName || brandLogo || parentCompany)
       brandObj = { name: brandName || "", logo: brandLogo || "", parentCompany: parentCompany || "" };
-    }
 
-    // parsed arrays (they might be strings when sent in form-data)
+    // Parse arrays (frontend sends JSON strings for arrays)
     const parsedVariants = typeof variants === "string" ? JSON.parse(variants) : variants || [];
     const parsedFuelTypes = typeof fuelTypes === "string" ? JSON.parse(fuelTypes) : fuelTypes || [];
     const parsedTransmissions = typeof transmissions === "string" ? JSON.parse(transmissions) : transmissions || [];
-
-    // parse generations array (should include imagesCount property per generation)
     const parsedGenerations = typeof generations === "string" ? JSON.parse(generations) : (generations || []);
 
-    // baseImage file -> store relative url
-    const files = req.files as any; // multer typings
+    // files from multer memoryStorage
+    const files = req.files as any; // multer types
+    // Base image upload
     let baseImageUrl: string | undefined;
-    if (files && files.baseImage && files.baseImage.length > 0) {
+    if (files?.baseImage?.[0]) {
       const f = files.baseImage[0];
-      // f.filename exists when using diskStorage
-      baseImageUrl = `${process.env.BASE_URL_SERVER}${REL_UPLOAD_BASE}/${f.filename}`;
+      baseImageUrl = await uploadBuffer(f.buffer, "inventory/cars/baseImages");
     }
 
-    // generation images: multer field name is 'generationImages' (multiple files appended in order)
-    const genFiles = files && files.generationImages ? files.generationImages : [];
-    // Map files sequentially using imagesCount present in parsedGenerations
+    // generationImages: they are sent as a flat list in the same order as generations
+    const genFiles = files?.generationImages || [];
     let pointer = 0;
-    parsedGenerations.forEach((gen: any) => {
+    for (const gen of parsedGenerations) {
       const count = Number(gen.imagesCount || 0);
-      const assigned = genFiles.slice(pointer, pointer + count).map((f: any) => `${process.env.BASE_URL_SERVER}${REL_UPLOAD_BASE}/${f.filename}`);
-      gen.images = assigned;
+      const slice = genFiles.slice(pointer, pointer + count);
+      const uploaded = await Promise.all(slice.map((f: any) => uploadBuffer(f.buffer, "inventory/cars/generations")));
+      gen.images = uploaded;
       pointer += count;
-    });
+    }
 
-    // check duplicates: same name + brand.name
+    // Duplicate check (name + brand)
     const brandNameToCheck = brandObj?.name ?? "";
     const existing = await CarModel.findOne({ name, "brand.name": brandNameToCheck });
     if (existing) {
@@ -77,11 +73,7 @@ export const addCarModel = async (req: Request, res: Response) => {
       generations: parsedGenerations,
     });
 
-    return res.status(201).json({
-      status: "success",
-      message: "Car model added successfully",
-      model: carModel,
-    });
+    return res.status(201).json({ status: "success", message: "Car model added successfully", model: carModel });
   } catch (error: any) {
     console.error("addCarModel error:", error);
     return res.status(500).json({ message: error.message });
@@ -93,11 +85,11 @@ export const updateCarModel = async (req: Request, res: Response) => {
     const { id } = req.params;
     const {
       name,
-      brand,
       variants,
       fuelTypes,
       transmissions,
       generations,
+      brand,
       brandName,
       brandLogo,
       parentCompany,
@@ -105,28 +97,29 @@ export const updateCarModel = async (req: Request, res: Response) => {
 
     let brandObj: any = null;
     if (brand) brandObj = typeof brand === "string" ? JSON.parse(brand) : brand;
-    else if (brandName || brandLogo || parentCompany) brandObj = { name: brandName || "", logo: brandLogo || "", parentCompany: parentCompany || "" };
+    else if (brandName || brandLogo || parentCompany)
+      brandObj = { name: brandName || "", logo: brandLogo || "", parentCompany: parentCompany || "" };
 
     const parsedVariants = typeof variants === "string" ? JSON.parse(variants) : variants;
     const parsedFuelTypes = typeof fuelTypes === "string" ? JSON.parse(fuelTypes) : fuelTypes;
     const parsedTransmissions = typeof transmissions === "string" ? JSON.parse(transmissions) : transmissions;
-
     const parsedGenerations = typeof generations === "string" ? JSON.parse(generations) : (generations || []);
 
     const files = req.files as any;
     let baseImageUrl: string | undefined;
-    if (files && files.baseImage && files.baseImage.length > 0) {
-      baseImageUrl = `${process.env.BASE_URL_SERVER}${REL_UPLOAD_BASE}/${files.baseImage[0].filename}`;
+    if (files?.baseImage?.[0]) {
+      baseImageUrl = await uploadBuffer(files.baseImage[0].buffer, "inventory/cars/baseImages");
     }
 
-    const genFiles = files && files.generationImages ? files.generationImages : [];
+    const genFiles = files?.generationImages || [];
     let pointer = 0;
-    parsedGenerations.forEach((gen: any) => {
+    for (const gen of parsedGenerations) {
       const count = Number(gen.imagesCount || 0);
-      const assigned = genFiles.slice(pointer, pointer + count).map((f: any) => `${process.env.BASE_URL_SERVER}${REL_UPLOAD_BASE}/${f.filename}`);
-      gen.images = assigned;
+      const slice = genFiles.slice(pointer, pointer + count);
+      const uploaded = await Promise.all(slice.map((f: any) => uploadBuffer(f.buffer, "inventory/cars/generations")));
+      gen.images = uploaded;
       pointer += count;
-    });
+    }
 
     const updateData: any = {};
     if (name) updateData.name = name;
@@ -146,7 +139,6 @@ export const updateCarModel = async (req: Request, res: Response) => {
     return res.status(500).json({ message: error.message });
   }
 };
-
 
 /**
  * Delete car model

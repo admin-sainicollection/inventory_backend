@@ -1,10 +1,17 @@
 import { Request, Response } from "express";
 import * as BrandService from "./brand.service";
+import { uploadBuffer } from "../../config/cloudinary/cloudinary";
 
 export const addBrand = async (req: Request, res: Response) => {
   try {
     const { name, parentCompany } = req.body;
-    const brandLogo = req.file ? `/uploads/${req.file.filename}` : undefined;
+
+    // If multer memoryStorage used, req.file.buffer will be available
+    let brandLogoUrl: string | undefined;
+    if (req.file && (req.file as any).buffer) {
+      // uploadBuffer returns the secure url string
+      brandLogoUrl = await uploadBuffer((req.file as any).buffer, "inventory/brands");
+    }
 
     const brandPayload: {
       name: string;
@@ -15,34 +22,42 @@ export const addBrand = async (req: Request, res: Response) => {
       parentCompany,
     };
 
-    if (brandLogo) {
-      brandPayload.brandLogo = brandLogo;
+    if (brandLogoUrl) {
+      brandPayload.brandLogo = brandLogoUrl;
     }
 
     const brand = await BrandService.createBrand(brandPayload);
 
-    res.status(200).json({
+    return res.status(200).json({
       status: "success",
       message: "Brand Created Successfully",
       brand,
     });
   } catch (error: any) {
-    res.status(500).json({ status: "error", message: error.message });
+    console.error("addBrand error:", error);
+    return res.status(500).json({ status: "error", message: error.message });
   }
 };
 
+/**
+ * Update brand (optionally upload new logo to Cloudinary)
+ */
 export const updateBrand = async (req: Request, res: Response) => {
   try {
     const { name, parentCompany } = req.body;
-
-    // Use same pattern as addBrand (consistent URL path)
-    const brandLogo = req.file ? `/uploads/${req.file.filename}` : undefined;
-
     const updateData: Record<string, any> = {};
 
     if (name) updateData.name = name;
     if (parentCompany) updateData.parentCompany = parentCompany;
-    if (brandLogo) updateData.brandLogo = brandLogo;
+
+    // If a new logo file is uploaded, upload to Cloudinary and add url to updateData
+    if (req.file && (req.file as any).buffer) {
+      const brandLogoUrl = await uploadBuffer((req.file as any).buffer, "inventory/brands");
+      updateData.brandLogo = brandLogoUrl;
+
+      // TODO (optional): If you track Cloudinary public_id in DB, delete previous image here
+      // so you don't accumulate unused images. You would need the public_id stored earlier.
+    }
 
     const brand = await BrandService.updateBrand(req.params.id as string, updateData);
 
@@ -50,18 +65,20 @@ export const updateBrand = async (req: Request, res: Response) => {
       return res.status(404).json({ status: "error", message: "Brand not found" });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       status: "success",
       message: "Brand updated successfully",
       brand,
     });
   } catch (error: any) {
-    res.status(500).json({
+    console.error("updateBrand error:", error);
+    return res.status(500).json({
       status: "error",
       message: error.message,
     });
   }
 };
+
 
 export const deleteBrand = async (req: Request, res: Response) => {
     try {
