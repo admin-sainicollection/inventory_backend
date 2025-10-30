@@ -190,14 +190,57 @@ export const deleteCarModel = async (req: Request, res: Response) => {
 /**
  * Get all car models
  */
+
 export const getAllCarModels = async (req: Request, res: Response) => {
-    try {
-        const models = await CarModel.find().sort({ name: 1 });
-        res.status(200).json({ status: "success", models });
-    } catch (error: any) {
-        return res.status(500).json({ message: error.message });
+  try {
+    const { q, limit, page } = req.query;
+
+    // Convert pagination params to numbers with defaults
+    const limitNum = Number(limit) > 0 ? Number(limit) : 0; // 0 = no limit
+    const pageNum = Number(page) > 0 ? Number(page) : 1;
+    const skip = limitNum ? (pageNum - 1) * limitNum : 0;
+
+    let query: any = {};
+
+    // If search query is provided, apply regex filters
+    if (q && typeof q === "string" && q.trim() !== "") {
+      const regex = new RegExp(q, "i"); // case-insensitive search
+      query = {
+        $or: [
+          { "brand.name": regex },
+          { name: regex },
+          { transmissions: regex },
+          { fuelTypes: regex },
+          { variants: regex },
+          { "generations.from": regex },
+          { "generations.to": regex },
+        ],
+      };
     }
+
+    // Fetch models based on query + pagination
+    const modelsQuery = CarModel.find(query).sort({ name: 1 }).skip(skip);
+    if (limitNum > 0) modelsQuery.limit(limitNum);
+
+    const models = await modelsQuery.exec();
+    const total = await CarModel.countDocuments(query);
+
+    res.status(200).json({
+      status: "success",
+      message: q
+        ? `Showing results for "${q}"`
+        : "All car models fetched successfully",
+      total,
+      page: pageNum,
+      limit: limitNum || "no limit",
+      models,
+    });
+  } catch (error: any) {
+    console.error("getAllCarModels error:", error);
+    return res.status(500).json({ status: "error", message: error.message });
+  }
 };
+
 
 /**
  * Get car model by ID
@@ -214,3 +257,4 @@ export const getCarModelById = async (req: Request, res: Response) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
