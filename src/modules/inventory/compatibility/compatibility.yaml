@@ -1,18 +1,19 @@
 openapi: 3.0.3
 info:
   title: Car Model Compatibility API
-  version: 1.0.0
-  description: API endpoints for managing car models, including images and brand info.
+  version: 1.1.0
+  description: >
+    API endpoints for managing car models, including search, pagination, and brand compatibility.
 
 tags:
   - name: Compatibility
-    description: API endpoints for managing car models
+    description: API endpoints for managing and searching car models
 
 paths:
   /compatibility/add-car-model:
     post:
       summary: Add a new car model
-      description: Only admins can add car models
+      description: Only admins can add car models with images and brand info.
       tags: [Compatibility]
       security:
         - bearerAuth: []
@@ -185,12 +186,40 @@ paths:
 
   /compatibility/get-all-car-models:
     get:
-      summary: Get all car models
-      description: Returns a list of all car models sorted by name.
+      summary: Get or search car models
+      description: >
+        Returns a paginated list of car models sorted by name.  
+        - If `q` is provided, performs a case-insensitive search across brand name, car name, fuel types, transmissions, variants, and generation years.  
+        - If no `q` is provided, returns all models.  
+        - Supports `limit` and `page` for pagination.
       tags: [Compatibility]
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search keyword (brand name, car name, transmission, fuel type, etc.)
+          example: "automatic"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Number of records per page
+          example: 10
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Page number for pagination
+          example: 1
       responses:
         200:
-          description: Successfully fetched car models
+          description: Successfully fetched car models (with or without search)
           content:
             application/json:
               schema:
@@ -199,6 +228,20 @@ paths:
                   status:
                     type: string
                     example: "success"
+                  message:
+                    type: string
+                    example: Showing results for "automatic"
+                  total:
+                    type: integer
+                    example: 23
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    oneOf:
+                      - type: integer
+                      - type: string
+                    example: 10
                   models:
                     type: array
                     items:
@@ -209,7 +252,7 @@ paths:
   /compatibility/get-car-model/{id}:
     get:
       summary: Get car model by ID
-      description: Fetch a single car model's compatibility details using its ID. Only admins can access this endpoint.
+      description: Fetch a single car model's compatibility details using its ID.
       tags: [Compatibility]
       security:
         - bearerAuth: []
@@ -261,7 +304,7 @@ components:
               example: "Honda"
             logo:
               type: string
-              example: "/uploads/brand/honda-logo.png"
+              example: "https://res.cloudinary.com/demo/image/upload/v1723456789/brands/honda.png"
             parentCompany:
               type: string
               example: "Honda Motor Co., Ltd."
@@ -282,7 +325,7 @@ components:
           example: ["Manual", "Automatic"]
         baseImage:
           type: string
-          example: "/uploads/cars/civic-base.png"
+          example: "https://res.cloudinary.com/demo/image/upload/v1723456789/cars/civic-base.png"
         generations:
           type: array
           items:
@@ -298,7 +341,7 @@ components:
                 type: array
                 items:
                   type: string
-                example: ["/uploads/cars/civic-2018.png"]
+                example: ["https://res.cloudinary.com/demo/image/upload/v1723456789/cars/civic-2018.png"]
         createdAt:
           type: string
           format: date-time
