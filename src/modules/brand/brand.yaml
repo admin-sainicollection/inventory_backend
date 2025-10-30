@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Brand Management API
-  version: 1.0.0
-  description: API endpoints for managing brands, including image upload for logos.
+  version: 1.1.0
+  description: API endpoints for managing brands, including image upload to Cloudinary and advanced search.
 
 tags:
   - name: Brand
@@ -12,7 +12,7 @@ paths:
   /brand/add-brand:
     post:
       summary: Create a new brand
-      description: Only admins can create a brand.
+      description: Only admins can create a brand. Brand logos are uploaded to Cloudinary.
       tags: [Brand]
       security:
         - bearerAuth: []
@@ -39,7 +39,7 @@ paths:
   /brand/update-brand/{id}:
     put:
       summary: Update an existing brand
-      description: Only admins can update brand details. Supports partial updates and logo replacement.
+      description: Update brand details or replace the logo (uploads to Cloudinary).
       tags: [Brand]
       security:
         - bearerAuth: []
@@ -87,9 +87,8 @@ paths:
     delete:
       summary: Delete a brand
       description: >
-        Only admins can delete brands.  
-        The brand ID must be provided in the request body.  
-        If the brand is associated with one or more cars, the deletion will be prevented and an error will be returned.
+        Deletes a brand by ID.  
+        If the brand is used in any car, deletion will be prevented.
       tags: [Brand]
       security:
         - bearerAuth: []
@@ -105,7 +104,6 @@ paths:
                 id:
                   type: string
                   example: "6524eecf930b5a3d64fd8e1a"
-                  description: The ID of the brand to delete
       responses:
         200:
           description: Brand deleted successfully
@@ -144,14 +142,33 @@ paths:
 
   /brand/get-all-brands:
     get:
-      summary: Get all brands
-      description: Returns a list of all brands.
+      summary: Get or search brands
+      description: >
+        Fetches all brands or performs a search.  
+        - If `q` is provided, searches by brand name or parent company (case-insensitive).  
+        - Supports `limit` parameter for pagination-like control.
       tags: [Brand]
       security:
         - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search keyword (brand name or parent company)
+          example: "toyota"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            example: 5
+          description: Limit the number of results returned
       responses:
         200:
-          description: Successfully fetched all brands
+          description: Successfully fetched all or searched brands
           content:
             application/json:
               schema:
@@ -160,6 +177,9 @@ paths:
                   status:
                     type: string
                     example: "success"
+                  total:
+                    type: integer
+                    example: 3
                   brands:
                     type: array
                     items:
@@ -209,13 +229,13 @@ components:
           example: "6524eecf930b5a3d64fd8e1a"
         name:
           type: string
-          example: "Honda"
+          example: "Toyota"
         parentCompany:
           type: string
-          example: "Honda Motors"
+          example: "Toyota Motor Corporation"
         brandLogo:
           type: string
-          example: "https://res.cloudinary.com/demo/image/upload/v1723456789/brands/honda.png"
+          example: "https://res.cloudinary.com/demo/image/upload/v1723456789/brands/toyota.png"
         createdAt:
           type: string
           format: date-time

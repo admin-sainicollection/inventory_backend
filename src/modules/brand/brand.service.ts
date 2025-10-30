@@ -25,23 +25,37 @@ export const updateBrand = async (id: string, data: Partial<IBrand>) => {
  * Delete a brand by ID
  */
 export const deleteBrand = async (id: string) => {
-  const brand = await Brand.findById(id);
-  if (!brand) throw new Error("Brand not found");
+    const brand = await Brand.findById(id);
+    if (!brand) throw new Error("Brand not found");
 
-  // ✅ Prevent deletion if used in any car
-  const usedInCar = await CarModel.findOne({ "brand.name": brand.name });
-  if (usedInCar)
-    throw new Error("This brand is associated with one or more cars. Please remove those cars before deleting the brand.");
+    // ✅ Prevent deletion if used in any car
+    const usedInCar = await CarModel.findOne({ "brand.name": brand.name });
+    if (usedInCar)
+        throw new Error("This brand is associated with one or more cars. Please remove those cars before deleting the brand.");
 
-  await Brand.findByIdAndDelete(id);
-  return brand;
+    await Brand.findByIdAndDelete(id);
+    return brand;
 };
 
 /**
  * Get all brands
  */
-export const getAllBrands = async () => {
-    return await Brand.find().sort({ createdAt: -1 });
+export const getAllBrands = async (search?: string | null, limit?: number) => {
+    const query: any = {};
+
+    if (search) {
+        // Search by brand name or parent company (case-insensitive)
+        query.$or = [
+            { name: { $regex: search, $options: "i" } },
+            { parentCompany: { $regex: search, $options: "i" } },
+        ];
+    }
+
+    const brandsQuery = Brand.find(query).sort({ createdAt: -1 });
+
+    if (limit) brandsQuery.limit(limit);
+
+    return await brandsQuery.exec();
 };
 
 /**
