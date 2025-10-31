@@ -7,6 +7,7 @@ export const createCategorySchema = z.object({
         key: z.string().min(1, "Attribute key is required"),
         label: z.string().min(1, "Attribute label is required"),
         type: z.string().min(1, "Attribute type is required"),
+        required: z.boolean().default(false),
         options: z.array(z.string()).optional()
     })).optional()
 })
@@ -18,6 +19,7 @@ export const updateCategorySchema = z.object({
         key: z.string().min(1, "Attribute key is required"),
         label: z.string().min(1, "Attribute label is required"),
         type: z.string().min(1, "Attribute type is required"),
+        required: z.boolean().default(false),
         options: z.array(z.string()).optional()
     })).optional()
 })
