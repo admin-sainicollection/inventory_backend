@@ -6,27 +6,28 @@ paths:
   /product/add-product:
     post:
       summary: Create a new product
-      description: Only admins or managers can create products. Checks for duplicate SKU or Name before creating.
+      description: Only admins or managers can create products. Checks for duplicate part number or name before creating.
       tags: [Product]
       security:
         - bearerAuth: []
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProductCreateInput'
             example:
               name: "Engine Oil"
-              sku: "EO-001"
-              image: "https://example.com/image.jpg"
+              aliasNames: ["Motor Oil", "Synthetic Oil"]
+              partNo: "EO-001"
+              barcode: "1234567890123"
               quantity: 100
               category: "Engine"
               brand: "Mobil"
               vender: "AutoVendor"
               purchasePrice: 50
-              sellingPrice: 80
-              vendorPrice: 55
+              sellingPriceB2C: 80
+              sellingPriceB2B: 70
               description: "High performance engine oil"
               compatibility:
                 - name: "Civic"
@@ -37,8 +38,11 @@ paths:
                   transmission: ["Manual", "Automatic"]
               attributes:
                 engineModel: "300V"
-                engineCapacity: "20l"
+                engineCapacity: "20L"
               status: "active"
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreateInput'
       responses:
         201:
           description: Product created successfully
@@ -70,7 +74,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProductUpdateInput'
             example:
@@ -126,7 +130,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: Product deleted
+                    example: Product deleted successfully
         404:
           description: Product not found
         401:
@@ -137,19 +141,30 @@ paths:
   /product/get-all-products:
     get:
       summary: Get all products
-      description: Returns a list of all products.
+      description: Returns a paginated list of products. Supports search via query parameter `?search=`.
       tags: [Product]
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search term for product name, partNo, brand, etc.
       responses:
         200:
           description: Successfully fetched products
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Product'
-        404:
-          description: No products found
+                type: object
+                properties:
+                  total:
+                    type: number
+                    example: 25
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
         500:
           description: Server error
 
@@ -233,12 +248,22 @@ components:
         name:
           type: string
           example: "Engine Oil"
-        sku:
+        aliasNames:
+          type: array
+          items:
+            type: string
+          example: ["Motor Oil", "Synthetic Oil"]
+        partNo:
           type: string
           example: "EO-001"
-        image:
+        barcode:
           type: string
-          example: "https://example.com/image.jpg"
+          example: "1234567890123"
+        productImages:
+          type: array
+          items:
+            type: string
+          example: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
         quantity:
           type: number
           example: 100
@@ -254,12 +279,12 @@ components:
         purchasePrice:
           type: number
           example: 50
-        sellingPrice:
+        sellingPriceB2C:
           type: number
           example: 80
-        vendorPrice:
+        sellingPriceB2B:
           type: number
-          example: 55
+          example: 70
         description:
           type: string
           example: "High performance engine oil"
@@ -284,20 +309,29 @@ components:
       type: object
       required:
         - name
-        - sku
+        - partNo
         - quantity
         - category
         - brand
         - vender
         - purchasePrice
-        - sellingPrice
+        - sellingPriceB2C
+        - sellingPriceB2B
       properties:
         name:
           type: string
-        sku:
+        aliasNames:
+          type: array
+          items:
+            type: string
+        partNo:
           type: string
-        image:
+        barcode:
           type: string
+        productImages:
+          type: array
+          items:
+            type: string
         quantity:
           type: number
         category:
@@ -308,9 +342,9 @@ components:
           type: string
         purchasePrice:
           type: number
-        sellingPrice:
+        sellingPriceB2C:
           type: number
-        vendorPrice:
+        sellingPriceB2B:
           type: number
         description:
           type: string
@@ -328,3 +362,15 @@ components:
     ProductUpdateInput:
       allOf:
         - $ref: '#/components/schemas/ProductCreateInput'
+
+    ProductResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Product created successfully
+        product:
+          $ref: '#/components/schemas/Product'

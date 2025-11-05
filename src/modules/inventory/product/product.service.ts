@@ -36,12 +36,12 @@ export const ProductService = {
         }
     }
 
-    // 🔍 Check for duplicate SKU or Name
+    // 🔍 Check for duplicate partNo or Name
     const existingProduct = await Product.findOne({
-        $or: [{ sku: data.sku }, { name: data.name }],
+        $or: [{ partNo: data.partNo }, { name: data.name }],
     });
     if (existingProduct) {
-        throw new Error("Product with the same name or SKU already exists");
+        throw new Error("Product with the same name or partNo already exists");
     }
 
     // 🧩 Ensure category exists
@@ -184,7 +184,7 @@ async update(
                 $or: [
                     { name: regex },
                     { aliasNames: regex },
-                    { sku: regex },
+                    { partNo: regex },
                     { barcode: regex },
                     { brand: regex },
                     { category: regex },
