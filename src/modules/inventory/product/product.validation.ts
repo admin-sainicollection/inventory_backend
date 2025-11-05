@@ -7,9 +7,9 @@ export const createProductSchema = z.object({
 
   aliasNames: z.array(z.string().min(1)).optional(),
 
-  sku: z
+  partNo: z
     .string()
-    .min(1, "SKU is required")
+    .min(1, "Part No is required")
     .transform((val) => val.toUpperCase()),
 
   barcode: z.string().optional(),
@@ -30,12 +30,12 @@ export const createProductSchema = z.object({
   purchasePrice: z
     .number()
     .nonnegative("Purchase price cannot be negative"),
-  sellingPrice: z
+  sellingPriceB2C: z
     .number()
-    .nonnegative("Selling price cannot be negative"),
-  vendorPrice: z
+    .nonnegative("Selling price to customer cannot be negative"),
+  sellingPriceB2B: z
     .number()
-    .nonnegative("Vendor price cannot be negative"),
+    .nonnegative("Selling price to bussines cannot be negative"),
 
   description: z.string().optional(),
 

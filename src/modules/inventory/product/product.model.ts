@@ -4,7 +4,7 @@ import { ICarModel, carModelSchema } from "../compatibility/compatibility.model"
 export interface IProduct extends Document {
   name: string;
   aliasNames?: string[]; // alternate searchable names
-  sku: string;
+  partNo: string;
   barcode?: string; // optional barcode
   productImages?: string[];
   quantity: number;
@@ -12,8 +12,8 @@ export interface IProduct extends Document {
   brand: string;
   vender: string;
   purchasePrice: number;
-  sellingPrice: number;
-  vendorPrice: number;
+  sellingPriceB2C: number;
+  sellingPriceB2B: number;
   description?: string;
   compatibility: ICarModel[];
   attributes?: Record<string, any>;
@@ -33,7 +33,7 @@ const productSchema = new Schema<IProduct>(
       trim: true,
       default: [],
     },
-    sku: {
+    partNo: {
       type: String,
       required: true,
       unique: true,
@@ -75,12 +75,12 @@ const productSchema = new Schema<IProduct>(
       required: true,
       min: [0, "Purchase price cannot be negative"],
     },
-    sellingPrice: {
+    sellingPriceB2C: {
       type: Number,
       required: true,
       min: [0, "Selling price cannot be negative"],
     },
-    vendorPrice: {
+    sellingPriceB2B: {
       type: Number,
       required: true,
       min: [0, "Vendor price cannot be negative"],
