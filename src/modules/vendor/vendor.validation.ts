@@ -1,22 +1,79 @@
 import z from "zod";
 
 export const vendorValidationSchema = z.object({
-    name: z.string().min(1, "Vendor name is required"),
-    salesPerson: z.string().min(1, "Sales person name is required"),
-    email: z.string().email("Invalid email address"),
-    phone: z.coerce.string().regex(/^[6-9]\d{9}$/, "Invalid phone number"),
-    address: z.object(
-        {
-            street: z.string().min(1, "Street is required"),
-            city: z.string().min(1, "City is required"),
-            state: z.string().min(1, "State is required"),
-            zipCode: z.number().min(1, "Zip Code is required"),
-            country: z.string().min(1, "Country is required"),
-        }
-    ),
+    vendorName: z.string().min(1, "Vendor name is required").trim(),
+    nickName: z.string().optional(),
+    type: z.array(z.string().trim()).min(1, "At least one type is required"),
+    contact: z.object({
+        phone: z.array(
+            z.object({
+                label: z.string().min(1, "Phone label is required").trim(),
+                phoneNo: z.string()
+                    .min(1, "Phone number is required")
+                    .regex(/^[6-9]\d{9}$/, "Invalid Indian phone number format")
+            })
+        ).min(1, "At least one phone number is required"),
+        email: z.array(
+            z.string().email("Invalid email address").toLowerCase().trim()
+        ).optional().default([]),
+    }),
+    location: z.string().min(1, "Location is required").trim(),
+    address: z.object({
+        line1: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        country: z.string().optional(),
+        pinCode: z.string().optional(),
+    }).optional().default({}),
+    brands: z.array(
+        z.string().min(1, "Brand name cannot be empty").trim()
+    ).min(1, "At least one brand is required"),
+    gstNumber: z.string()
+        .regex(/^$|^[0-9A-Z]{15}$/, "GST number must be 15 characters alphanumeric or empty")
+        .optional()
+        .transform(val => {
+            if (!val || val.trim() === '') {
+                return undefined;
+            }
+            return val.toUpperCase();
+        })
+        .nullable(),
     status: z.enum(["active", "inactive"]).default("active"),
-})
+});
 
 export const vendorIdValidation = z.object({
     id: z.string().min(1, "Vendor id is required")
-})
+});
+
+export const vendorUpdateValidationSchema = vendorValidationSchema.partial();
+
+export const vendorQueryValidation = z.object({
+    search: z.string().optional(),
+    status: z.enum(["active", "inactive"]).optional(),
+    type: z.string().optional(),
+    location: z.string().optional(),
+    page: z.coerce.number().int().positive().optional().default(1),
+    limit: z.coerce.number().int().positive().optional().default(50),
+});
+
+// Additional validation schemas for phone and email management
+export const addPhoneValidationSchema = z.object({
+    label: z.string().min(1, "Phone label is required").trim(),
+    phoneNo: z.string()
+        .min(1, "Phone number is required")
+        .regex(/^[6-9]\d{9}$/, "Invalid Indian phone number format")
+});
+
+export const addEmailValidationSchema = z.object({
+    email: z.string().email("Invalid email address").toLowerCase().trim()
+});
+
+export const phoneIndexValidation = z.object({
+    vendorId: z.string().min(1, "Vendor ID is required"),
+    phoneIndex: z.coerce.number().int().nonnegative("Phone index must be a valid number")
+});
+
+export const emailIndexValidation = z.object({
+    vendorId: z.string().min(1, "Vendor ID is required"),
+    emailIndex: z.coerce.number().int().nonnegative("Email index must be a valid number")
+});

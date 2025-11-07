@@ -1,8 +1,10 @@
 openapi: 3.0.3
 info:
   title: Brand Management API
-  version: 1.1.0
-  description: API endpoints for managing brands, including image upload to Cloudinary and advanced search.
+  version: 1.2.0
+  description: >
+    API endpoints for managing brands, including image uploads to Cloudinary, search, filtering, 
+    and manufacturing-type-based queries.
 
 tags:
   - name: Brand
@@ -12,7 +14,7 @@ paths:
   /brand/add-brand:
     post:
       summary: Create a new brand
-      description: Only admins can create a brand. Brand logos are uploaded to Cloudinary.
+      description: Creates a new brand entry and uploads its logo to Cloudinary.
       tags: [Brand]
       security:
         - bearerAuth: []
@@ -39,7 +41,7 @@ paths:
   /brand/update-brand/{id}:
     put:
       summary: Update an existing brand
-      description: Update brand details or replace the logo (uploads to Cloudinary).
+      description: Update brand details or replace the logo (uploads new image to Cloudinary).
       tags: [Brand]
       security:
         - bearerAuth: []
@@ -55,18 +57,7 @@ paths:
         content:
           multipart/form-data:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: "Honda Updated"
-                parentCompany:
-                  type: string
-                  example: "Honda Motors"
-                brandLogo:
-                  type: string
-                  format: binary
-                  description: Upload a new logo to replace the existing one
+              $ref: '#/components/schemas/BrandUpdateInput'
       responses:
         200:
           description: Brand updated successfully
@@ -83,114 +74,12 @@ paths:
         500:
           description: Server error
 
-  /brand/delete-brand:
+  /brand/delete-brand/{id}:
     delete:
       summary: Delete a brand
       description: >
         Deletes a brand by ID.  
-        If the brand is used in any car, deletion will be prevented.
-      tags: [Brand]
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - id
-              properties:
-                id:
-                  type: string
-                  example: "6524eecf930b5a3d64fd8e1a"
-      responses:
-        200:
-          description: Brand deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "success"
-                  message:
-                    type: string
-                    example: "Brand deleted successfully"
-        400:
-          description: >
-            Bad Request — occurs if the brand is used in any car  
-            or if the request body is invalid.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "error"
-                  message:
-                    type: string
-                    example: "This brand is associated with one or more cars. Please remove those cars before deleting the brand."
-        404:
-          description: Brand not found
-        401:
-          description: Unauthorized
-        500:
-          description: Server error
-
-  /brand/get-all-brands:
-    get:
-      summary: Get or search brands
-      description: >
-        Fetches all brands or performs a search.  
-        - If `q` is provided, searches by brand name or parent company (case-insensitive).  
-        - Supports `limit` parameter for pagination-like control.
-      tags: [Brand]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: q
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Search keyword (brand name or parent company)
-          example: "toyota"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            example: 5
-          description: Limit the number of results returned
-      responses:
-        200:
-          description: Successfully fetched all or searched brands
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "success"
-                  total:
-                    type: integer
-                    example: 3
-                  brands:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Brand'
-        500:
-          description: Server error
-
-  /brand/get-brand/{id}:
-    get:
-      summary: Get a single brand by ID
-      description: Returns brand details by brand ID.
+        Deletion is blocked if the brand is associated with one or more car models.
       tags: [Brand]
       security:
         - bearerAuth: []
@@ -200,16 +89,198 @@ paths:
           required: true
           schema:
             type: string
-          description: Brand ID
+          description: Brand ID to delete
       responses:
         200:
-          description: Brand details fetched successfully
+          description: Brand deleted successfully
+        400:
+          description: >
+            Brand is associated with car models or invalid request.
+        404:
+          description: Brand not found
+        500:
+          description: Server error
+
+  /brand/get-all-brands:
+    get:
+      summary: Get or search brands
+      description: >
+        Fetches all brands or performs a search.  
+        Supports filtering by manufactureType, pagination, and keyword search.
+      tags: [Brand]
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search keyword (brand name, parent company, or manufacture type)
+          example: "toyota"
+        - name: manufactureType
+          in: query
+          schema:
+            type: string
+            enum: [Cars, Parts, all]
+          description: Filter by manufacture type
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            example: 10
+        - name: page
+          in: query
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Successfully fetched brand list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandListResponse'
+        500:
+          description: Server error
+
+  /brand/get-brand/{id}:
+    get:
+      summary: Get a brand by ID
+      description: Returns brand details by ID.
+      tags: [Brand]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Brand found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/BrandResponse'
         404:
           description: Brand not found
+        500:
+          description: Server error
+
+  /brand/get-brands-by-manufacture-type/{manufactureType}:
+    get:
+      summary: Get brands by manufacture type
+      description: Fetch brands that match a specific manufacture type.
+      tags: [Brand]
+      parameters:
+        - name: manufactureType
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [Cars, Parts]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            example: 10
+        - name: page
+          in: query
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Brands fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandListResponse'
+        500:
+          description: Server error
+
+  /brand/get-brands-by-multiple-types:
+    post:
+      summary: Get brands by multiple manufacture types
+      description: Returns brands that belong to any of the provided manufacture types.
+      tags: [Brand]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - manufactureTypes
+              properties:
+                manufactureTypes:
+                  type: array
+                  items:
+                    type: string
+                    enum: [Cars, Parts]
+                  example: ["Cars", "Parts"]
+                limit:
+                  type: integer
+                  example: 10
+                page:
+                  type: integer
+                  example: 1
+      responses:
+        200:
+          description: Brands fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandListResponse'
+        400:
+          description: Invalid input
+        500:
+          description: Server error
+
+  /brand/check-exists:
+    get:
+      summary: Check if brand exists by name
+      description: >
+        Checks whether a brand with the specified name already exists in the database.
+      tags: [Brand]
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Brand name to check
+      responses:
+        200:
+          description: Existence check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  exists:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Brand exists"
+        400:
+          description: Missing brand name
+        500:
+          description: Server error
+
+  /brand/stats:
+    get:
+      summary: Get brand statistics
+      description: Returns brand statistics such as total count, breakdown by manufacture type, and recent brands.
+      tags: [Brand]
+      responses:
+        200:
+          description: Statistics fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandStatsResponse'
         500:
           description: Server error
 
@@ -236,19 +307,27 @@ components:
         brandLogo:
           type: string
           example: "https://res.cloudinary.com/demo/image/upload/v1723456789/brands/toyota.png"
+        manufactureType:
+          type: array
+          items:
+            type: string
+            enum: [Cars, Parts]
+          example: ["Cars"]
         createdAt:
           type: string
           format: date-time
-          example: "2025-10-10T12:34:56.789Z"
+          example: "2025-11-06T12:34:56.789Z"
         updatedAt:
           type: string
           format: date-time
-          example: "2025-10-10T12:34:56.789Z"
+          example: "2025-11-06T12:35:00.123Z"
 
     BrandCreateInput:
       type: object
       required:
         - name
+        - brandLogo
+        - manufactureType
       properties:
         name:
           type: string
@@ -259,7 +338,32 @@ components:
         brandLogo:
           type: string
           format: binary
-          description: Brand logo image (upload file)
+          description: Brand logo image file
+        manufactureType:
+          type: array
+          items:
+            type: string
+            enum: [Cars, Parts]
+          example: ["Cars"]
+
+    BrandUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Honda Updated"
+        parentCompany:
+          type: string
+          example: "Honda Corporation"
+        manufactureType:
+          type: array
+          items:
+            type: string
+            enum: [Cars, Parts]
+        brandLogo:
+          type: string
+          format: binary
+          description: Upload new logo to replace existing one
 
     BrandResponse:
       type: object
@@ -272,3 +376,67 @@ components:
           example: "Brand created successfully"
         brand:
           $ref: '#/components/schemas/Brand'
+
+    BrandListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        total:
+          type: integer
+          example: 12
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        totalPages:
+          type: integer
+          example: 2
+        brands:
+          type: array
+          items:
+            $ref: '#/components/schemas/Brand'
+
+    BrandStatsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        data:
+          type: object
+          properties:
+            totalBrands:
+              type: integer
+              example: 45
+            manufactureTypeStats:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "Cars"
+                  count:
+                    type: integer
+                    example: 30
+            recentBrands:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: "Hyundai"
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: "2025-11-01T10:20:00.000Z"
+                  manufactureType:
+                    type: array
+                    items:
+                      type: string
+                      enum: [Cars, Parts]
