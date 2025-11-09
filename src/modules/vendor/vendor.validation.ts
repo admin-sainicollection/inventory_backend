@@ -32,12 +32,14 @@ export const vendorValidationSchema = z.object({
         .regex(/^$|^[0-9A-Z]{15}$/, "GST number must be 15 characters alphanumeric or empty")
         .optional()
         .transform(val => {
+            // Convert empty string to null
             if (!val || val.trim() === '') {
-                return undefined;
+                return null;
             }
             return val.toUpperCase();
         })
-        .nullable(),
+        .nullable()
+        .default(null),
     status: z.enum(["active", "inactive"]).default("active"),
 });
 
