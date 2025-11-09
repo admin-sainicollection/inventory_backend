@@ -7,6 +7,7 @@ export interface ICategory extends Document {
         key:string,
         label:string,
         type:string,
+        required:boolean,
         options?:string[]
     }[];
 }
@@ -18,6 +19,7 @@ const CategorySchema = new Schema<ICategory>({
         key:{type:String, require:true},
         label:{type:String, require:true},
         type:{type:String, require:true},
+        required:{type:Boolean, require:true},
         options:[String]
     }]
 }, {

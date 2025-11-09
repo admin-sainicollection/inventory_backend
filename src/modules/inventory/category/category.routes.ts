@@ -10,5 +10,6 @@ router.post("/category/add-category",protect, restrictToRoles("admin"), validate
 router.put("/category/update-category/:id",protect, restrictToRoles("admin"), validate(updateCategorySchema), Controller.updateCategory);
 router.delete("/category/delete-category",protect, restrictToRoles("admin"), validate(deleteCategorySchema), Controller.deleteCategory);
 router.get("/category/get-all-category", Controller.getAllCategories);
+router.get("/category/get-category/:id", Controller.getCategoryById);
 
 export default router;
