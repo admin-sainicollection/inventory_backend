@@ -8,23 +8,29 @@ export const createVendor = async (data: IVendor) => {
         throw new Error("Vendor with this name already exists");
     }
 
-    // Check for duplicate GST number only if provided and not empty/null
-    if (data.gstNumber && data.gstNumber.trim() !== '') {
-        const existingGST = await Vendor.findOne({ gstNumber: data.gstNumber });
+    // Process GST number
+    const processedGst = data.gstNumber && data.gstNumber.trim() !== ''
+        ? data.gstNumber.trim().toUpperCase()
+        : null;
+
+    // Check for duplicate GST number only if provided
+    if (processedGst) {
+        const existingGST = await Vendor.findOne({
+            gstNumber: processedGst
+        });
         if (existingGST) {
             throw new Error("Vendor with this GST number already exists");
         }
     }
 
-    // Prepare data for creation - ensure empty GST is set to null
+    // Prepare data for creation
     const vendorData = {
         ...data,
-        gstNumber: data.gstNumber && data.gstNumber.trim() !== '' ? data.gstNumber : null
+        gstNumber: processedGst
     };
 
-    return await Vendor.create(data);
+    return await Vendor.create(vendorData);
 }
-
 
 export const updateVendor = async (id: string, data: Partial<IVendor>) => {
     // Check if vendor exists
@@ -35,37 +41,44 @@ export const updateVendor = async (id: string, data: Partial<IVendor>) => {
 
     // If vendorName is being updated, check for duplicates
     if (data.vendorName && data.vendorName !== existingVendor.vendorName) {
-        const duplicateVendor = await Vendor.findOne({ 
-            vendorName: data.vendorName, 
-            _id: { $ne: id } 
+        const duplicateVendor = await Vendor.findOne({
+            vendorName: data.vendorName,
+            _id: { $ne: id }
         });
         if (duplicateVendor) {
             throw new Error("Vendor with this name already exists");
         }
     }
 
-    // If gstNumber is being updated, check for duplicates
-    if (data.gstNumber && data.gstNumber.trim() !== '' && data.gstNumber !== existingVendor.gstNumber) {
-        const duplicateGST = await Vendor.findOne({ 
-            gstNumber: data.gstNumber, 
-            _id: { $ne: id } 
-        });
-        if (duplicateGST) {
-            throw new Error("Vendor with this GST number already exists");
+    // Process GST number if provided
+    if (data.gstNumber !== undefined) {
+        const processedGst = data.gstNumber && data.gstNumber.trim() !== ''
+            ? data.gstNumber.trim().toUpperCase()
+            : null;
+
+        // Check for duplicate GST number only if it's a new non-empty value
+        if (processedGst && processedGst !== existingVendor.gstNumber) {
+            const duplicateGST = await Vendor.findOne({
+                gstNumber: processedGst,
+                _id: { $ne: id }
+            });
+            if (duplicateGST) {
+                throw new Error("Vendor with this GST number already exists");
+            }
         }
+
+        // Update the data with processed GST
+        data.gstNumber = processedGst;
     }
 
     const updated = await Vendor.findByIdAndUpdate(
-        id, 
-        data, 
+        id,
+        data,
         { new: true, runValidators: true }
     );
+
     if (!updated) throw new Error("Vendor not found");
-    const UpdatedVendorData = {
-        ...updated,
-        gstNumber: updated.gstNumber && updated.gstNumber.trim() !== '' ? updated.gstNumber : null
-    };
-    return UpdatedVendorData;
+    return updated;
 }
 
 export const getAllVendors = async (q?: string, page?: number, limit?: number) => {

@@ -20,7 +20,7 @@ export interface IVendor extends Document {
         pinCode: string;
     };
     brands: string[];
-    gstNumber?: string;
+    gstNumber?: string | null;
     status: "active" | "inactive";
     createdAt: Date;
     updatedAt: Date;
@@ -105,8 +105,16 @@ export const vendorSchema = new Schema<IVendor>(
             required: false, 
             unique: false,
             trim: true,
-            sparse: true, // Added sparse to allow multiple null values
-            uppercase: true 
+            sparse: true,
+            uppercase: true,
+            default: null, // Explicitly set default to null
+            validate: {
+                validator: function(v: string | null) {
+                    // Allow null/empty or 15-character alphanumeric
+                    return v === null || v === '' || /^[0-9A-Z]{15}$/.test(v);
+                },
+                message: 'GST number must be 15 characters alphanumeric or empty'
+            }
         },
         status: { 
             type: String, 
