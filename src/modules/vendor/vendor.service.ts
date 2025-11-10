@@ -93,11 +93,11 @@ export const getAllVendors = async (q?: string, page?: number, limit?: number) =
                 { vendorName: { $regex: searchRegex } },
                 { nickName: { $regex: searchRegex } },
                 { type: { $in: [searchRegex] } },
-                { 'contact.phone.phoneNo': { $regex: searchRegex } }, // Updated for new phone structure
-                { 'contact.phone.label': { $regex: searchRegex } },   // Search by phone label too
-                { 'contact.email': { $regex: searchRegex } },   // Search by phone label too
+                { 'contact.phone.phoneNo': { $regex: searchRegex } }, 
+                { 'contact.phone.label': { $regex: searchRegex } },   
+                { 'contact.email': { $regex: searchRegex } },  
                 { location: { $regex: searchRegex } },
-                { brands: { $in: [searchRegex] } },
+                { 'brands.brandName': { $in: [searchRegex] } },
                 { gstNumber: { $regex: searchRegex } },
                 { 'address.line1': { $regex: searchRegex } },
                 { 'address.city': { $regex: searchRegex } },

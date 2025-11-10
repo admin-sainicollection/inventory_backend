@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { brandIdParamSchema } from '../brand/brand.validation';
 
 export interface IVendor extends Document {
     vendorName: string;
@@ -19,7 +20,10 @@ export interface IVendor extends Document {
         country: string;
         pinCode: string;
     };
-    brands: string[];
+    brands: {
+        brandName: string;
+        brandLogo?: string;
+    }[];
     gstNumber?: string | null;
     status: "active" | "inactive";
     createdAt: Date;
@@ -28,23 +32,23 @@ export interface IVendor extends Document {
 
 export const vendorSchema = new Schema<IVendor>(
     {
-        vendorName: { 
-            type: String, 
-            required: true, 
-            trim: true 
+        vendorName: {
+            type: String,
+            required: true,
+            trim: true
         },
-        nickName: { 
-            type: String, 
-            required: false, 
-            trim: true 
+        nickName: {
+            type: String,
+            required: false,
+            trim: true
         },
-        type: [{ 
-            type: String, 
-            required: false, 
-            trim: true 
+        type: [{
+            type: String,
+            required: false,
+            trim: true
         }],
         contact: {
-            phone: [{ 
+            phone: [{
                 label: {
                     type: String,
                     required: true,
@@ -56,74 +60,81 @@ export const vendorSchema = new Schema<IVendor>(
                     trim: true
                 }
             }],
-            email: [{ 
-                type: String, 
-                required: false, 
+            email: [{
+                type: String,
+                required: false,
                 trim: true,
-                lowercase: true 
+                lowercase: true
             }]
         },
-        location: { 
-            type: String, 
-            required: true, 
-            trim: true 
+        location: {
+            type: String,
+            required: true,
+            trim: true
         },
         address: {
-            line1: { 
-                type: String, 
-                required: false, 
-                trim: true 
+            line1: {
+                type: String,
+                required: false,
+                trim: true
             },
-            city: { 
-                type: String, 
-                required: false, 
-                trim: true 
+            city: {
+                type: String,
+                required: false,
+                trim: true
             },
-            state: { 
-                type: String, 
-                required: false, 
-                trim: true 
+            state: {
+                type: String,
+                required: false,
+                trim: true
             },
-            country: { 
-                type: String, 
-                required: false, 
-                trim: true 
+            country: {
+                type: String,
+                required: false,
+                trim: true
             },
-            pinCode: { 
-                type: String, 
-                required: false, 
-                trim: true 
+            pinCode: {
+                type: String,
+                required: false,
+                trim: true
             }
         },
-        brands: [{ 
-            type: String, 
-            required: true, 
-            trim: true 
+        brands: [{
+            brandName: {
+                type: String,
+                required: true,
+                trim: true
+            },
+            brandLogo: {
+                type: String,
+                required: false,
+                trim: true
+            }
         }],
-        gstNumber: { 
-            type: String, 
-            required: false, 
+        gstNumber: {
+            type: String,
+            required: false,
             unique: false,
             trim: true,
             sparse: true,
             uppercase: true,
             default: null, // Explicitly set default to null
             validate: {
-                validator: function(v: string | null) {
+                validator: function (v: string | null) {
                     // Allow null/empty or 15-character alphanumeric
                     return v === null || v === '' || /^[0-9A-Z]{15}$/.test(v);
                 },
                 message: 'GST number must be 15 characters alphanumeric or empty'
             }
         },
-        status: { 
-            type: String, 
-            enum: ["active", "inactive"], 
-            default: "active" 
+        status: {
+            type: String,
+            enum: ["active", "inactive"],
+            default: "active"
         },
     },
-    { 
-        timestamps: true 
+    {
+        timestamps: true
     }
 );
 
