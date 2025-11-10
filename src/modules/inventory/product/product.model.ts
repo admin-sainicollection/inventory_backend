@@ -3,7 +3,7 @@ import { ICarModel, carModelSchema } from "../compatibility/compatibility.model"
 
 export interface IProduct extends Document {
   name: string;
-  aliasNames?: string[]; // alternate searchable names
+//   aliasNames?: string[]; // alternate searchable names
   partNo: string;
   barcode?: string; // optional barcode
   productImages?: string[];
@@ -28,11 +28,11 @@ const productSchema = new Schema<IProduct>(
       trim: true,
       index: true,
     },
-    aliasNames: {
-      type: [String],
-      trim: true,
-      default: [],
-    },
+    // aliasNames: {
+    //   type: [String],
+    //   trim: true,
+    //   default: [],
+    // },
     partNo: {
       type: String,
       required: true,

@@ -8,15 +8,15 @@ export const ProductService = {
         files?: Express.Multer.File[]
     ): Promise<IProduct> {
         // ✅ FIXED: Parse aliasNames if it's a string
-        if (data.aliasNames && typeof data.aliasNames === 'string') {
-            try {
-                data.aliasNames = JSON.parse(data.aliasNames);
-            } catch (error) {
-                // If JSON parsing fails, set to empty array
-                console.warn('Failed to parse aliasNames as JSON, setting to empty array');
-                data.aliasNames = [];
-            }
-        }
+        // if (data.aliasNames && typeof data.aliasNames === 'string') {
+        //     try {
+        //         data.aliasNames = JSON.parse(data.aliasNames);
+        //     } catch (error) {
+        //         // If JSON parsing fails, set to empty array
+        //         console.warn('Failed to parse aliasNames as JSON, setting to empty array');
+        //         data.aliasNames = [];
+        //     }
+        // }
 
         // Parse compatibility if it's a string
         if (typeof data.compatibility === 'string') {
@@ -91,14 +91,14 @@ export const ProductService = {
         }
 
         // ✅ Parse aliasNames if it's a string
-        if (data.aliasNames && typeof data.aliasNames === 'string') {
-            try {
-                data.aliasNames = JSON.parse(data.aliasNames);
-            } catch (error) {
-                console.warn('Failed to parse aliasNames as JSON, keeping existing values');
-                delete data.aliasNames;
-            }
-        }
+        // if (data.aliasNames && typeof data.aliasNames === 'string') {
+        //     try {
+        //         data.aliasNames = JSON.parse(data.aliasNames);
+        //     } catch (error) {
+        //         console.warn('Failed to parse aliasNames as JSON, keeping existing values');
+        //         delete data.aliasNames;
+        //     }
+        // }
 
         // Parse compatibility if it's a string
         if (typeof data.compatibility === 'string') {
