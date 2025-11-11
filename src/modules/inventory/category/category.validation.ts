@@ -2,6 +2,7 @@ import {z} from "zod";
 
 export const createCategorySchema = z.object({
     name: z.string().min(2, "Category name must be atleast 2 charecters long"),
+    aliasNames: z.array(z.string().min(1)).optional(),
     description: z.string().optional(),
     attributesTemplate: z.array(z.object({
         key: z.string().min(1, "Attribute key is required"),
@@ -14,6 +15,7 @@ export const createCategorySchema = z.object({
 
 export const updateCategorySchema = z.object({
     name: z.string().min(2, "Category name must be atleast 2 characters long").optional(),
+    aliasNames: z.array(z.string().min(1)).optional(),
     description: z.string().optional(),
     attributesTemplate: z.array(z.object({
         key: z.string().min(1, "Attribute key is required"),

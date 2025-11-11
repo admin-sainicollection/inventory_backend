@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 
 export const addCategory = async (req: Request, res: Response) => {
     try {
-        const { name, description, attributesTemplate } = req.body;
+        const { name,aliasNames, description, attributesTemplate } = req.body;
 
         if (!name?.trim()) {
             return res.status(400).json({ status: "error", message: "Category name is required" });
@@ -21,6 +21,7 @@ export const addCategory = async (req: Request, res: Response) => {
 
         const category = await Category.create({
             name,
+            aliasNames,
             description,
             attributesTemplate: attributesTemplate || [],
         });
@@ -43,11 +44,11 @@ export const updateCategory = async (req: Request, res: Response) => {
             return res.status(400).json({ status: "error", message: "Invalid category ID" });
         }
 
-        const { name, description, attributesTemplate } = req.body;
+        const { name,aliasNames, description, attributesTemplate } = req.body;
 
         const category = await Category.findByIdAndUpdate(
             id,
-            { name, description, attributesTemplate },
+            { name,aliasNames, description, attributesTemplate },
             { new: true, runValidators: true }
         );
 
@@ -109,6 +110,7 @@ export const getAllCategories = async (req: Request, res: Response) => {
                 $or: [
                     { name: regex },
                     { description: regex },
+                    {aliasNames: regex},
                     { "attributesTemplate.key": regex },
                     { "attributesTemplate.label": regex },
                     { "attributesTemplate.type": regex },

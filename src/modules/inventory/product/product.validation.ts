@@ -5,7 +5,7 @@ import { addCarModelSchema } from "../compatibility/compatibility.validation";
 export const createProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
 
-  aliasNames: z.array(z.string().min(1)).optional(),
+  // aliasNames: z.array(z.string().min(1)).optional(),
 
   partNo: z
     .string()
