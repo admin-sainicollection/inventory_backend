@@ -28,13 +28,13 @@ export const createProductSchema = z.object({
   vender: z.string().min(1, "Vendor is required"),
 
   purchasePrice: z
-    .number()
+    .coerce.number()
     .nonnegative("Purchase price cannot be negative"),
   sellingPriceB2C: z
-    .number()
+    .coerce.number()
     .nonnegative("Selling price to customer cannot be negative"),
   sellingPriceB2B: z
-    .number()
+    .coerce.number()
     .nonnegative("Selling price to bussines cannot be negative"),
 
   description: z.string().optional(),
