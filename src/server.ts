@@ -3,6 +3,7 @@ import connectDB from "./config/mongodb/database";
 import { seedBrands } from "./scripts/seedBrands";
 import { seedCategories } from "./scripts/seedCategories";
 import { seedCarModels } from "./scripts/seedCompatibility";
+import { seedPriceCode } from "./scripts/seedPriceCode";
 import { seedRolesAndAdmin } from "./scripts/seedRolesAndAdmin";
 import { PORT } from "./utils";
 import { BASE_URL_SERVER } from "./utils";
@@ -14,6 +15,7 @@ import { BASE_URL_SERVER } from "./utils";
     await seedCategories();
     await seedCarModels();
     await seedBrands();
+    await seedPriceCode();
     app.listen(PORT, () => {
         console.log(`Server running on this URL -> ${BASE_URL_SERVER}`)
     })
