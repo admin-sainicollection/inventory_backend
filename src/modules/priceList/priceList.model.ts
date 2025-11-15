@@ -1,6 +1,12 @@
 // models/PriceList.ts
 import mongoose, { Document, Schema } from 'mongoose';
 
+// Interface for the description object
+interface IDescription {
+  text?: string;
+  jsonFields?: Record<string, any>; // Dynamic key-value pairs
+}
+
 export interface IPriceList extends Document {
   partNo?: string;
   productName?: string;
@@ -10,7 +16,7 @@ export interface IPriceList extends Document {
   carModel?: string;
   mrp?: number;
   purchasePrice?: number;
-  description?: string;
+  description?: IDescription; // Changed from string to object
   status?: 'active' | 'inactive';
   createdBy?: mongoose.Types.ObjectId;
   createdAt?: Date;
@@ -68,9 +74,18 @@ const priceListSchema = new Schema<IPriceList>(
       }
     },
     description: {
-      type: String,
-      trim: false,
-      default: ''
+      type: {
+        text: {
+          type: String,
+          trim: true,
+          default: ''
+        },
+        jsonFields: {
+          type: Schema.Types.Mixed, // Allows any JSON object
+          default: {}
+        }
+      },
+      default: () => ({}) // Default to empty object
     },
     status: {
       type: String,

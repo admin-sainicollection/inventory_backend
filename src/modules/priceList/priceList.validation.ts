@@ -15,7 +15,10 @@ export const createPriceListSchemaValidation = z.object({
         .min(0, 'Purchase price cannot be negative')
         .optional()
         .or(z.literal('').transform(() => undefined)),
-    description: z.string().default('').optional(),
+    description: z.object({
+    text: z.string().optional(),
+    jsonFields: z.record(z.string(), z.any()).optional()
+  }).optional(),
     status: z.enum(["active", "inactive"]).default("active").optional(),
     createdBy: z.string().optional()
 }).refine((data) => {

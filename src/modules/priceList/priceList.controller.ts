@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { 
   priceListService, 
   CreatePriceListData, 
+  UpdatePriceListData,
   GetAllFilters 
 } from './priceList.service';
 
@@ -12,15 +13,19 @@ export const priceListController = {
     try {
       const priceListData: CreatePriceListData = req.body;
       
-      // Validate required fields for creation
-    //   if (!priceListData.partNo || !priceListData.productName) {
-    //     return res.status(400).json({
-    //       success: false,
-    //       message: 'Part number and product name are required'
-    //     });
-    //   }
+      // Process description data to ensure proper structure
+      const processedData = {
+        ...priceListData,
+        description: priceListData.description ? {
+          text: priceListData.description.text || '',
+          jsonFields: priceListData.description.jsonFields || {}
+        } : {
+          text: '',
+          jsonFields: {}
+        }
+      };
 
-      const priceList = await priceListService.createPriceList(priceListData);
+      const priceList = await priceListService.createPriceList(processedData);
       
       res.status(201).json({
         success: true,
@@ -40,14 +45,26 @@ export const priceListController = {
     try {
       const { entries } = req.body;
       
-    //   if (!Array.isArray(entries) || entries.length === 0) {
-    //     return res.status(400).json({
-    //       success: false,
-    //       message: 'Entries must be a non-empty array'
-    //     });
-    //   }
+      if (!Array.isArray(entries)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Entries must be an array'
+        });
+      }
 
-      const result = await priceListService.bulkCreatePriceList(entries);
+      // Process each entry to ensure proper description structure
+      const processedEntries = entries.map((entry: CreatePriceListData) => ({
+        ...entry,
+        description: entry.description ? {
+          text: entry.description.text || '',
+          jsonFields: entry.description.jsonFields || {}
+        } : {
+          text: '',
+          jsonFields: {}
+        }
+      }));
+
+      const result = await priceListService.bulkCreatePriceList(processedEntries);
       
       const response: any = {
         success: true,
@@ -134,9 +151,33 @@ export const priceListController = {
         });
       }
 
+      // Ensure description has proper structure for response
+      let processedDescription;
+      if (typeof priceList.description === 'string') {
+        processedDescription = {
+          text: priceList.description,
+          jsonFields: {}
+        };
+      } else if (priceList.description && typeof priceList.description === 'object') {
+        processedDescription = {
+          text: priceList.description.text || '',
+          jsonFields: priceList.description.jsonFields || {}
+        };
+      } else {
+        processedDescription = {
+          text: '',
+          jsonFields: {}
+        };
+      }
+
+      const processedPriceList = {
+        ...priceList.toObject(),
+        description: processedDescription
+      };
+
       res.json({
         success: true,
-        data: priceList
+        data: processedPriceList
       });
     } catch (error: any) {
       res.status(500).json({
@@ -150,9 +191,18 @@ export const priceListController = {
   updatePriceList: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const updateData: CreatePriceListData = req.body;
+      const updateData: UpdatePriceListData = req.body;
       
-      const updatedPriceList = await priceListService.updatePriceList(id as string, updateData);
+      // Process description data to ensure proper structure
+      const processedData = {
+        ...updateData,
+        description: updateData.description ? {
+          text: updateData.description.text || '',
+          jsonFields: updateData.description.jsonFields || {}
+        } : undefined
+      };
+
+      const updatedPriceList = await priceListService.updatePriceList(id as string, processedData);
       
       if (!updatedPriceList) {
         return res.status(404).json({
