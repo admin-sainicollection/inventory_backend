@@ -228,11 +228,15 @@ export const ProductService = {
             if (isNumeric) {
                 searchConditions.push(
                     { quantity: numericValue },
+                    { mrp: numericValue },
+                    { purchaseDiscount: numericValue },
                     { purchasePrice: numericValue },
                     { sellingPriceB2C: numericValue },
                     { sellingPriceB2B: numericValue },
                     // Range searches for "at least" functionality
                     { quantity: { $gte: numericValue } },
+                    { mrp: { $gte: numericValue } },
+                    { purchaseDiscount: { $gte: numericValue } },
                     { purchasePrice: { $gte: numericValue } },
                     { sellingPriceB2C: { $gte: numericValue } },
                     { sellingPriceB2B: { $gte: numericValue } }
@@ -255,6 +259,8 @@ export const ProductService = {
                 searchQuery = {
                     $or: [
                         { quantity: { $gt: value } },
+                        { mrp: { $gt: value } },
+                        { purchaseDiscount: { $gt: value } },
                         { purchasePrice: { $gt: value } },
                         { sellingPriceB2C: { $gt: value } },
                         { sellingPriceB2B: { $gt: value } }
@@ -265,6 +271,8 @@ export const ProductService = {
                 searchQuery = {
                     $or: [
                         { quantity: { $lt: value } },
+                        { mrp: { $lt: value } },
+                        { purchaseDiscount: { $lt: value } },
                         { purchasePrice: { $lt: value } },
                         { sellingPriceB2C: { $lt: value } },
                         { sellingPriceB2B: { $lt: value } }
@@ -275,6 +283,8 @@ export const ProductService = {
                 searchQuery = {
                     $or: [
                         { quantity: value },
+                        { mrp: value },
+                        { purchaseDiscount: value },
                         { purchasePrice: value },
                         { sellingPriceB2C: value },
                         { sellingPriceB2B: value }

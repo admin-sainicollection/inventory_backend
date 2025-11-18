@@ -26,7 +26,12 @@ export const createProductSchema = z.object({
   category: z.string().min(1, "Category is required"),
   brand: z.string().min(1, "Brand is required"),
   vender: z.string().min(1, "Vendor is required"),
-
+  mrp: z
+    .coerce.number()
+    .nonnegative("mrp price cannot be negative"),
+  purchaseDiscount: z
+    .coerce.number()
+    .nonnegative("Purchase discount cannot be negative"),
   purchasePrice: z
     .coerce.number()
     .nonnegative("Purchase price cannot be negative"),
