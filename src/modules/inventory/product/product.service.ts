@@ -213,7 +213,11 @@ export const ProductService = {
                 { vender: regex },
                 { description: regex },
                 { "compatibility.name": regex },
+                { "compatibility.variants": regex },
+                { "compatibility.fuelTypes": regex },
+                { "compatibility.transmissions": regex },
                 { "compatibility.brand.name": regex },
+                { "compatibility.brand.parentCompany": regex },
                 { "attributes.key": regex },
                 { "attributes.value": regex }
             );
@@ -229,7 +233,9 @@ export const ProductService = {
                     { purchaseDiscount: numericValue },
                     { purchasePrice: numericValue },
                     { sellingPriceB2C: numericValue },
-                    { sellingPriceB2B: numericValue }
+                    { sellingPriceB2B: numericValue },
+                    { "compatibility.generations.from": numericValue },
+                    { "compatibility.generations.to": numericValue },
                 );
             }
 
@@ -239,6 +245,7 @@ export const ProductService = {
                 if (!isNaN(num)) {
                     searchConditions.push({ mrp: { $gte: num } });
                     searchConditions.push({ sellingPriceB2C: { $gte: num } });
+                    searchConditions.push({ sellingPriceB2B: { $gte: num } });
                 }
             }
 
@@ -247,6 +254,7 @@ export const ProductService = {
                 if (!isNaN(num)) {
                     searchConditions.push({ mrp: { $lte: num } });
                     searchConditions.push({ sellingPriceB2C: { $lte: num } });
+                    searchConditions.push({ sellingPriceB2B: { $lte: num } });
                 }
             }
 
