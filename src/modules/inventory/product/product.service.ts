@@ -199,12 +199,11 @@ export const ProductService = {
         if (q && q.trim() !== "") {
             const searchTerm = q.trim();
             const regex = new RegExp(searchTerm, "i");
-            const numericValue = parseFloat(searchTerm);
-            const isNumeric = !isNaN(numericValue);
 
-            // Build search conditions array
-            const searchConditions: any[] = [
-                // Text fields
+            const searchConditions: any[] = [];
+
+            // TEXT FIELDS
+            searchConditions.push(
                 { name: regex },
                 { aliasNames: regex },
                 { partNo: regex },
@@ -213,75 +212,47 @@ export const ProductService = {
                 { category: regex },
                 { vender: regex },
                 { description: regex },
-
-                // Compatibility fields
                 { "compatibility.name": regex },
                 { "compatibility.brand.name": regex },
-                { "compatibility.variants": regex },
-                { "compatibility.fuelTypes": regex },
-                { "compatibility.transmissions": regex },
-                { "compatibility.generations.from": regex },
-                { "compatibility.generations.to": regex },
-            ];
+                { "attributes.key": regex },
+                { "attributes.value": regex }
+            );
 
-            // Add numeric searches if applicable
+            // NUMERIC CHECK
+            const numericValue = Number(searchTerm);
+            const isNumeric = !isNaN(numericValue);
+
             if (isNumeric) {
                 searchConditions.push(
                     { quantity: numericValue },
+                    { mrp: numericValue },
+                    { purchaseDiscount: numericValue },
                     { purchasePrice: numericValue },
                     { sellingPriceB2C: numericValue },
-                    { sellingPriceB2B: numericValue },
-                    // Range searches for "at least" functionality
-                    { quantity: { $gte: numericValue } },
-                    { purchasePrice: { $gte: numericValue } },
-                    { sellingPriceB2C: { $gte: numericValue } },
-                    { sellingPriceB2B: { $gte: numericValue } }
+                    { sellingPriceB2B: numericValue }
                 );
             }
 
-            // Handle attribute search (if attributes are stored as key-value pairs)
-            searchConditions.push({
-                $or: [
-                    { "attributes.key": regex },
-                    { "attributes.value": regex }
-                ]
-            });
+            // ADVANCED OPERATORS
+            if (searchTerm.startsWith(">")) {
+                const num = Number(searchTerm.slice(1));
+                if (!isNaN(num)) {
+                    searchConditions.push({ mrp: { $gte: num } });
+                    searchConditions.push({ sellingPriceB2C: { $gte: num } });
+                }
+            }
+
+            if (searchTerm.startsWith("<")) {
+                const num = Number(searchTerm.slice(1));
+                if (!isNaN(num)) {
+                    searchConditions.push({ mrp: { $lte: num } });
+                    searchConditions.push({ sellingPriceB2C: { $lte: num } });
+                }
+            }
 
             searchQuery = { $or: searchConditions };
-
-            // Special operators for advanced searching
-            if (searchTerm.startsWith('>') && !isNaN(parseFloat(searchTerm.slice(1)))) {
-                const value = parseFloat(searchTerm.slice(1));
-                searchQuery = {
-                    $or: [
-                        { quantity: { $gt: value } },
-                        { purchasePrice: { $gt: value } },
-                        { sellingPriceB2C: { $gt: value } },
-                        { sellingPriceB2B: { $gt: value } }
-                    ]
-                };
-            } else if (searchTerm.startsWith('<') && !isNaN(parseFloat(searchTerm.slice(1)))) {
-                const value = parseFloat(searchTerm.slice(1));
-                searchQuery = {
-                    $or: [
-                        { quantity: { $lt: value } },
-                        { purchasePrice: { $lt: value } },
-                        { sellingPriceB2C: { $lt: value } },
-                        { sellingPriceB2B: { $lt: value } }
-                    ]
-                };
-            } else if (searchTerm.startsWith('=') && !isNaN(parseFloat(searchTerm.slice(1)))) {
-                const value = parseFloat(searchTerm.slice(1));
-                searchQuery = {
-                    $or: [
-                        { quantity: value },
-                        { purchasePrice: value },
-                        { sellingPriceB2C: value },
-                        { sellingPriceB2B: value }
-                    ]
-                };
-            }
         }
+
 
         try {
             const [products, total] = await Promise.all([

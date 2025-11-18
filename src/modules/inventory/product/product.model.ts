@@ -11,6 +11,8 @@ export interface IProduct extends Document {
   category: string;
   brand: string;
   vender: string;
+  mrp:number;
+  purchaseDiscount:number;
   purchasePrice: number;
   sellingPriceB2C: number;
   sellingPriceB2B: number;
@@ -69,6 +71,16 @@ const productSchema = new Schema<IProduct>(
       type: String,
       required: true,
       trim: true,
+    },
+    mrp:{
+        type:Number,
+        required: true,
+        trim:true
+    },
+    purchaseDiscount:{
+        type:Number,
+        required:true,
+        trim:true
     },
     purchasePrice: {
       type: Number,
