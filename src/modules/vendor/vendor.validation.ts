@@ -26,13 +26,16 @@ export const vendorValidationSchema = z.object({
         pinCode: z.string().optional(),
     }).optional().default({}),
     brands: z.array(
-        z.string().min(1, "Brand name cannot be empty").trim()
+        z.object({ // Fixed: added z.object wrapper
+            brandName: z.string().min(1, "Brand name cannot be empty").trim(),
+            brandLogo: z.string().optional() // Added to match Mongoose schema
+        })
     ).min(1, "At least one brand is required"),
     gstNumber: z.string()
         .regex(/^$|^[0-9A-Z]{15}$/, "GST number must be 15 characters alphanumeric or empty")
         .optional()
         .transform(val => {
-            // Convert empty string to null
+            // Handle empty string, undefined, or null
             if (!val || val.trim() === '') {
                 return null;
             }

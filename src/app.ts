@@ -10,6 +10,8 @@ import compatibilityRoutes from "./modules/inventory/compatibility/compatibility
 import productRoutes from "./modules/inventory/product/product.routes";
 import vendorRoutes from "./modules/vendor/vendor.routes"
 import brandRoutes from "./modules/brand/brand.routes"
+import priceCodeRoutes from "./modules/priceCode/priceCode.routes"
+import priceListRoutes from "./modules/priceList/priceList.routes"
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
 import path from "path";
@@ -43,6 +45,8 @@ app.use("/api/v1/inventory", compatibilityRoutes)
 app.use('/api/v1/inventory', productRoutes)
 app.use('/api/v1/inventory', vendorRoutes)
 app.use('/api/v1/inventory', brandRoutes)
+app.use('/api/v1/inventory', priceCodeRoutes)
+app.use('/api/v1/inventory', priceListRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));
