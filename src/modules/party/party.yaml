@@ -1,0 +1,314 @@
+tags:
+  - name: Vendor
+    description: API endpoints for managing vendors and their information
+
+paths:
+  /vendor/add-vendor:
+    post:
+      summary: Create a new vendor
+      description: Only admins can create a new vendor. Validates all required fields.
+      tags: [Vendor]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VendorCreateInput'
+            example:
+              name: "AutoParts Supplier"
+              salesPerson: "John Doe"
+              email: "john.doe@example.com"
+              phone: "9876543210"
+              address:
+                street: "123 Industrial Area"
+                city: "Delhi"
+                state: "Delhi"
+                zipCode: 110001
+                country: "India"
+              status: "active"
+      responses:
+        200:
+          description: Vendor created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorResponse'
+        400:
+          description: Validation error or duplicate vendor
+        401:
+          description: Unauthorized (admin access required)
+        500:
+          description: Server error
+
+  /vendor/get-all-vendors:
+    get:
+      summary: Get all vendors
+      description: Fetches a list of all vendors. Admin access required.
+      tags: [Vendor]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successfully fetched all vendors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  vendors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Vendor'
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /vendor/get-vendor/{id}:
+    get:
+      summary: Get a single vendor by ID
+      description: Fetch details of a specific vendor by ID. Admin access required.
+      tags: [Vendor]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Vendor ID
+      responses:
+        200:
+          description: Successfully fetched vendor details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorResponse'
+        404:
+          description: Vendor not found
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /vendor/update-vendor/{id}:
+    put:
+      summary: Update an existing vendor
+      description: Only admins can update vendor details. Validates fields before update.
+      tags: [Vendor]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Vendor ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VendorUpdateInput'
+            example:
+              name: "AutoParts Supplier Pvt Ltd"
+              salesPerson: "Jane Smith"
+              email: "jane.smith@example.com"
+              phone: "9123456789"
+              address:
+                street: "456 Main Street"
+                city: "Mumbai"
+                state: "Maharashtra"
+                zipCode: 400001
+                country: "India"
+              status: "inactive"
+      responses:
+        200:
+          description: Vendor updated successfully!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorResponse'
+        400:
+          description: Validation error
+        404:
+          description: Vendor not found
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+  /vendor/delete-vendor:
+    delete:
+      summary: Delete a vendor
+      description: Only admins can delete a vendor by ID.
+      tags: [Vendor]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VendorDeleteInput'
+            example:
+              id: "6524eecf930b5a3d64fd8e1a"
+      responses:
+        200:
+          description: Vendor deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Vendor deleted successfully!
+        404:
+          description: Vendor not found
+        401:
+          description: Unauthorized
+        500:
+          description: Server error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          example: "123 Industrial Area"
+        city:
+          type: string
+          example: "Delhi"
+        state:
+          type: string
+          example: "Delhi"
+        zipCode:
+          type: integer
+          example: 110001
+        country:
+          type: string
+          example: "India"
+      required:
+        - street
+        - city
+        - state
+        - zipCode
+        - country
+
+    Vendor:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "6524f1ef930b5a3d64fd9f22"
+        name:
+          type: string
+          example: "AutoParts Supplier"
+        salesPerson:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          example: "john.doe@example.com"
+        phone:
+          type: string
+          example: "9876543210"
+        address:
+          $ref: '#/components/schemas/Address'
+        status:
+          type: string
+          enum: ["active", "inactive"]
+          example: "active"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-17T12:34:56.789Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-10-17T12:34:56.789Z"
+
+    VendorCreateInput:
+      type: object
+      required:
+        - name
+        - salesPerson
+        - email
+        - phone
+        - address
+      properties:
+        name:
+          type: string
+          example: "AutoParts Supplier"
+        salesPerson:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          example: "john.doe@example.com"
+        phone:
+          type: string
+          example: "9876543210"
+        address:
+          $ref: '#/components/schemas/Address'
+        status:
+          type: string
+          enum: ["active", "inactive"]
+          example: "active"
+
+    VendorUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+        salesPerson:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        status:
+          type: string
+          enum: ["active", "inactive"]
+
+    VendorDeleteInput:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: "6524eecf930b5a3d64fd8e1a"
+
+    VendorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Vendor created successfully
+        vendor:
+          $ref: '#/components/schemas/Vendor'
