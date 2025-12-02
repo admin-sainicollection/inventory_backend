@@ -24,11 +24,12 @@ export const getLedgerByPartyId = async (
       { voucher: searchRegex },
       { srNo: searchRegex },
       { date: searchRegex },
+      { description: searchRegex },
       ...(isNumericSearch ? [
         { credit: numericSearch },
         { debit: numericSearch },
-        { tdsDeductByParty: numericSearch },
-        { tdsDeductBySelf: numericSearch }
+        // { tdsDeductByParty: numericSearch },
+        // { tdsDeductBySelf: numericSearch }
       ] : [])
     ];
   }
@@ -89,11 +90,12 @@ export const getAllLedgers = async (searchText?: string): Promise<IDailyLedger[]
       { voucher: searchRegex },
       { srNo: searchRegex },
       { date: searchRegex },
+      { description: searchRegex },
       ...(isNumericSearch ? [
         { credit: numericSearch },
         { debit: numericSearch },
-        { tdsDeductByParty: numericSearch },
-        { tdsDeductBySelf: numericSearch }
+        // { tdsDeductByParty: numericSearch },
+        // { tdsDeductBySelf: numericSearch }
       ] : [])
     ];
   }
@@ -105,24 +107,24 @@ export const getAllLedgers = async (searchText?: string): Promise<IDailyLedger[]
 export const getLedgerSummary = async (partyId: string): Promise<{
   totalCredit: number;
   totalDebit: number;
-  totalTdsByParty: number;
-  totalTdsBySelf: number;
+//   totalTdsByParty: number;
+//   totalTdsBySelf: number;
   balance: number;
 }> => {
   const ledgers = await DailyLedger.find({ partyId, status: "active" });
   
   const totalCredit = ledgers.reduce((sum, ledger) => sum + (ledger.credit || 0), 0);
   const totalDebit = ledgers.reduce((sum, ledger) => sum + (ledger.debit || 0), 0);
-  const totalTdsByParty = ledgers.reduce((sum, ledger) => sum + (ledger.tdsDeductByParty || 0), 0);
-  const totalTdsBySelf = ledgers.reduce((sum, ledger) => sum + (ledger.tdsDeductBySelf || 0), 0);
+//   const totalTdsByParty = ledgers.reduce((sum, ledger) => sum + (ledger.tdsDeductByParty || 0), 0);
+//   const totalTdsBySelf = ledgers.reduce((sum, ledger) => sum + (ledger.tdsDeductBySelf || 0), 0);
   
   const balance = totalCredit - totalDebit;
 
   return {
     totalCredit,
     totalDebit,
-    totalTdsByParty,
-    totalTdsBySelf,
+    // totalTdsByParty,
+    // totalTdsBySelf,
     balance
   };
 };

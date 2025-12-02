@@ -12,10 +12,12 @@ export const addDailyLedgerValidation = z.object({
     credit: z.number().min(0, "Credit cannot be negative").optional(),
     
     debit: z.number().min(0, "Debit cannot be negative").optional(),
+
+    description: z.string().optional(),
     
-    tdsDeductByParty: z.number().min(0, "TDS deducted by party cannot be negative").optional(),
+    // tdsDeductByParty: z.number().min(0, "TDS deducted by party cannot be negative").optional(),
     
-    tdsDeductBySelf: z.number().min(0, "TDS deducted by self cannot be negative").optional(),
+    // tdsDeductBySelf: z.number().min(0, "TDS deducted by self cannot be negative").optional(),
     
     status: z.enum(["active", "inactive"]).default("active"),
 });
