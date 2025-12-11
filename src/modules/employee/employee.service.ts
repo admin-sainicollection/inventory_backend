@@ -1,0 +1,479 @@
+import { Types } from 'mongoose';
+import Employee, { IEmployee } from './employee.model';
+import { uploadBuffer } from '../../config/cloudinary/cloudinary';
+
+// Types for file handling
+interface UploadedFile {
+    buffer: Buffer;
+    mimetype: string;
+    originalname: string;
+}
+
+interface UploadedFiles {
+    photo_file?: UploadedFile[];
+    aadhaar_front_file?: UploadedFile[];
+    aadhaar_back_file?: UploadedFile[];
+    pan_file?: UploadedFile[];
+}
+
+interface PaginationResult<T> {
+    status: string;
+    data: T[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+    searchQuery?: string;
+}
+
+interface EmployeeStats {
+    totalEmployees: number;
+    activeEmployees: number;
+    inactiveEmployees: number;
+    avgSalary: number;
+    totalSalary: number;
+    typeDistribution: Array<{ type: string; count: number }>;
+}
+
+interface ServiceResponse<T = any> {
+    status: string;
+    message: string;
+    data?: T;
+}
+
+// Helper function to parse FormData
+const parseFormData = (data: any): Partial<IEmployee> => {
+    return {
+        ...data,
+        contact: data.contact ? JSON.parse(data.contact) : { phone: [], email: [] },
+        address: data.address ? JSON.parse(data.address) : {},
+        job: data.job ? JSON.parse(data.job) : {},
+        document: data.document ? JSON.parse(data.document) : {},
+        finance: data.finance ? JSON.parse(data.finance) : {},
+    };
+};
+
+// Helper function to upload files to Cloudinary
+const uploadEmployeeFiles = async (files: UploadedFiles): Promise<{
+    photo?: string;
+    aadhaar_photo_front?: string;
+    aadhaar_photo_back?: string;
+    pan_photo?: string;
+}> => {
+    const uploads: {
+        photo?: string;
+        aadhaar_photo_front?: string;
+        aadhaar_photo_back?: string;
+        pan_photo?: string;
+    } = {};
+
+    if (files?.photo_file?.[0]) {
+        const photoResult = await uploadBuffer(
+            files.photo_file[0].buffer,
+            "employees/photos"
+        );
+        uploads.photo = photoResult;
+    }
+
+    if (files?.aadhaar_front_file?.[0]) {
+        const aadhaarFrontResult = await uploadBuffer(
+            files.aadhaar_front_file[0].buffer,
+            "employees/documents/aadhaar/front"
+        );
+        uploads.aadhaar_photo_front = aadhaarFrontResult;
+    }
+
+    if (files?.aadhaar_back_file?.[0]) {
+        const aadhaarBackResult = await uploadBuffer(
+            files.aadhaar_back_file[0].buffer,
+            "employees/documents/aadhaar/back"
+        );
+        uploads.aadhaar_photo_back = aadhaarBackResult;
+    }
+
+    if (files?.pan_file?.[0]) {
+        const panResult = await uploadBuffer(
+            files.pan_file[0].buffer,
+            "employees/documents/pan"
+        );
+        uploads.pan_photo = panResult;
+    }
+
+    return uploads;
+};
+
+export const addEmployeeService = async (
+    data: any,
+    files: UploadedFiles
+): Promise<ServiceResponse<IEmployee>> => {
+    try {
+        const employeeData = parseFormData(data);
+
+        // Upload to Cloudinary
+        const uploadedFiles = await uploadEmployeeFiles(files);
+
+        // Merge into employeeData
+        if (uploadedFiles.photo) {
+            employeeData.photo = uploadedFiles.photo;
+        }
+
+        if (uploadedFiles.aadhaar_photo_front || uploadedFiles.aadhaar_photo_back) {
+            employeeData.document ??= {};
+            employeeData.document.aadhaar ??= {};
+
+            if (uploadedFiles.aadhaar_photo_front)
+                employeeData.document.aadhaar.aadhaar_photo_front =
+                    uploadedFiles.aadhaar_photo_front;
+
+            if (uploadedFiles.aadhaar_photo_back)
+                employeeData.document.aadhaar.aadhaar_photo_back =
+                    uploadedFiles.aadhaar_photo_back;
+        }
+
+        if (uploadedFiles.pan_photo) {
+            employeeData.document ??= {};
+            employeeData.document.pan ??= {};
+            employeeData.document.pan.pan_photo = uploadedFiles.pan_photo;
+        }
+
+        // Convert date fields
+        if (employeeData.dob) employeeData.dob = new Date(employeeData.dob);
+        if (employeeData.job?.joining_date)
+            employeeData.job.joining_date = new Date(employeeData.job.joining_date);
+
+        // Save employee
+        const employee = new Employee(employeeData);
+        await employee.save();
+
+        return {
+            status: "success",
+            message: "Employee created successfully",
+            data: employee
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to add employee: ${error.message}`);
+    }
+};
+
+
+export const updateEmployeeService = async (
+    id: string,
+    data: any,
+    files: UploadedFiles
+): Promise<ServiceResponse<IEmployee>> => {
+    try {
+        // Find existing employee
+        const existingEmployee = await Employee.findById(id);
+        if (!existingEmployee) {
+            throw new Error('Employee not found');
+        }
+
+        // Parse form data
+        const updateData = parseFormData(data);
+
+        // Upload new files to Cloudinary
+        const uploadedFiles = await uploadEmployeeFiles(files);
+
+        // Merge uploaded files with update data
+        if (uploadedFiles.photo) {
+            updateData.photo = uploadedFiles.photo;
+        } else if (data.photo) {
+            // Keep existing photo if no new file uploaded
+            updateData.photo = data.photo;
+        }
+
+        // Handle document updates
+        if (!updateData.document) updateData.document = {};
+        if (!updateData.document.aadhaar) updateData.document.aadhaar = {};
+        if (!updateData.document.pan) updateData.document.pan = {};
+
+        // Merge existing document data
+        if (existingEmployee.document) {
+            if (existingEmployee.document.aadhaar) {
+                updateData.document.aadhaar = {
+                    ...existingEmployee.document.aadhaar,
+                    ...updateData.document.aadhaar
+                };
+            }
+
+            if (existingEmployee.document.pan) {
+                updateData.document.pan = {
+                    ...existingEmployee.document.pan,
+                    ...updateData.document.pan
+                };
+            }
+        }
+
+        // Update with new uploaded files
+        if (uploadedFiles.aadhaar_photo_front) {
+            if (!updateData.document) updateData.document = {};
+            if (!updateData.document.aadhaar) updateData.document.aadhaar = {};
+            updateData.document.aadhaar.aadhaar_photo_front = uploadedFiles.aadhaar_photo_front;
+        }
+
+        if (uploadedFiles.aadhaar_photo_back) {
+            if (!updateData.document) updateData.document = {};
+            if (!updateData.document.aadhaar) updateData.document.aadhaar = {};
+            updateData.document.aadhaar.aadhaar_photo_back = uploadedFiles.aadhaar_photo_back;
+        }
+
+        if (uploadedFiles.pan_photo) {
+            if (!updateData.document) updateData.document = {};
+            if (!updateData.document.pan) updateData.document.pan = {};
+            updateData.document.pan.pan_photo = uploadedFiles.pan_photo;
+        }
+
+        // Convert dates
+        if (updateData.dob && typeof updateData.dob === 'string') {
+            updateData.dob = new Date(updateData.dob);
+        }
+
+        if (updateData.job?.joining_date && typeof updateData.job.joining_date === 'string') {
+            updateData.job.joining_date = new Date(updateData.job.joining_date);
+        }
+
+        // Convert numeric fields
+        if (updateData.document?.aadhaar?.aadhaar_no) {
+            updateData.document.aadhaar.aadhaar_no = Number(updateData.document.aadhaar.aadhaar_no);
+        }
+
+        if (updateData.job?.base_salary) {
+            updateData.job.base_salary = Number(updateData.job.base_salary);
+        }
+
+        // Update employee
+        const updatedEmployee = await Employee.findByIdAndUpdate(
+            id,
+            updateData,
+            { new: true, runValidators: true }
+        );
+
+        return {
+            status: 'success',
+            message: 'Employee updated successfully',
+            data: updatedEmployee!
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to update employee: ${error.message}`);
+    }
+};
+
+export const getEmployeesService = async (
+    filters: Record<string, any> = {},
+    searchQuery: string = '',
+    page: number = 1,
+    limit: number = 10
+): Promise<PaginationResult<IEmployee>> => {
+    try {
+        const skip = (page - 1) * limit;
+        let query = Employee.find();
+
+        // Apply filters
+        if (Object.keys(filters).length > 0) {
+            query = query.find(filters);
+        }
+
+        // Apply search if query is provided
+        if (searchQuery && searchQuery.trim() !== '') {
+            const searchRegex = new RegExp(searchQuery.trim(), 'i');
+            const searchNum = isNaN(parseInt(searchQuery)) ? null : parseInt(searchQuery);
+
+            const searchConditions: any = {
+                $or: [
+                    // Text fields
+                    { first_name: searchRegex },
+                    { last_name: searchRegex },
+                    { gender: searchRegex },
+                    { status: searchRegex },
+
+                    // Contact
+                    { 'contact.email': searchRegex },
+                    { 'contact.phone.phone_no': searchRegex },
+
+                    // Address
+                    { 'address.line1': searchRegex },
+                    { 'address.city': searchRegex },
+                    { 'address.state': searchRegex },
+                    { 'address.country': searchRegex },
+                    { 'address.pin_code': searchRegex },
+
+                    // Job
+                    { 'job.employee_type': searchRegex },
+
+                    // Document
+                    { 'document.pan.pan_no': searchRegex },
+
+                    // Finance
+                    { 'finance.bank_ac_no': searchRegex },
+                    { 'finance.ifsc_code': searchRegex },
+
+                    // Convert number to string for search
+                    {
+                        $expr: {
+                            $regexMatch: {
+                                input: { $toString: '$job.base_salary' },
+                                regex: searchRegex
+                            },
+
+                        }
+                    }
+                ]
+            };
+
+            // Add numeric search for aadhaar if applicable
+            if (searchNum !== null) {
+                searchConditions.$or.push({
+                    'document.aadhaar.aadhaar_no': searchNum
+                });
+            }
+
+            query = query.find(searchConditions);
+        }
+
+        // Get total count
+        const totalQuery = query.clone();
+        const total = await totalQuery.countDocuments();
+
+        // Apply pagination and sorting
+        const employees = await query
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 })
+            .select('-__v'); // Exclude version key
+
+        return {
+            status: 'success',
+            data: employees,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            },
+            ...(searchQuery && searchQuery.trim() !== '' ? { searchQuery } : {})
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to fetch employees: ${error.message}`);
+    }
+};
+
+export const getEmployeeByIdService = async (id: string): Promise<ServiceResponse<IEmployee>> => {
+    try {
+        const employee = await Employee.findById(id).select('-__v');
+        if (!employee) {
+            throw new Error('Employee not found');
+        }
+        return {
+            status: 'success',
+            message: 'Employee fetched successfully',
+            data: employee
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to fetch employee: ${error.message}`);
+    }
+};
+
+export const deleteEmployeeService = async (id: string): Promise<ServiceResponse> => {
+    try {
+        const employee = await Employee.findByIdAndDelete(id);
+        if (!employee) {
+            throw new Error('Employee not found');
+        }
+        return {
+            status: 'success',
+            message: 'Employee deleted successfully'
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to delete employee: ${error.message}`);
+    }
+};
+
+export const updateEmployeeStatusService = async (
+    id: string,
+    status: 'active' | 'inactive'
+): Promise<ServiceResponse<IEmployee>> => {
+    try {
+        const employee = await Employee.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true }
+        );
+        if (!employee) {
+            throw new Error('Employee not found');
+        }
+        return {
+            status: 'success',
+            message: `Employee status updated to ${status}`,
+            data: employee
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to update employee status: ${error.message}`);
+    }
+};
+
+export const getEmployeeStatsService = async (): Promise<ServiceResponse<EmployeeStats>> => {
+    try {
+        const stats = await Employee.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    totalEmployees: { $sum: 1 },
+                    activeEmployees: {
+                        $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] }
+                    },
+                    inactiveEmployees: {
+                        $sum: { $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0] }
+                    },
+                    avgSalary: { $avg: '$job.base_salary' },
+                    totalSalary: { $sum: '$job.base_salary' }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    totalEmployees: 1,
+                    activeEmployees: 1,
+                    inactiveEmployees: 1,
+                    avgSalary: { $round: ['$avgSalary', 2] },
+                    totalSalary: 1
+                }
+            }
+        ]);
+
+        // Get employee type distribution
+        const typeDistribution = await Employee.aggregate([
+            {
+                $group: {
+                    _id: '$job.employee_type',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    type: '$_id',
+                    count: 1,
+                    _id: 0
+                }
+            }
+        ]);
+
+        return {
+            status: 'success',
+            message: 'Employee stats fetched successfully',
+            data: {
+                ...(stats[0] || {
+                    totalEmployees: 0,
+                    activeEmployees: 0,
+                    inactiveEmployees: 0,
+                    avgSalary: 0,
+                    totalSalary: 0
+                }),
+                typeDistribution
+            }
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to fetch employee stats: ${error.message}`);
+    }
+};
