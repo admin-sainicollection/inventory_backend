@@ -4,6 +4,8 @@ import { protect, restrictToRoles } from "../../middlewares/auth.middleware";
 
 const router = Router();
 
-router.post("/attendance/add-attendance", protect, restrictToRoles('admin', 'manager'), AttendanceController.addAttendance);
+router.post("/attendance/add-update-attendance", protect, restrictToRoles('admin', 'manager'), AttendanceController.addOrUpdateAttendance);
+
+router.get("/attendance/get-attendance", protect, restrictToRoles('admin', 'manager'), AttendanceController.getAttendanceByDate);
 
 export default router;
