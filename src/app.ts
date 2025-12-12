@@ -15,6 +15,7 @@ import priceListRoutes from "./modules/priceList/priceList.routes"
 import partyRoutes from "./modules/party/party.routes"
 import dailyLedgerRoutes from "./modules/dailyLedger/dailyLedger.routes"
 import employeeRoutes from "./modules/employee/employee.routes";
+import attendanceRoutes from "./modules/attendance/attendance.routes";
 
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
@@ -54,6 +55,7 @@ app.use('/api/v1/inventory', priceListRoutes)
 app.use('/api/v1/inventory', partyRoutes)
 app.use('/api/v1/inventory', dailyLedgerRoutes)
 app.use('/api/v1/inventory', employeeRoutes)
+app.use('/api/v1/inventory', attendanceRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));
