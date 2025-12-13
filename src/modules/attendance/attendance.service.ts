@@ -1,4 +1,4 @@
-import Attendance , {IAttendance} from "./attendance.model";
+import Attendance, { IAttendance } from "./attendance.model";
 import Employee from "./../employee/employee.model"
 
 interface ServiceResponse<T = any> {
@@ -36,7 +36,7 @@ export const addOrUpdateAttendanceService = async (attendanceData: IAttendance):
             existingAttendance.viewType = attendanceData.viewType || 'day';
             existingAttendance.attendanceEntries = attendanceData.attendanceEntries;
             existingAttendance.updatedAt = new Date();
-            
+
             savedAttendance = await existingAttendance.save();
         } else {
             // CREATE new attendance
@@ -45,7 +45,7 @@ export const addOrUpdateAttendanceService = async (attendanceData: IAttendance):
                 viewType: attendanceData.viewType || 'day',
                 attendanceEntries: attendanceData.attendanceEntries
             });
-            
+
             savedAttendance = await newAttendance.save();
         }
 
@@ -95,7 +95,7 @@ export const getAttendanceByDateService = async (date: string): Promise<ServiceR
         if (!attendance) {
             // Get all active employees
             const activeEmployees = await Employee.find({ status: 'active' }).select('_id first_name last_name');
-            
+
             if (activeEmployees.length === 0) {
                 throw new Error("No active employees found");
             }
@@ -142,3 +142,90 @@ export const getAttendanceByDateService = async (date: string): Promise<ServiceR
         throw new Error(`Failed to fetch attendance: ${error.message}`);
     }
 };
+
+// get attendance monthly
+export const getEmployeeMonthlyAttendanceService = async (employeeId: string, month: string): Promise<ServiceResponse<any>> => {
+    try {
+        if (!employeeId) {
+            throw new Error("Employee id is required")
+        }
+        const targetMonth = month ? new Date(month) : new Date();
+        const startOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const endOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0);
+        endOfMonth.setHours(23, 59, 59, 999);
+
+        const attendanceRecords = await Attendance.find({
+            date: {
+                $gte: startOfMonth,
+                $lte: endOfMonth
+            },
+            'attendanceEntries.employee_id': employeeId
+        }).select('date attendanceEntries.$').sort({ date: 1 });
+
+        const employee = await Employee.findById(employeeId).select(`first_name last_name photo job.employee_type job.base_salary`)
+
+        if (!employee) {
+            throw new Error("Employee not found")
+        }
+
+        const formattedAttendance = attendanceRecords.map(record => {
+            const entry = record.attendanceEntries[0];
+            return {
+                date: record.date,
+                in_time: entry?.in_time,
+                out_time: entry?.out_time,
+                working_hour: entry?.working_hour,
+                overtime_hour: entry?.overtime_hour,
+                advance_amount: entry?.advance_amount,
+                attendance_status: entry?.attendance_status,
+                note: entry?.note
+            }
+        })
+
+        const totalDays = formattedAttendance.length;
+        const presentDays = formattedAttendance.filter(d => d.attendance_status === 'Present').length;
+        const absentDays = formattedAttendance.filter(d => d.attendance_status === 'Absent').length;
+        const halfDays = formattedAttendance.filter(d => d.attendance_status === 'Half Day').length;
+        const paidLeaveDays = formattedAttendance.filter(d => d.attendance_status === 'Paid Leave').length;
+        const weekOffDays = formattedAttendance.filter(d => d.attendance_status === 'Week Off').length;
+        const holidayDays = formattedAttendance.filter(d => d.attendance_status === 'Holiday').length;
+
+        const totalWorkingHours = formattedAttendance.reduce((sum, d) => sum + (d.working_hour ?? 0), 0);
+        const totalOvertimeHours = formattedAttendance.reduce((sum, d) => sum + (d.overtime_hour ?? 0), 0);
+        const totalAdvance = formattedAttendance.reduce((sum, d) => sum + (d.advance_amount ?? 0), 0);
+
+        return {
+            status: 'success',
+            message: 'Monthly attendance fetched successfully',
+            data: {
+                employee: {
+                    _id: employee._id,
+                    name: `${employee.first_name} ${employee.last_name}`,
+                    employee_type: employee.job?.employee_type,
+                    base_salary: employee.job?.base_salary,
+                    photo: employee.photo
+                },
+                month: targetMonth.toISOString().slice(0, 7), // YYYY-MM
+                attendance: formattedAttendance,
+                summary: {
+                    totalDays,
+                    presentDays,
+                    absentDays,
+                    halfDays,
+                    paidLeaveDays,
+                    weekOffDays,
+                    holidayDays,
+                    totalWorkingHours,
+                    totalOvertimeHours,
+                    totalAdvance,
+                    attendancePercentage: totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0
+                }
+            }
+        };
+    } catch (error: any) {
+        console.error('Get monthly attendance error:', error);
+        throw new Error(`Failed to fetch monthly attendance: ${error.message}`);
+    }
+}
