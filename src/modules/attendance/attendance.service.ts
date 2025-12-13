@@ -103,12 +103,12 @@ export const getAttendanceByDateService = async (date: string): Promise<ServiceR
             // Create default attendance entries
             const defaultEntries = activeEmployees.map(emp => ({
                 employee_id: emp._id,
-                in_time: '09:00',
-                out_time: '18:00',
-                working_hour: 9,
+                in_time: '12:00',
+                out_time: '12:00',
+                working_hour: 0,
                 overtime_hour: 0,
                 advance_amount: 0,
-                attendance_status: 'Present' as string,
+                attendance_status: 'Absent' as string,
                 note: ''
             }));
 
