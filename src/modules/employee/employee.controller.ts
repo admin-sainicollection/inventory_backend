@@ -10,6 +10,7 @@ import {
     updateEmployeeStatusService,
     getEmployeeStatsService
 } from './employee.service';
+import { UploadedFiles } from './employee.service'
 
 interface TypedRequest<T = any, P extends ParamsDictionary = ParamsDictionary, Q = ParsedQs> extends Request<P, any, T, Q> {
     body: T;
@@ -18,33 +19,56 @@ interface TypedRequest<T = any, P extends ParamsDictionary = ParamsDictionary, Q
     files?: any;
 }
 
-export const addEmployee = async (req: TypedRequest, res: Response): Promise<void> => {
+export const addEmployee = async (
+    req: TypedRequest,
+    res: Response
+): Promise<void> => {
     try {
-        const result = await addEmployeeService(req.body, req.files);
-        console.log("FILES:", req.files);
+        // ✅ Multer gives text fields as strings
+        const data =
+            typeof req.body.data === "string"
+                ? JSON.parse(req.body.data)
+                : req.body;
+
+        const result = await addEmployeeService(data, req.files as UploadedFiles);
         res.status(201).json(result);
     } catch (error: any) {
-        console.error('Add employee error:', error);
+        console.error("Add employee error:", error);
         res.status(400).json({
-            status: 'error',
-            message: error.message
+            status: "error",
+            message: error.message || "Failed to add employee",
         });
     }
 };
 
-export const updateEmployee = async (req: TypedRequest<{}, { id: string }>, res: Response): Promise<void> => {
+export const updateEmployee = async (
+    req: TypedRequest<any, { id: string }>,
+    res: Response
+): Promise<void> => {
     try {
         const { id } = req.params;
-        const result = await updateEmployeeService(id, req.body, req.files);
+
+        const data =
+            typeof req.body.data === "string"
+                ? JSON.parse(req.body.data)
+                : req.body;
+
+        const result = await updateEmployeeService(
+            id,
+            data,
+            req.files as UploadedFiles
+        );
+
         res.status(200).json(result);
     } catch (error: any) {
-        console.error('Update employee error:', error);
+        console.error("Update employee error:", error);
         res.status(400).json({
-            status: 'error',
-            message: error.message
+            status: "error",
+            message: error.message || "Failed to update employee",
         });
     }
 };
+
 
 export const getEmployees = async (req: TypedRequest<{}, ParamsDictionary, {
     search?: string;
@@ -57,34 +81,34 @@ export const getEmployees = async (req: TypedRequest<{}, ParamsDictionary, {
     max_salary?: string;
 }>, res: Response): Promise<void> => {
     try {
-        const { 
-            search, 
-            page = '1', 
-            limit = '10', 
-            status, 
-            gender, 
+        const {
+            search,
+            page = '1',
+            limit = '10',
+            status,
+            gender,
             employee_type,
             min_salary,
             max_salary
         } = req.query;
-        
+
         // Build filters object
         const filters: Record<string, any> = {};
         if (status) filters.status = status;
         if (gender) filters.gender = gender;
         if (employee_type) filters['job.employee_type'] = employee_type;
-        
+
         // Salary filters
         if (min_salary || max_salary) {
             filters['job.base_salary'] = {};
             if (min_salary) filters['job.base_salary'].$gte = Number(min_salary);
             if (max_salary) filters['job.base_salary'].$lte = Number(max_salary);
         }
-        
+
         const result = await getEmployeesService(
-            filters, 
-            search || '', 
-            parseInt(page), 
+            filters,
+            search || '',
+            parseInt(page),
             parseInt(limit)
         );
         res.status(200).json(result);
@@ -133,13 +157,13 @@ export const deleteEmployee = async (req: TypedRequest<{}, { id: string }>, res:
 };
 
 export const updateEmployeeStatus = async (
-    req: TypedRequest<{ status: 'active' | 'inactive' }, { id: string }>, 
+    req: TypedRequest<{ status: 'active' | 'inactive' }, { id: string }>,
     res: Response
 ): Promise<void> => {
     try {
         const { id } = req.params;
         const { status } = req.body;
-        
+
         if (!status || !['active', 'inactive'].includes(status)) {
             res.status(400).json({
                 status: 'error',
@@ -147,7 +171,7 @@ export const updateEmployeeStatus = async (
             });
             return;
         }
-        
+
         const result = await updateEmployeeStatusService(id, status);
         res.status(200).json(result);
     } catch (error: any) {

@@ -14,11 +14,12 @@ const uploadFields = upload.fields([
 
 router.post('/employee/add-employee', uploadFields, protect, restrictToRoles('admin'), EmployeeController.addEmployee);
 
+router.put('/employee/update-employee/:id',uploadFields,  protect, restrictToRoles('admin'), EmployeeController.updateEmployee);
+
 router.get('/employee/get-all-employees', protect, restrictToRoles('admin'), EmployeeController.getEmployees);
 
 router.get('/employee/get-single-employee/:id', protect, restrictToRoles('admin'), EmployeeController.getEmployeeById);
 
-router.put('/employee/update-employee/:id', protect, restrictToRoles('admin'), EmployeeController.updateEmployee);
 
 router.delete('/employee/delete-employee/:id', protect, restrictToRoles('admin'), EmployeeController.deleteEmployee);
 
