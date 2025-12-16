@@ -9,7 +9,7 @@ interface UploadedFile {
     originalname: string;
 }
 
-interface UploadedFiles {
+export interface UploadedFiles {
     photo_file?: UploadedFile[];
     aadhaar_front_file?: UploadedFile[];
     aadhaar_back_file?: UploadedFile[];
@@ -44,77 +44,83 @@ interface ServiceResponse<T = any> {
 }
 
 // Helper function to parse FormData
+// const parseFormData = (data: any): Partial<IEmployee> => {
+//     return {
+//         ...data,
+//         contact: data.contact ? JSON.parse(data.contact) : { phone: [], email: [] },
+//         address: data.address ? JSON.parse(data.address) : {},
+//         job: data.job ? JSON.parse(data.job) : {},
+//         document: data.document ? JSON.parse(data.document) : {},
+//         finance: data.finance ? JSON.parse(data.finance) : {},
+//     };
+// };
+// Helper function to parse FormData
 const parseFormData = (data: any): Partial<IEmployee> => {
-    return {
-        ...data,
-        contact: data.contact ? JSON.parse(data.contact) : { phone: [], email: [] },
-        address: data.address ? JSON.parse(data.address) : {},
-        job: data.job ? JSON.parse(data.job) : {},
-        document: data.document ? JSON.parse(data.document) : {},
-        finance: data.finance ? JSON.parse(data.finance) : {},
-    };
+    try {
+        // If data is already a JSON string in the 'data' field
+        if (typeof data === 'string') {
+            return JSON.parse(data);
+        }
+
+        // If data has a 'data' field containing JSON
+        if (data.data && typeof data.data === 'string') {
+            const parsedData = JSON.parse(data.data);
+            return parsedData;
+        }
+
+        // Otherwise return as is
+        return data;
+    } catch (error) {
+        console.error('Error parsing form data:', error);
+        return data;
+    }
 };
 
-// Helper function to upload files to Cloudinary
-const uploadEmployeeFiles = async (files: UploadedFiles): Promise<{
-    photo?: string;
-    aadhaar_photo_front?: string;
-    aadhaar_photo_back?: string;
-    pan_photo?: string;
-}> => {
-    const uploads: {
-        photo?: string;
-        aadhaar_photo_front?: string;
-        aadhaar_photo_back?: string;
-        pan_photo?: string;
-    } = {};
+const uploadEmployeeFiles = async (files: any) => {
+    const uploads: any = {};
 
-    if (files?.photo_file?.[0]) {
-        const photoResult = await uploadBuffer(
+    if (files?.photo_file?.[0]?.buffer) {
+        uploads.photo = await uploadBuffer(
             files.photo_file[0].buffer,
             "employees/photos"
         );
-        uploads.photo = photoResult;
     }
 
-    if (files?.aadhaar_front_file?.[0]) {
-        const aadhaarFrontResult = await uploadBuffer(
+    if (files?.aadhaar_front_file?.[0]?.buffer) {
+        uploads.aadhaar_photo_front = await uploadBuffer(
             files.aadhaar_front_file[0].buffer,
-            "employees/documents/aadhaar/front"
+            "employees/aadhaar/front"
         );
-        uploads.aadhaar_photo_front = aadhaarFrontResult;
     }
 
-    if (files?.aadhaar_back_file?.[0]) {
-        const aadhaarBackResult = await uploadBuffer(
+    if (files?.aadhaar_back_file?.[0]?.buffer) {
+        uploads.aadhaar_photo_back = await uploadBuffer(
             files.aadhaar_back_file[0].buffer,
-            "employees/documents/aadhaar/back"
+            "employees/aadhaar/back"
         );
-        uploads.aadhaar_photo_back = aadhaarBackResult;
     }
 
-    if (files?.pan_file?.[0]) {
-        const panResult = await uploadBuffer(
+    if (files?.pan_file?.[0]?.buffer) {
+        uploads.pan_photo = await uploadBuffer(
             files.pan_file[0].buffer,
-            "employees/documents/pan"
+            "employees/pan"
         );
-        uploads.pan_photo = panResult;
     }
 
     return uploads;
 };
 
+
 export const addEmployeeService = async (
-    data: any,
+    data: Partial<IEmployee>,
     files: UploadedFiles
 ): Promise<ServiceResponse<IEmployee>> => {
     try {
         const employeeData = parseFormData(data);
 
-        // Upload to Cloudinary
         const uploadedFiles = await uploadEmployeeFiles(files);
 
-        // Merge into employeeData
+        // ✅ Attach uploaded URLs
         if (uploadedFiles.photo) {
             employeeData.photo = uploadedFiles.photo;
         }
@@ -123,13 +129,15 @@ export const addEmployeeService = async (
             employeeData.document ??= {};
             employeeData.document.aadhaar ??= {};
 
-            if (uploadedFiles.aadhaar_photo_front)
+            if (uploadedFiles.aadhaar_photo_front) {
                 employeeData.document.aadhaar.aadhaar_photo_front =
                     uploadedFiles.aadhaar_photo_front;
+            }
 
-            if (uploadedFiles.aadhaar_photo_back)
+            if (uploadedFiles.aadhaar_photo_back) {
                 employeeData.document.aadhaar.aadhaar_photo_back =
                     uploadedFiles.aadhaar_photo_back;
+            }
         }
 
         if (uploadedFiles.pan_photo) {
@@ -138,112 +146,92 @@ export const addEmployeeService = async (
             employeeData.document.pan.pan_photo = uploadedFiles.pan_photo;
         }
 
-        // Convert date fields
-        if (employeeData.dob) employeeData.dob = new Date(employeeData.dob);
-        if (employeeData.job?.joining_date)
-            employeeData.job.joining_date = new Date(employeeData.job.joining_date);
+        // ✅ Convert dates
+        if (employeeData.dob)
+            employeeData.dob = new Date(employeeData.dob);
 
-        // Save employee
-        const employee = new Employee(employeeData);
-        await employee.save();
+        if (employeeData.job?.joining_date)
+            employeeData.job.joining_date = new Date(
+                employeeData.job.joining_date
+            );
+
+        const employee = await Employee.create(employeeData);
 
         return {
             status: "success",
             message: "Employee created successfully",
-            data: employee
+            data: employee,
         };
     } catch (error: any) {
-        throw new Error(`Failed to add employee: ${error.message}`);
+        throw new Error(error.message);
     }
 };
 
 
+
 export const updateEmployeeService = async (
     id: string,
-    data: any,
+    data: Partial<IEmployee>,
     files: UploadedFiles
 ): Promise<ServiceResponse<IEmployee>> => {
     try {
-        // Find existing employee
         const existingEmployee = await Employee.findById(id);
         if (!existingEmployee) {
-            throw new Error('Employee not found');
+            throw new Error("Employee not found");
         }
 
-        // Parse form data
         const updateData = parseFormData(data);
-
-        // Upload new files to Cloudinary
         const uploadedFiles = await uploadEmployeeFiles(files);
 
-        // Merge uploaded files with update data
+        // ✅ PHOTO
         if (uploadedFiles.photo) {
             updateData.photo = uploadedFiles.photo;
-        } else if (data.photo) {
-            // Keep existing photo if no new file uploaded
-            updateData.photo = data.photo;
+        } else if (updateData.photo?.startsWith("http")) {
+            updateData.photo = updateData.photo;
+        } else {
+            updateData.photo = existingEmployee.photo as string;
         }
 
-        // Handle document updates
-        if (!updateData.document) updateData.document = {};
-        if (!updateData.document.aadhaar) updateData.document.aadhaar = {};
-        if (!updateData.document.pan) updateData.document.pan = {};
+        // ✅ DOCUMENTS
+        updateData.document ??= {};
+        updateData.document.aadhaar ??= existingEmployee.document?.aadhaar || {};
+        updateData.document.pan ??= existingEmployee.document?.pan || {};
 
-        // Merge existing document data
-        if (existingEmployee.document) {
-            if (existingEmployee.document.aadhaar) {
-                updateData.document.aadhaar = {
-                    ...existingEmployee.document.aadhaar,
-                    ...updateData.document.aadhaar
-                };
-            }
-
-            if (existingEmployee.document.pan) {
-                updateData.document.pan = {
-                    ...existingEmployee.document.pan,
-                    ...updateData.document.pan
-                };
-            }
-        }
-
-        // Update with new uploaded files
         if (uploadedFiles.aadhaar_photo_front) {
-            if (!updateData.document) updateData.document = {};
-            if (!updateData.document.aadhaar) updateData.document.aadhaar = {};
-            updateData.document.aadhaar.aadhaar_photo_front = uploadedFiles.aadhaar_photo_front;
+            updateData.document.aadhaar.aadhaar_photo_front =
+                uploadedFiles.aadhaar_photo_front;
         }
 
         if (uploadedFiles.aadhaar_photo_back) {
-            if (!updateData.document) updateData.document = {};
-            if (!updateData.document.aadhaar) updateData.document.aadhaar = {};
-            updateData.document.aadhaar.aadhaar_photo_back = uploadedFiles.aadhaar_photo_back;
+            updateData.document.aadhaar.aadhaar_photo_back =
+                uploadedFiles.aadhaar_photo_back;
         }
 
         if (uploadedFiles.pan_photo) {
-            if (!updateData.document) updateData.document = {};
-            if (!updateData.document.pan) updateData.document.pan = {};
             updateData.document.pan.pan_photo = uploadedFiles.pan_photo;
         }
 
-        // Convert dates
-        if (updateData.dob && typeof updateData.dob === 'string') {
+        // ✅ Type conversions
+        if (typeof updateData.dob === "string") {
             updateData.dob = new Date(updateData.dob);
         }
 
-        if (updateData.job?.joining_date && typeof updateData.job.joining_date === 'string') {
-            updateData.job.joining_date = new Date(updateData.job.joining_date);
-        }
-
-        // Convert numeric fields
-        if (updateData.document?.aadhaar?.aadhaar_no) {
-            updateData.document.aadhaar.aadhaar_no = Number(updateData.document.aadhaar.aadhaar_no);
+        if (typeof updateData.job?.joining_date === "string") {
+            updateData.job.joining_date = new Date(
+                updateData.job.joining_date
+            );
         }
 
         if (updateData.job?.base_salary) {
             updateData.job.base_salary = Number(updateData.job.base_salary);
         }
 
-        // Update employee
+        if (updateData.document?.aadhaar?.aadhaar_no) {
+            updateData.document.aadhaar.aadhaar_no = Number(
+                updateData.document.aadhaar.aadhaar_no
+            );
+        }
+
         const updatedEmployee = await Employee.findByIdAndUpdate(
             id,
             updateData,
@@ -251,14 +239,15 @@ export const updateEmployeeService = async (
         );
 
         return {
-            status: 'success',
-            message: 'Employee updated successfully',
-            data: updatedEmployee!
+            status: "success",
+            message: "Employee updated successfully",
+            data: updatedEmployee!,
         };
     } catch (error: any) {
-        throw new Error(`Failed to update employee: ${error.message}`);
+        throw new Error(error.message);
     }
 };
+
 
 export const getEmployeesService = async (
     filters: Record<string, any> = {},
