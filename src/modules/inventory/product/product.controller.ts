@@ -16,9 +16,32 @@ export const createProduct = async (req: Request, res: Response) => {
             );
         }
 
+        const productDataBody = req.body;
+
+        let description = {
+            text: '',
+            jsonFields: {}
+        };
+        
+        if (productDataBody.description) {
+            if (typeof productDataBody.description === 'string') {
+                try {
+                    description = JSON.parse(productDataBody.description);
+                } catch (error) {
+                    console.error('Failed to parse description:', error);
+                }
+            } else {
+                description = productDataBody.description;
+            }
+        }
+
         const productData = {
-            ...req.body,
+            ...productDataBody,
             productImages: uploadedImages,
+            description: {
+                text: description.text || '',
+                jsonFields: description.jsonFields || {}
+            } 
         };
 
         const product = await ProductService.create(productData, req.files as Express.Multer.File[]);
@@ -40,10 +63,36 @@ export const createProduct = async (req: Request, res: Response) => {
 export const updateProduct = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const updatedData = req.body;
+
+        let description = {
+            text: '',
+            jsonFields: {}
+        };
+
+        if (updatedData.description) {
+            if (typeof updatedData.description === 'string') {
+                try {
+                    description = JSON.parse(updatedData.description);
+                } catch (error) {
+                    console.error('Failed to parse description:', error);
+                }
+            } else {
+                description = updatedData.description;
+            }
+        }
+
+        const processedData = {
+            ...updatedData,
+            description: {
+                text: description.text || '',
+                jsonFields: description.jsonFields || {}
+            } 
+        };
 
         const product = await ProductService.update(
             id as string,
-            req.body,
+            processedData,
             req.files as Express.Multer.File[]
         );
 
@@ -86,12 +135,12 @@ export const getAllProducts = async (req: Request, res: Response) => {
         const productsResult = await ProductService.getAll({ q: search });
 
         // ✅ FIX: Return empty array instead of 404 when no products found
-        return res.status(200).json({ 
-            status: "success", 
-            products: productsResult.products || [], 
-            total: productsResult.total || 0 
+        return res.status(200).json({
+            status: "success",
+            products: productsResult.products || [],
+            total: productsResult.total || 0
         });
-        
+
     } catch (err: any) {
         console.error("Get All Products Error:", err);
         return res.status(500).json({

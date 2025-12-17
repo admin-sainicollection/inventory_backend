@@ -68,9 +68,10 @@ export const ProductService = {
             );
         }
 
+        const processedData = processDescriptionData(data);
         // 🛠️ Create product
         const product = await Product.create({
-            ...data,
+            ...processedData,
             productImages: uploadedImages,
             attributes: validAttributes,
             // ✅ aliasNames will now be properly stored as array of strings
@@ -164,9 +165,11 @@ export const ProductService = {
             finalImages = [...finalImages, ...remainingImages];
         }
 
+        const processedData = processDescriptionData(data);
+
         // 🧾 Update product data
         Object.assign(product, {
-            ...data,
+            ...processedData,
             attributes: Object.keys(validAttributes).length
                 ? validAttributes
                 : product.attributes,
@@ -211,7 +214,7 @@ export const ProductService = {
                 { brand: regex },
                 { category: regex },
                 { vender: regex },
-                { description: regex },
+                { "description.text": regex },
                 { "compatibility.name": regex },
                 { "compatibility.brand.name": regex },
                 { "attributes.key": regex },
@@ -279,3 +282,35 @@ export const ProductService = {
         return product;
     },
 };
+
+
+// Helper function to process description data and ensure proper structure
+const processDescriptionData = (data: Partial<IProduct>): any => {
+    const processedData = { ...data };
+
+    // Handle description transformation
+    if (processedData.description) {
+        // If description is provided as a string (backward compatibility), convert to object
+        if (typeof processedData.description === 'string') {
+            processedData.description = {
+                text: processedData.description,
+                jsonFields: {}
+            };
+        }
+        // Ensure description has both text and jsonFields
+        else if (typeof processedData.description === 'object') {
+            processedData.description = {
+                text: processedData.description.text || '',
+                jsonFields: processedData.description.jsonFields || {}
+            };
+        }
+    } else {
+        // Set default empty description object if not provided
+        processedData.description = {
+            text: '',
+            jsonFields: {}
+        };
+    }
+
+    return processedData;
+}

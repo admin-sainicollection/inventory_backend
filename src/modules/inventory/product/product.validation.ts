@@ -42,7 +42,10 @@ export const createProductSchema = z.object({
     .coerce.number()
     .nonnegative("Selling price to bussines cannot be negative"),
 
-  description: z.string().optional(),
+  description: z.object({
+    text: z.string().optional(),
+    jsonFields: z.record(z.string(), z.any()).optional()
+  }).optional(),
 
   // array of car model objects
   compatibility: z.array(addCarModelSchema).optional(),
