@@ -1,6 +1,11 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { ICarModel, carModelSchema } from "../compatibility/compatibility.model";
 
+interface IDescription {
+  text?: string;
+  jsonFields?: Record<string, any>; // Dynamic key-value pairs
+}
+
 export interface IProduct extends Document {
   name: string;
 //   aliasNames?: string[]; // alternate searchable names
@@ -16,7 +21,7 @@ export interface IProduct extends Document {
   purchasePrice: number;
   sellingPriceB2C: number;
   sellingPriceB2B: number;
-  description?: string;
+  description?: IDescription;
   compatibility: ICarModel[];
   attributes?: Record<string, any>;
   status?: "active" | "inactive";
@@ -98,9 +103,18 @@ const productSchema = new Schema<IProduct>(
       min: [0, "Vendor price cannot be negative"],
     },
     description: {
-      type: String,
-      trim: true,
-      default: "",
+      type: {
+        text: {
+          type: String,
+          trim: true,
+          default: ''
+        },
+        jsonFields: {
+          type: Schema.Types.Mixed, // Allows any JSON object
+          default: {}
+        }
+      },
+      default: () => ({}) // Default to empty object
     },
     compatibility: {
       type: [carModelSchema],
