@@ -35,13 +35,45 @@ export const createProduct = async (req: Request, res: Response) => {
             }
         }
 
+        // Parse source if it's a string
+        let source = {
+            type: 'manual' as 'manual' | 'price-list' | 'import' | 'api',
+            id:"",
+            date: new Date(),
+            metadata: {}
+        };
+        
+        if (productDataBody.source) {
+            if (typeof productDataBody.source === 'string') {
+                try {
+                    source = JSON.parse(productDataBody.source);
+                } catch (error) {
+                    console.error('Failed to parse source:', error);
+                }
+            } else {
+                source = {
+                    type: productDataBody.source.type || 'manual',
+                    id: productDataBody.source.id,
+                    date: productDataBody.source.date ? new Date(productDataBody.source.date) : new Date(),
+                    metadata: productDataBody.source.metadata || {}
+                };
+            }
+        }
+
         const productData = {
             ...productDataBody,
             productImages: uploadedImages,
             description: {
                 text: description.text || '',
                 jsonFields: description.jsonFields || {}
-            } 
+            },
+            // Add source data
+            source: {
+                type: source.type,
+                id: source.id,
+                date: source.date,
+                metadata: source.metadata
+            }
         };
 
         const product = await ProductService.create(productData, req.files as Express.Multer.File[]);
@@ -82,12 +114,33 @@ export const updateProduct = async (req: Request, res: Response) => {
             }
         }
 
+        // Parse source if it exists in update (usually source shouldn't be updated, but handle it)
+        let sourceUpdate = undefined;
+        if (updatedData.source) {
+            if (typeof updatedData.source === 'string') {
+                try {
+                    sourceUpdate = JSON.parse(updatedData.source);
+                } catch (error) {
+                    console.error('Failed to parse source:', error);
+                }
+            } else {
+                sourceUpdate = {
+                    type: updatedData.source.type,
+                    id: updatedData.source.id,
+                    date: updatedData.source.date ? new Date(updatedData.source.date) : new Date(),
+                    metadata: updatedData.source.metadata
+                };
+            }
+        }
+
         const processedData = {
             ...updatedData,
             description: {
                 text: description.text || '',
                 jsonFields: description.jsonFields || {}
-            } 
+            },
+            // Only include source if provided (usually source shouldn't be changed after creation)
+            ...(sourceUpdate && { source: sourceUpdate })
         };
 
         const product = await ProductService.update(
