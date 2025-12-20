@@ -14,6 +14,10 @@ import priceCodeRoutes from "./modules/priceCode/priceCode.routes"
 import priceListRoutes from "./modules/priceList/priceList.routes"
 import partyRoutes from "./modules/party/party.routes"
 import dailyLedgerRoutes from "./modules/dailyLedger/dailyLedger.routes"
+import vendorDailyLedgerRoutes from "./modules/vendorDailyLedger/vendorDailyLedger.routes"
+import employeeRoutes from "./modules/employee/employee.routes";
+import attendanceRoutes from "./modules/attendance/attendance.routes";
+
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
 import path from "path";
@@ -27,6 +31,9 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve uploaded files
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
@@ -51,6 +58,9 @@ app.use('/api/v1/inventory', priceCodeRoutes)
 app.use('/api/v1/inventory', priceListRoutes)
 app.use('/api/v1/inventory', partyRoutes)
 app.use('/api/v1/inventory', dailyLedgerRoutes)
+app.use('/api/v1/inventory', employeeRoutes)
+app.use('/api/v1/inventory', attendanceRoutes)
+app.use('/api/v1/inventory', vendorDailyLedgerRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));

@@ -7,16 +7,6 @@ export const ProductService = {
         data: Partial<IProduct>,
         files?: Express.Multer.File[]
     ): Promise<IProduct> {
-        // ✅ FIXED: Parse aliasNames if it's a string
-        // if (data.aliasNames && typeof data.aliasNames === 'string') {
-        //     try {
-        //         data.aliasNames = JSON.parse(data.aliasNames);
-        //     } catch (error) {
-        //         // If JSON parsing fails, set to empty array
-        //         console.warn('Failed to parse aliasNames as JSON, setting to empty array');
-        //         data.aliasNames = [];
-        //     }
-        // }
 
         // Parse compatibility if it's a string
         if (typeof data.compatibility === 'string') {
@@ -33,6 +23,29 @@ export const ProductService = {
                 data.attributes = JSON.parse(data.attributes);
             } catch (error) {
                 throw new Error("Invalid attributes data format");
+            }
+        }
+
+        // Parse importBatchId if it's a string (from JSON)
+        if (data.importBatchId && typeof data.importBatchId === 'string') {
+            try {
+                // Check if it's a JSON string that needs parsing
+                if (data.importBatchId.startsWith('"') || data.importBatchId.startsWith('[') || data.importBatchId.startsWith('{')) {
+                    const parsed = JSON.parse(data.importBatchId);
+                    data.importBatchId = parsed;
+                }
+            } catch (error) {
+                // If parsing fails, keep as is
+                console.warn('Failed to parse importBatchId, keeping as string');
+            }
+        }
+
+        // Parse source if it's a string
+        if (data.source && typeof data.source === 'string') {
+            try {
+                data.source = JSON.parse(data.source);
+            } catch (error) {
+                throw new Error("Invalid source data format");
             }
         }
 
@@ -68,11 +81,27 @@ export const ProductService = {
             );
         }
 
+        const processedData = processDescriptionData(data);
+
+        // Ensure source has proper structure
+        const finalSource = data.source || {
+            type: 'manual' as const,
+            date: new Date(),
+            metadata: {}
+        };
+
+        // Ensure source.date is a Date object
+        if (finalSource.date && !(finalSource.date instanceof Date)) {
+            finalSource.date = new Date(finalSource.date);
+        }
+
         // 🛠️ Create product
         const product = await Product.create({
-            ...data,
+            ...processedData,
             productImages: uploadedImages,
             attributes: validAttributes,
+            source: finalSource,
+            importBatchId: data.importBatchId,
             // ✅ aliasNames will now be properly stored as array of strings
         });
 
@@ -87,18 +116,8 @@ export const ProductService = {
     ): Promise<IProduct> {
         const product = await Product.findById(id);
         if (!product) {
-            throw new Error("Product not found");
+            throw new Error("Product product not found");
         }
-
-        // ✅ Parse aliasNames if it's a string
-        // if (data.aliasNames && typeof data.aliasNames === 'string') {
-        //     try {
-        //         data.aliasNames = JSON.parse(data.aliasNames);
-        //     } catch (error) {
-        //         console.warn('Failed to parse aliasNames as JSON, keeping existing values');
-        //         delete data.aliasNames;
-        //     }
-        // }
 
         // Parse compatibility if it's a string
         if (typeof data.compatibility === 'string') {
@@ -115,6 +134,30 @@ export const ProductService = {
                 data.attributes = JSON.parse(data.attributes);
             } catch (error) {
                 throw new Error("Invalid attributes data format");
+            }
+        }
+
+        // Parse importBatchId if it's a string (from JSON)
+        if (data.importBatchId && typeof data.importBatchId === 'string') {
+            try {
+                // Check if it's a JSON string that needs parsing
+                if (data.importBatchId.startsWith('"') || data.importBatchId.startsWith('[') || data.importBatchId.startsWith('{')) {
+                    const parsed = JSON.parse(data.importBatchId);
+                    data.importBatchId = parsed;
+                }
+            } catch (error) {
+                // If parsing fails, keep as is
+                console.warn('Failed to parse importBatchId, keeping as string');
+            }
+        }
+
+        // Parse source if it's a string (usually source shouldn't be updated, but handle it)
+        if (data.source && typeof data.source === 'string') {
+            try {
+                data.source = JSON.parse(data.source);
+            } catch (error) {
+                console.warn('Failed to parse source in update, keeping existing source');
+                delete data.source; // Don't update source if invalid
             }
         }
 
@@ -164,14 +207,32 @@ export const ProductService = {
             finalImages = [...finalImages, ...remainingImages];
         }
 
-        // 🧾 Update product data
-        Object.assign(product, {
-            ...data,
+        const processedData = processDescriptionData(data);
+
+        // 🧾 Update product data - preserve existing source unless explicitly updated
+        const updatePayload: any = {
+            ...processedData,
             attributes: Object.keys(validAttributes).length
                 ? validAttributes
                 : product.attributes,
-            productImages: finalImages, // This now contains ONLY the images we want to keep
-        });
+            productImages: finalImages,
+        };
+
+        // Only update source if explicitly provided (usually source shouldn't change)
+        if (data.source) {
+            // Ensure source.date is a Date object
+            if (data.source.date && !(data.source.date instanceof Date)) {
+                data.source.date = new Date(data.source.date);
+            }
+            updatePayload.source = data.source;
+        }
+
+        // Only update importBatchId if provided
+        if (data.importBatchId !== undefined) {
+            updatePayload.importBatchId = data.importBatchId;
+        }
+
+        Object.assign(product, updatePayload);
 
         await product.save();
         return product;
@@ -211,11 +272,13 @@ export const ProductService = {
                 { brand: regex },
                 { category: regex },
                 { vender: regex },
-                { description: regex },
+                { importBatchId: regex },
+                { "description.text": regex },
                 { "compatibility.name": regex },
                 { "compatibility.brand.name": regex },
                 { "attributes.key": regex },
-                { "attributes.value": regex }
+                { "attributes.value": regex },
+                { "source.type": regex },
             );
 
             // NUMERIC CHECK
@@ -279,3 +342,35 @@ export const ProductService = {
         return product;
     },
 };
+
+
+// Helper function to process description data and ensure proper structure
+const processDescriptionData = (data: Partial<IProduct>): any => {
+    const processedData = { ...data };
+
+    // Handle description transformation
+    if (processedData.description) {
+        // If description is provided as a string (backward compatibility), convert to object
+        if (typeof processedData.description === 'string') {
+            processedData.description = {
+                text: processedData.description,
+                jsonFields: {}
+            };
+        }
+        // Ensure description has both text and jsonFields
+        else if (typeof processedData.description === 'object') {
+            processedData.description = {
+                text: processedData.description.text || '',
+                jsonFields: processedData.description.jsonFields || {}
+            };
+        }
+    } else {
+        // Set default empty description object if not provided
+        processedData.description = {
+            text: '',
+            jsonFields: {}
+        };
+    }
+
+    return processedData;
+}

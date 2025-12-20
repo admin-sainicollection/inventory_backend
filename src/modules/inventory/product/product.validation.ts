@@ -5,8 +5,6 @@ import { addCarModelSchema } from "../compatibility/compatibility.validation";
 export const createProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
 
-  // aliasNames: z.array(z.string().min(1)).optional(),
-
   partNo: z
     .string()
     .min(1, "Part No is required")
@@ -28,7 +26,7 @@ export const createProductSchema = z.object({
   vender: z.string().min(1, "Vendor is required"),
   mrp: z
     .coerce.number()
-    .nonnegative("mrp price cannot be negative"),
+    .nonnegative("MRP price cannot be negative"),
   purchaseDiscount: z
     .coerce.number()
     .nonnegative("Purchase discount cannot be negative"),
@@ -40,15 +38,25 @@ export const createProductSchema = z.object({
     .nonnegative("Selling price to customer cannot be negative"),
   sellingPriceB2B: z
     .coerce.number()
-    .nonnegative("Selling price to bussines cannot be negative"),
+    .nonnegative("Selling price to business cannot be negative"),
 
-  description: z.string().optional(),
+  description: z.object({
+    text: z.string().optional(),
+    jsonFields: z.record(z.string(), z.any()).optional()
+  }).optional(),
 
-  // array of car model objects
   compatibility: z.array(addCarModelSchema).optional(),
 
-  // attributes object with string keys and any type values
   attributes: z.record(z.string(), z.any()).optional(),
+
+  source: z.object({
+    type: z.enum(['manual', 'price-list', 'import', 'api']).default('manual'),
+    id: z.string().optional(),
+    date: z.date().optional().default(() => new Date()),
+    metadata: z.record(z.string(), z.any()).optional()
+  }).optional(),
+
+  importBatchId: z.string().optional(),
 
   status: z.enum(["active", "inactive"]).default("active"),
 });

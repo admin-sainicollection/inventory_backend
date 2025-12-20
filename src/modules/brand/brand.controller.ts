@@ -51,8 +51,6 @@ export const addBrand = async (req: Request, res: Response) => {
             manufactureType: processedManufactureType,
         };
 
-        console.log('Creating brand with payload:', brandPayload); // Debug log
-
         const brand = await BrandService.createBrand(brandPayload);
 
         return res.status(201).json({

@@ -16,7 +16,7 @@ export interface IPriceList extends Document {
   carModel?: string;
   mrp?: number;
   purchasePrice?: number;
-  description?: IDescription; // Changed from string to object
+  description?: IDescription; 
   status?: 'active' | 'inactive';
   createdBy?: mongoose.Types.ObjectId;
   createdAt?: Date;
