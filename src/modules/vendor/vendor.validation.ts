@@ -3,6 +3,8 @@ import z from "zod";
 export const vendorValidationSchema = z.object({
     vendorName: z.string().min(1, "Vendor name is required").trim(),
     nickName: z.string().optional(),
+    role: z.string().optional().default("vendor"),
+    withGST: z.boolean().optional().default(true),
     type: z.array(z.string().trim()).min(1, "At least one type is required"),
     contact: z.object({
         phone: z.array(
