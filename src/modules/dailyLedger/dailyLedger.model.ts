@@ -5,6 +5,7 @@ export interface IDailyLedger extends Document {
     date?: string | Date,
     voucher?: string,
     srNo?: string,
+    withGST?: boolean;
     credit?: number,
     debit?: number,
     description?: string,
@@ -30,6 +31,11 @@ export const dailyLedgerSchema = new Schema<IDailyLedger>(
             type: String,
             required: false,
             trim: true
+        },
+        withGST: {
+            type: Boolean,
+            trim: true,
+            default: false
         },
         srNo: {
             type: String,

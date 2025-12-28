@@ -5,6 +5,8 @@ export interface IVendor extends Document {
     vendorName: string;
     nickName?: string;
     type?: string[];
+    role?:string;
+    withGST?:boolean;
     contact: {
         phone: {
             label: string;
@@ -41,6 +43,16 @@ export const vendorSchema = new Schema<IVendor>(
             type: String,
             required: false,
             trim: true
+        },
+        role:{
+            type:String,
+            trim:true,
+            default:"vendor"
+        },
+        withGST:{
+            type:Boolean,
+            trim:true,
+            default:true
         },
         type: [{
             type: String,

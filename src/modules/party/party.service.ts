@@ -8,24 +8,24 @@ export const createParty = async (data: IParty) => {
     }
 
     // // Process GST number
-    // const processedGst = data.gstNumber && data.gstNumber.trim() !== ''
-    //     ? data.gstNumber.trim().toUpperCase()
-    //     : null;
+    const processedGst = data.gstNumber && data.gstNumber.trim() !== ''
+        ? data.gstNumber.trim().toUpperCase()
+        : null;
 
     // // Check for duplicate GST number only if provided
-    // if (processedGst) {
-    //     const existingGST = await Vendor.findOne({
-    //         gstNumber: processedGst
-    //     });
-    //     if (existingGST) {
-    //         throw new Error("Vendor with this GST number already exists");
-    //     }
-    // }
+    if (processedGst) {
+        const existingGST = await Party.findOne({
+            gstNumber: processedGst
+        });
+        if (existingGST) {
+            throw new Error("Vendor with this GST number already exists");
+        }
+    }
 
     // Prepare data for creation
     const partyData = {
         ...data,
-        // gstNumber: processedGst
+        gstNumber: processedGst
     };
 
     return await Party.create(partyData);
@@ -50,25 +50,25 @@ export const updateParty = async (id: string, data: Partial<IParty>) => {
     }
 
     // // Process GST number if provided
-    // if (data.gstNumber !== undefined) {
-    //     const processedGst = data.gstNumber && data.gstNumber.trim() !== ''
-    //         ? data.gstNumber.trim().toUpperCase()
-    //         : null;
+    if (data.gstNumber !== undefined) {
+        const processedGst = data.gstNumber && data.gstNumber.trim() !== ''
+            ? data.gstNumber.trim().toUpperCase()
+            : null;
 
-    //     // Check for duplicate GST number only if it's a new non-empty value
-    //     if (processedGst && processedGst !== existingParty.gstNumber) {
-    //         const duplicateGST = await Vendor.findOne({
-    //             gstNumber: processedGst,
-    //             _id: { $ne: id }
-    //         });
-    //         if (duplicateGST) {
-    //             throw new Error("Vendor with this GST number already exists");
-    //         }
-    //     }
+        // Check for duplicate GST number only if it's a new non-empty value
+        if (processedGst && processedGst !== existingParty.gstNumber) {
+            const duplicateGST = await Party.findOne({
+                gstNumber: processedGst,
+                _id: { $ne: id }
+            });
+            if (duplicateGST) {
+                throw new Error("Vendor with this GST number already exists");
+            }
+        }
 
-    //     // Update the data with processed GST
-    //     data.gstNumber = processedGst;
-    // }
+        // Update the data with processed GST
+        data.gstNumber = processedGst;
+    }
 
     const updated = await Party.findByIdAndUpdate(
         id,

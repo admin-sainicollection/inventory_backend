@@ -3,6 +3,9 @@ import z from "zod";
 export const partyValidationSchema = z.object({
     partyName: z.string().min(1, "Party name is required").trim(),
     nickName: z.string().optional(),
+    role: z.string().optional().default("party"),
+    withGST: z.boolean().optional().default(false),
+
     // type: z.array(z.string().trim()).min(1, "At least one type is required"),
     contact: z.object({
         phone: z.array(
@@ -31,18 +34,18 @@ export const partyValidationSchema = z.object({
     //         brandLogo: z.string().optional() // Added to match Mongoose schema
     //     })
     // ).min(1, "At least one brand is required"),
-    // gstNumber: z.string()
-    //     .regex(/^$|^[0-9A-Z]{15}$/, "GST number must be 15 characters alphanumeric or empty")
-    //     .optional()
-    //     .transform(val => {
-    //         // Handle empty string, undefined, or null
-    //         if (!val || val.trim() === '') {
-    //             return null;
-    //         }
-    //         return val.toUpperCase();
-    //     })
-    //     .nullable()
-    //     .default(null),
+    gstNumber: z.string()
+        .regex(/^$|^[0-9A-Z]{15}$/, "GST number must be 15 characters alphanumeric or empty")
+        .optional()
+        .transform(val => {
+            // Handle empty string, undefined, or null
+            if (!val || val.trim() === '') {
+                return null;
+            }
+            return val.toUpperCase();
+        })
+        .nullable()
+        .default(null),
     status: z.enum(["active", "inactive"]).default("active"),
 });
 

@@ -3,6 +3,8 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IParty extends Document {
     partyName: string;
     nickName?: string;
+    role?: string;
+    withGST?:boolean;
     // type?: string[];
     contact: {
         phone: {
@@ -12,6 +14,7 @@ export interface IParty extends Document {
         email?: string[];
     };
     location: string;
+    gstNumber?: string | null;
     address?: {
         line1: string;
         city: string;
@@ -41,6 +44,16 @@ export const partySchema = new Schema<IParty>(
             required: false,
             trim: true
         },
+        role: {
+            type: String,
+            trim: true,
+            default: "party"
+        },
+         withGST:{
+            type:Boolean,
+            trim:true,
+            default:false
+        },
         // type: [{
         //     type: String,
         //     required: false,
@@ -65,6 +78,22 @@ export const partySchema = new Schema<IParty>(
                 trim: true,
                 lowercase: true
             }]
+        },
+        gstNumber: {
+            type: String,
+            required: false,
+            unique: false,
+            trim: true,
+            sparse: true,
+            uppercase: true,
+            default: null, // Explicitly set default to null
+            validate: {
+                validator: function (v: string | null) {
+                    // Allow null/empty or 15-character alphanumeric
+                    return v === null || v === '' || /^[0-9A-Z]{15}$/.test(v);
+                },
+                message: 'GST number must be 15 characters alphanumeric or empty'
+            }
         },
         location: {
             type: String,
@@ -110,22 +139,6 @@ export const partySchema = new Schema<IParty>(
         //         trim: true
         //     }
         // }],
-        // gstNumber: {
-        //     type: String,
-        //     required: false,
-        //     unique: false,
-        //     trim: true,
-        //     sparse: true,
-        //     uppercase: true,
-        //     default: null, // Explicitly set default to null
-        //     validate: {
-        //         validator: function (v: string | null) {
-        //             // Allow null/empty or 15-character alphanumeric
-        //             return v === null || v === '' || /^[0-9A-Z]{15}$/.test(v);
-        //         },
-        //         message: 'GST number must be 15 characters alphanumeric or empty'
-        //     }
-        // },
         status: {
             type: String,
             enum: ["active", "inactive"],
@@ -140,7 +153,7 @@ export const partySchema = new Schema<IParty>(
 // Index for better search performance
 partySchema.index({ partyName: 1 });
 partySchema.index({ nickName: 1 });
-// partySchema.index({ gstNumber: 1 });
+partySchema.index({ gstNumber: 1 });
 partySchema.index({ location: 1 });
 partySchema.index({ 'contact.email': 1 });
 partySchema.index({ 'contact.phone.phoneNo': 1 }); // New index for phone numbers
