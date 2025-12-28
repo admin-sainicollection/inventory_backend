@@ -9,6 +9,18 @@ export const addDailyLedgerValidation = z.object({
 
     voucher: z.string().trim().optional(),
 
+    sourceType: z.enum([
+        "MANUAL",
+        "SALES_INVOICE",
+        "PURCHASE_INVOICE",
+        "PAYMENT",
+        "SALES_RETURN",
+        "PURCHASE_RETURN",
+        "OPENING_BALANCE",
+    ]).default("MANUAL"),
+
+    sourceId: z.string().trim().optional(),
+
     srNo: z.string().trim().optional(),
 
     credit: z.number().min(0, "Credit cannot be negative").optional(),
