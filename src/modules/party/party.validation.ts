@@ -3,9 +3,14 @@ import z from "zod";
 export const partyValidationSchema = z.object({
     partyName: z.string().min(1, "Party name is required").trim(),
     nickName: z.string().optional(),
-    role: z.string().optional().default("party"),
+    // role: z.string().optional().default("party"),
     withGST: z.boolean().optional().default(false),
-
+    entityCategory: z.enum(["PARTY", "WALK_IN_CUSTOMER", "REGULAR_CUSTOMER"]).default("PARTY"),
+    // enquiryStatus: z.enum(["PENDING", "RESOLVED"]).optional().default("PENDING"),
+    enquiryStatus: z.string().optional(),
+    enquiry: z.string().optional(),
+    description: z.string().optional(),
+    assigningEmployeeId: z.string().optional(),
     // type: z.array(z.string().trim()).min(1, "At least one type is required"),
     contact: z.object({
         phone: z.array(

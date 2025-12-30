@@ -4,16 +4,16 @@ import * as PartyService from './party.service';
 export const addParty = async (req: Request, res: Response) => {
     try {
         const party = await PartyService.createParty(req.body);
-        res.status(201).json({ 
-            status: "success", 
-            message: "Party created successfully", 
-            party 
+        res.status(201).json({
+            status: "success",
+            message: "Party created successfully",
+            party
         });
     } catch (error: any) {
         if (error.message.includes("already exists")) {
-            return res.status(409).json({ 
-                status: "error", 
-                message: error.message 
+            return res.status(409).json({
+                status: "error",
+                message: error.message
             });
         }
         res.status(500).json({ status: "error", message: error.message });
@@ -23,22 +23,22 @@ export const addParty = async (req: Request, res: Response) => {
 export const updateParty = async (req: Request, res: Response) => {
     try {
         const party = await PartyService.updateParty(req.params.id as string, req.body);
-        res.status(200).json({ 
+        res.status(200).json({
             status: "success",
-            message: "Party updated successfully!", 
-            party: party 
+            message: "Party updated successfully!",
+            party: party
         });
     } catch (error: any) {
         if (error.message.includes("not found")) {
-            return res.status(404).json({ 
-                status: "error", 
-                message: error.message 
+            return res.status(404).json({
+                status: "error",
+                message: error.message
             });
         }
         if (error.message.includes("already exists")) {
-            return res.status(409).json({ 
-                status: "error", 
-                message: error.message 
+            return res.status(409).json({
+                status: "error",
+                message: error.message
             });
         }
         res.status(500).json({ status: "error", message: error.message });
@@ -47,28 +47,29 @@ export const updateParty = async (req: Request, res: Response) => {
 
 export const getAllParties = async (req: Request, res: Response) => {
     try {
-        const { q, page, limit } = req.query;
+        const { q, entityCategory, page, limit } = req.query;
 
         // Call service with search query and pagination
         const result = await PartyService.getAllParties(
             q ? String(q) : undefined,
+            entityCategory ? String(entityCategory) : undefined,
             page ? Number(page) : undefined,
             limit ? Number(limit) : undefined
         );
 
-        res.status(200).json({ 
+        res.status(200).json({
             status: "success",
             total: result.total,
             page: result.page,
             limit: result.limit,
             totalPages: result.totalPages,
-            parties: result.parties 
+            parties: result.parties
         });
     } catch (error: any) {
         if (error.message.includes("not found")) {
-            return res.status(404).json({ 
-                status: "error", 
-                message: error.message 
+            return res.status(404).json({
+                status: "error",
+                message: error.message
             });
         }
         res.status(500).json({ status: "error", message: error.message });
@@ -78,15 +79,15 @@ export const getAllParties = async (req: Request, res: Response) => {
 export const getPartyById = async (req: Request, res: Response) => {
     try {
         const party = await PartyService.getPartyById(req.params.id as string);
-        res.status(200).json({ 
-            status: "success",  
-            party: party 
+        res.status(200).json({
+            status: "success",
+            party: party
         });
     } catch (error: any) {
         if (error.message.includes("not found")) {
-            return res.status(404).json({ 
-                status: "error", 
-                message: error.message 
+            return res.status(404).json({
+                status: "error",
+                message: error.message
             });
         }
         res.status(500).json({ status: "error", message: error.message });
@@ -97,15 +98,15 @@ export const deleteParty = async (req: Request, res: Response) => {
     try {
         const party = await PartyService.deleteParty(req.params.id as string);
         res.status(200).json({
-            status: "success", 
-            message: "Party deleted successfully!", 
+            status: "success",
+            message: "Party deleted successfully!",
             party
         });
     } catch (error: any) {
         if (error.message.includes("not found")) {
-            return res.status(404).json({ 
-                status: "error", 
-                message: error.message 
+            return res.status(404).json({
+                status: "error",
+                message: error.message
             });
         }
         res.status(500).json({ status: "error", message: error.message });
