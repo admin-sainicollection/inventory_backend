@@ -1,10 +1,18 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export type EntityCategory = | "PARTY" | "WALK_IN_CUSTOMER" | "REGULAR_CUSTOMER"
+// export type EnquiryStatus = | "PENDING" | "RESOLVED" | ""
+
 export interface IParty extends Document {
     partyName: string;
     nickName?: string;
-    role?: string;
-    withGST?:boolean;
+    // role?: string;
+    withGST?: boolean;
+    entityCategory: EntityCategory;
+    enquiryStatus?:string;
+    enquiry?:string;
+    description?:string;
+    assigningEmployeeId?:string;
     // type?: string[];
     contact: {
         phone: {
@@ -26,7 +34,6 @@ export interface IParty extends Document {
     //     brandName: string;
     //     brandLogo?: string;
     // }[];
-    // gstNumber?: string | null;
     status: "active" | "inactive";
     createdAt: Date;
     updatedAt: Date;
@@ -44,15 +51,39 @@ export const partySchema = new Schema<IParty>(
             required: false,
             trim: true
         },
-        role: {
+        // role: {
+        //     type: String,
+        //     trim: true,
+        //     default: "party"
+        // },
+        entityCategory: {
             type: String,
-            trim: true,
-            default: "party"
+            enum: ["PARTY","WALK_IN_CUSTOMER", "REGULAR_CUSTOMER"],
+            required: true,
+            default:"PARTY"
         },
-         withGST:{
-            type:Boolean,
+        enquiryStatus:{
+            type: String,
+            trim:true
+            // enum:["PENDING","RESOLVED",""],
+            // default:"PENDING"
+        },
+        enquiry:{
+            type:String,
             trim:true,
-            default:false
+        },
+        description:{
+            type:String,
+            trim:true,
+        },
+        assigningEmployeeId:{
+            type:String,
+            trim:true,
+        },
+        withGST: {
+            type: Boolean,
+            trim: true,
+            default: false
         },
         // type: [{
         //     type: String,
@@ -153,6 +184,7 @@ export const partySchema = new Schema<IParty>(
 // Index for better search performance
 partySchema.index({ partyName: 1 });
 partySchema.index({ nickName: 1 });
+partySchema.index({ entityCategory: 1 });
 partySchema.index({ gstNumber: 1 });
 partySchema.index({ location: 1 });
 partySchema.index({ 'contact.email': 1 });
