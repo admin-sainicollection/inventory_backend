@@ -1,4 +1,4 @@
-import mongoose, {Document, Schema} from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
 export type StatusType = 'NEW' | 'ASSIGNED' | 'IN_PROGRESS' | 'FOLLOW_UP' |
     'CONVERTED' | 'CLOSED' | 'CANCELLED'
@@ -8,6 +8,23 @@ export type Priority = 'LOW' | 'MEDIUM' | 'HIGH'
 export type Source = 'CALL' | 'WHATSAPP' | 'EMAIL' | 'WEBSITE' |
     'WALK_IN' | 'REFERRAL' | 'SOCIAL_MEDIA' | 'OTHER'
 
+export interface IStatusHistory {
+    from_status?: StatusType | undefined;
+    to_status: StatusType;
+    note?: string | undefined;
+    changed_by?: mongoose.Types.ObjectId | undefined;
+    changed_at: Date;
+    is_initial?: boolean | undefined;
+}
+
+export interface IStatusNote {
+    previous_status?: StatusType | undefined;
+    current_status: StatusType;
+    note: string;
+    created_by?: mongoose.Types.ObjectId | undefined;
+    created_at: Date;
+}
+
 export interface IEnquiry extends Document {
     enquiry_no: string
     enquiry_date: Date
@@ -16,12 +33,24 @@ export interface IEnquiry extends Document {
     description?: string
     assigned_employee_id?: mongoose.Types.ObjectId
     assigned_date?: Date
+    
+    // Current status fields
     status: StatusType
+    status_note?: string
+    status_changed_by?: mongoose.Types.ObjectId
+    status_changed_at?: Date
+    originalStatus?: StatusType | undefined
+    
     closed_result?: string
     cancelled_reason?: string
     priority?: Priority
     source?: Source
     product_id?: mongoose.Types.ObjectId[]
+    
+    // Status History and Tracking
+    status_history: IStatusHistory[]
+    status_notes: IStatusNote[]
+    
     createdAt: Date
     updatedAt: Date
     
@@ -29,12 +58,67 @@ export interface IEnquiry extends Document {
     party?: any
     assigned_employee?: any
     products?: any[]
+    status_changed_by_employee?: any
     
     // Methods
     canBeConverted(): boolean
     canBeClosed(): boolean
     canBeCancelled(): boolean
 }
+
+// Sub-schemas
+const statusHistorySchema = new Schema<IStatusHistory>({
+    from_status: {
+        type: String,
+        enum: ['NEW', 'ASSIGNED', 'IN_PROGRESS', 'FOLLOW_UP', 'CONVERTED', 'CLOSED', 'CANCELLED']
+    },
+    to_status: {
+        type: String,
+        enum: ['NEW', 'ASSIGNED', 'IN_PROGRESS', 'FOLLOW_UP', 'CONVERTED', 'CLOSED', 'CANCELLED'],
+        required: true
+    },
+    note: {
+        type: String,
+        trim: true
+    },
+    changed_by: {
+        type: Schema.Types.ObjectId,
+        ref: 'Employee'
+    },
+    changed_at: {
+        type: Date,
+        default: Date.now
+    },
+    is_initial: {
+        type: Boolean,
+        default: false
+    }
+}, { _id: true });
+
+const statusNoteSchema = new Schema<IStatusNote>({
+    previous_status: {
+        type: String,
+        enum: ['NEW', 'ASSIGNED', 'IN_PROGRESS', 'FOLLOW_UP', 'CONVERTED', 'CLOSED', 'CANCELLED']
+    },
+    current_status: {
+        type: String,
+        enum: ['NEW', 'ASSIGNED', 'IN_PROGRESS', 'FOLLOW_UP', 'CONVERTED', 'CLOSED', 'CANCELLED'],
+        required: true
+    },
+    note: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    created_by: {
+        type: Schema.Types.ObjectId,
+        ref: 'Employee'
+    },
+    created_at: {
+        type: Date,
+        default: Date.now
+    }
+}, { _id: true });
 
 export const enquirySchema = new Schema<IEnquiry>({
     enquiry_no: {
@@ -77,6 +161,17 @@ export const enquirySchema = new Schema<IEnquiry>({
         default: 'NEW',
         index: true
     },
+    status_note: {
+        type: String,
+        trim: true
+    },
+    status_changed_by: {
+        type: Schema.Types.ObjectId,
+        ref: 'Employee'
+    },
+    status_changed_at: {
+        type: Date
+    },
     closed_result: {
         type: String,
         trim: true,
@@ -100,7 +195,12 @@ export const enquirySchema = new Schema<IEnquiry>({
     product_id: [{
         type: Schema.Types.ObjectId,
         ref: 'Product'
-    }]
+    }],
+    
+    // Status History and Tracking
+    status_history: [statusHistorySchema],
+    status_notes: [statusNoteSchema]
+    
 }, {
     timestamps: true,
     versionKey: false,
@@ -123,6 +223,13 @@ enquirySchema.virtual('assigned_employee', {
     justOne: true
 });
 
+enquirySchema.virtual('status_changed_by_employee', {
+    ref: 'Employee',
+    localField: 'status_changed_by',
+    foreignField: '_id',
+    justOne: true
+});
+
 enquirySchema.virtual('products', {
     ref: 'Product',
     localField: 'product_id',
@@ -135,6 +242,7 @@ enquirySchema.index({ status: 1, priority: -1 });
 enquirySchema.index({ party_id: 1, enquiry_date: -1 });
 enquirySchema.index({ assigned_employee_id: 1, status: 1 });
 enquirySchema.index({ createdAt: -1 });
+enquirySchema.index({ 'status_history.changed_at': -1 });
 
 // Pre-save middleware for auto-generating enquiry number
 enquirySchema.pre('save', async function(next) {
@@ -161,10 +269,85 @@ enquirySchema.pre('save', async function(next) {
     }
 });
 
-// Pre-save middleware for auto-setting assigned_date
+// Pre-save middleware for status tracking and auto-setting assigned_date
 enquirySchema.pre('save', function(next) {
-    if (this.isModified('assigned_employee_id') && this.assigned_employee_id && !this.assigned_date) {
-        this.assigned_date = new Date();
+    const enquiry = this;
+    
+    // Track status changes
+    if (enquiry.isModified('status')) {
+        const now = new Date();
+        
+        // Add to status history
+        const statusEntry: IStatusHistory = {
+            from_status: enquiry.originalStatus || undefined,
+            to_status: enquiry.status,
+            note: enquiry.status_note,
+            changed_by: enquiry.status_changed_by,
+            changed_at: now,
+            is_initial: enquiry.isNew && enquiry.status === 'NEW'
+        };
+        
+        // If this is a new enquiry, initialize the arrays
+        if (enquiry.isNew) {
+            enquiry.status_history = [statusEntry];
+            if (enquiry.status_note) {
+                enquiry.status_notes = [{
+                    previous_status: undefined,
+                    current_status: enquiry.status,
+                    note: enquiry.status_note,
+                    created_by: enquiry.status_changed_by,
+                    created_at: now
+                }];
+            }
+        } else {
+            // Add to existing history
+            if (!enquiry.status_history) {
+                enquiry.status_history = [];
+            }
+            enquiry.status_history.push(statusEntry);
+            
+            // Add to status notes if note exists
+            if (enquiry.status_note) {
+                if (!enquiry.status_notes) {
+                    enquiry.status_notes = [];
+                }
+                enquiry.status_notes.push({
+                    previous_status: enquiry.originalStatus,
+                    current_status: enquiry.status,
+                    note: enquiry.status_note,
+                    created_by: enquiry.status_changed_by,
+                    created_at: now
+                });
+            }
+        }
+        
+        // Update status tracking fields
+        enquiry.status_changed_at = now;
+        if (!enquiry.status_changed_by) {
+            // Default to assigned employee if available
+            if (enquiry.assigned_employee_id) {
+                enquiry.status_changed_by = enquiry.assigned_employee_id;
+            }
+        }
+    }
+    
+    // Auto-set assigned_date
+    if (enquiry.isModified('assigned_employee_id') && enquiry.assigned_employee_id && !enquiry.assigned_date) {
+        enquiry.assigned_date = new Date();
+        
+        // If status is not set and employee is assigned, set to ASSIGNED
+        if (!enquiry.status) {
+            enquiry.status = 'ASSIGNED';
+        }
+    }
+    
+    next();
+});
+
+// Store original status for tracking
+enquirySchema.pre('save', function(next) {
+    if (this.isModified('status')) {
+        this.originalStatus = this.status;
     }
     next();
 });

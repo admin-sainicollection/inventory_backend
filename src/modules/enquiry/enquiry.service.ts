@@ -1,4 +1,4 @@
-import { Enquiry, IEnquiry, StatusType, Priority, Source } from './enquiry.model';
+import { Enquiry, IEnquiry, StatusType, Priority, Source, IStatusHistory, IStatusNote } from './enquiry.model';
 import { FilterQuery, Types } from 'mongoose';
 import { CreateEnquiryData, FilterOptions, PaginatedResult, UpdateEnquiryData } from './types';
 
@@ -24,22 +24,60 @@ export const generateNextEnquiryNumber = async (): Promise<string> => {
     }
 };
 
-// Create new enquiry
+// Create new enquiry with status tracking
 export const createEnquiry = async (enquiryData: CreateEnquiryData): Promise<IEnquiry> => {
     try {
         // Generate enquiry number
         const enquiry_no = await generateNextEnquiryNumber();
+        const now = new Date();
+
+        // Create initial status history entry
+        const initialStatusHistory: IStatusHistory = {
+            from_status: undefined,
+            to_status: enquiryData.status || 'NEW',
+            note: enquiryData.status_note || '',
+            changed_by: enquiryData.assigned_employee_id ? new Types.ObjectId(enquiryData.assigned_employee_id) : undefined,
+            changed_at: now,
+            is_initial: true
+        };
+
+        // Create initial status note if exists
+        const initialStatusNotes: IStatusNote[] = [];
+        if (enquiryData.status_note) {
+            initialStatusNotes.push({
+                previous_status: undefined,
+                current_status: enquiryData.status || 'NEW',
+                note: enquiryData.status_note,
+                created_by: enquiryData.assigned_employee_id ? new Types.ObjectId(enquiryData.assigned_employee_id) : undefined,
+                created_at: now
+            });
+        }
 
         const enquiry = new Enquiry({
             enquiry_no,
-            ...enquiryData,
-            // Remove hardcoded date - use date from frontend or default to current date
-            enquiry_date: enquiryData.enquiry_date ? new Date(enquiryData.enquiry_date) : new Date()
+            enquiry_date: enquiryData.enquiry_date ? new Date(enquiryData.enquiry_date) : new Date(),
+            party_id: enquiryData.party_id,
+            subject: enquiryData.subject,
+            description: enquiryData.description,
+            assigned_employee_id: enquiryData.assigned_employee_id,
+            assigned_date: enquiryData.assigned_date,
+            status: enquiryData.status || 'NEW',
+            status_changed_by: enquiryData.assigned_employee_id,
+            status_changed_at: now,
+            priority: enquiryData.priority || 'MEDIUM',
+            source: enquiryData.source || 'OTHER',
+            product_id: enquiryData.product_id,
+            status_history: [initialStatusHistory],
+            status_notes: initialStatusNotes
         });
 
-        // Auto-set assigned_date if employee is assigned
-        if (enquiryData.assigned_employee_id && !enquiryData.status) {
-            enquiry.status = 'ASSIGNED';
+        // Add closed_result or cancelled_reason if status requires it
+        if (enquiryData.status === 'CLOSED' && enquiryData.closed_result) {
+            enquiry.closed_result = enquiryData.closed_result;
+        }
+
+        if (enquiryData.status === 'CANCELLED' && enquiryData.cancelled_reason) {
+            enquiry.cancelled_reason = enquiryData.cancelled_reason;
         }
 
         const savedEnquiry = await enquiry.save();
@@ -49,10 +87,16 @@ export const createEnquiry = async (enquiryData: CreateEnquiryData): Promise<IEn
     }
 };
 
-export const updateEnquiry = async (id: string, updateData: UpdateEnquiryData): Promise<IEnquiry | null> => {
+// Update enquiry with status tracking
+export const updateEnquiry = async (id: string, updateData: UpdateEnquiryData, userId?: string): Promise<IEnquiry | null> => {
     try {
         if (!Types.ObjectId.isValid(id)) {
             throw new Error('Invalid enquiry ID');
+        }
+
+        const existingEnquiry = await Enquiry.findById(id);
+        if (!existingEnquiry) {
+            throw new Error('Enquiry not found');
         }
 
         // Handle status-specific validations
@@ -64,53 +108,91 @@ export const updateEnquiry = async (id: string, updateData: UpdateEnquiryData): 
             throw new Error('Cancellation reason is required when status is CANCELLED');
         }
 
-        // If employee is being assigned, auto-set assigned_date
-        if (updateData.assigned_employee_id && !updateData.assigned_date) {
-            updateData.assigned_date = new Date();
+        // Prepare update object
+        const updateObj: any = { ...updateData };
+        const now = new Date();
 
-            // If status is not set, default to ASSIGNED
-            if (!updateData.status) {
-                updateData.status = 'ASSIGNED';
+        // Track status changes
+        if (updateData.status && updateData.status !== existingEnquiry.status) {
+            // Create status history entry
+            const statusHistoryEntry: IStatusHistory = {
+                from_status: existingEnquiry.status,
+                to_status: updateData.status,
+                note: updateData.status_note || '',
+                changed_by: userId ? new Types.ObjectId(userId) : existingEnquiry.assigned_employee_id,
+                changed_at: now,
+                is_initial: false
+            };
+
+            // Create status note entry if note exists
+            let statusNoteEntry: IStatusNote | null = null;
+            if (updateData.status_note) {
+                statusNoteEntry = {
+                    previous_status: existingEnquiry.status,
+                    current_status: updateData.status,
+                    note: updateData.status_note,
+                    created_by: userId ? new Types.ObjectId(userId) : existingEnquiry.assigned_employee_id,
+                    created_at: now
+                };
             }
-        }
 
-        // If status is changed to CONVERTED, CLOSED, or CANCELLED, ensure assigned_employee_id exists
-        if (['CONVERTED', 'CLOSED', 'CANCELLED'].includes(updateData.status || '')) {
-            const existingEnquiry = await Enquiry.findById(id);
-            if (existingEnquiry && !existingEnquiry.assigned_employee_id && !updateData.assigned_employee_id) {
-                throw new Error('Enquiry must be assigned to an employee before converting/closing/cancelling');
+            // Use findByIdAndUpdate with $push to add to arrays
+            const updateQuery: any = {
+                $set: {
+                    status: updateData.status,
+                    status_changed_at: now,
+                    status_changed_by: userId ? new Types.ObjectId(userId) : existingEnquiry.assigned_employee_id,
+                    ...(updateData.status_note && { status_note: updateData.status_note }),
+                    updatedAt: now
+                },
+                $push: {
+                    status_history: statusHistoryEntry
+                }
+            };
+
+            // Add status note if exists
+            if (statusNoteEntry) {
+                updateQuery.$push.status_notes = statusNoteEntry;
             }
+
+            // Remove status_note from $set if it's being pushed to status_notes
+            if (updateData.status_note) {
+                delete updateQuery.$set.status_note;
+            }
+
+            const updatedEnquiry = await Enquiry.findByIdAndUpdate(
+                id,
+                updateQuery,
+                { new: true, runValidators: true }
+            )
+                .populate('party', 'partyName nickName contact')
+                .populate('assigned_employee', 'first_name last_name')
+                .populate('status_changed_by_employee', 'first_name last_name')
+                .populate('products', 'name partNo');
+
+            return updatedEnquiry;
+        } else {
+            // If status is not changing, just update other fields
+            updateObj.updatedAt = now;
+
+            const updatedEnquiry = await Enquiry.findByIdAndUpdate(
+                id,
+                updateObj,
+                { new: true, runValidators: true }
+            )
+                .populate('party', 'partyName nickName contact')
+                .populate('assigned_employee', 'first_name last_name')
+                .populate('status_changed_by_employee', 'first_name last_name')
+                .populate('products', 'name partNo');
+
+            return updatedEnquiry;
         }
-
-        // Prepare update data - handle date conversion
-        const updateDataToSend: any = { ...updateData, updatedAt: new Date() };
-
-        // Convert enquiry_date if provided
-        if (updateData.enquiry_date) {
-            updateDataToSend.enquiry_date = new Date(updateData.enquiry_date);
-        }
-
-        // Convert assigned_date if provided
-        if (updateData.assigned_date) {
-            updateDataToSend.assigned_date = new Date(updateData.assigned_date);
-        }
-
-        const updatedEnquiry = await Enquiry.findByIdAndUpdate(
-            id,
-            updateDataToSend,
-            { new: true, runValidators: true }
-        )
-            .populate('party', 'partyName nickName contact')
-            .populate('assigned_employee', 'first_name last_name')
-            .populate('products', 'name partNo');
-
-        return updatedEnquiry;
     } catch (error) {
         throw new Error(`Failed to update enquiry: ${error}`);
     }
 };
 
-// Get enquiry by ID
+// Get enquiry by ID with all details
 export const getEnquiryById = async (id: string): Promise<IEnquiry | null> => {
     try {
         if (!Types.ObjectId.isValid(id)) {
@@ -120,6 +202,7 @@ export const getEnquiryById = async (id: string): Promise<IEnquiry | null> => {
         const enquiry = await Enquiry.findById(id)
             .populate('party', 'partyName nickName contact location entityCategory')
             .populate('assigned_employee', 'first_name last_name contact email')
+            .populate('status_changed_by_employee', 'first_name last_name')
             .populate('products', 'name partNo brand category mrp');
 
         return enquiry;
@@ -127,8 +210,6 @@ export const getEnquiryById = async (id: string): Promise<IEnquiry | null> => {
         throw new Error(`Failed to get enquiry: ${error}`);
     }
 };
-
-
 
 // Get all enquiries with search and filters
 export const getAllEnquiries = async (filters: FilterOptions = {}): Promise<PaginatedResult> => {
@@ -146,14 +227,16 @@ export const getAllEnquiries = async (filters: FilterOptions = {}): Promise<Pagi
             limit = 10
         } = filters;
 
-        const query: FilterQuery<IEnquiry> = {};
+        const query: any = {};
 
         // Search across multiple fields
         if (search) {
             const searchRegex = new RegExp(search, 'i');
             query.$or = [
                 { enquiry_no: searchRegex },
+                { status: searchRegex },
                 { subject: searchRegex },
+                { priority: searchRegex },
                 { description: searchRegex },
                 { closed_result: searchRegex },
                 { cancelled_reason: searchRegex }
@@ -224,6 +307,69 @@ export const getAllEnquiries = async (filters: FilterOptions = {}): Promise<Pagi
         };
     } catch (error) {
         throw new Error(`Failed to get enquiries: ${error}`);
+    }
+};
+
+// Add status note to enquiry
+export const addStatusNote = async (
+    enquiryId: string, 
+    note: string, 
+    userId?: string
+): Promise<IEnquiry | null> => {
+    try {
+        if (!Types.ObjectId.isValid(enquiryId)) {
+            throw new Error('Invalid enquiry ID');
+        }
+
+        const enquiry = await Enquiry.findById(enquiryId);
+        if (!enquiry) {
+            throw new Error('Enquiry not found');
+        }
+
+        const statusNote = {
+            previous_status: enquiry.status_history.length > 0 
+                ? enquiry.status_history[enquiry.status_history.length - 1]?.to_status 
+                : undefined,
+            current_status: enquiry.status,
+            note,
+            created_by: userId ? new Types.ObjectId(userId) : enquiry.assigned_employee_id,
+            created_at: new Date()
+        };
+
+        enquiry.status_notes.push(statusNote);
+        await enquiry.save();
+
+        return await getEnquiryById(enquiryId);
+    } catch (error) {
+        throw new Error(`Failed to add status note: ${error}`);
+    }
+};
+
+// Get enquiry status history
+export const getEnquiryStatusHistory = async (enquiryId: string): Promise<any> => {
+    try {
+        if (!Types.ObjectId.isValid(enquiryId)) {
+            throw new Error('Invalid enquiry ID');
+        }
+
+        const enquiry = await Enquiry.findById(enquiryId)
+            .populate({
+                path: 'status_history.changed_by',
+                select: 'first_name last_name'
+            })
+            .select('status_history enquiry_no subject');
+
+        if (!enquiry) {
+            throw new Error('Enquiry not found');
+        }
+
+        return {
+            enquiry_no: enquiry.enquiry_no,
+            subject: enquiry.subject,
+            status_history: enquiry.status_history
+        };
+    } catch (error) {
+        throw new Error(`Failed to get status history: ${error}`);
     }
 };
 

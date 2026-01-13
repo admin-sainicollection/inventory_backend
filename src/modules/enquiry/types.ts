@@ -1,14 +1,15 @@
-import { IEnquiry, Priority, Source, StatusType } from "./enquiry.model";
+import mongoose from "mongoose";
+import { IEnquiry, IStatusHistory, IStatusNote, Priority, Source, StatusType } from "./enquiry.model";
 
-// Types
 export interface CreateEnquiryData {
+    enquiry_date?: Date;
     party_id?: string;
-    enquiry_date?: Date | string;
-    subject?: string;
-    description?: string;
+    subject: string;
+    description: string;
     assigned_employee_id?: string;
-    assigned_date?: Date
+    assigned_date?: Date;
     status?: StatusType;
+    status_note?: string;
     closed_result?: string;
     cancelled_reason?: string;
     priority?: Priority;
@@ -17,13 +18,16 @@ export interface CreateEnquiryData {
 }
 
 export interface UpdateEnquiryData {
+    enquiry_date?: Date;
     party_id?: string;
-    enquiry_date?: Date | string;
     subject?: string;
     description?: string;
     assigned_employee_id?: string;
-    assigned_date?: Date
+    assigned_date?: Date;
     status?: StatusType;
+    status_note?: string;
+    status_changed_by?: mongoose.Types.ObjectId;
+    status_changed_at?: Date;
     closed_result?: string;
     cancelled_reason?: string;
     priority?: Priority;
@@ -45,9 +49,15 @@ export interface FilterOptions {
 }
 
 export interface PaginatedResult {
-    data: IEnquiry[];
+    data: any[];
     total: number;
     page: number;
     limit: number;
     totalPages: number;
+}
+
+export interface EnquiryWithHistory {
+    enquiry: any;
+    status_history: IStatusHistory[];
+    status_notes: IStatusNote[];
 }
