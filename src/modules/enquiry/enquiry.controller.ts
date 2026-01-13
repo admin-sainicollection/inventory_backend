@@ -8,78 +8,79 @@ import {
   getEnquiryStatistics,
   convertEnquiry,
   getFollowUpEnquiries,
+  getEnquiryStatusHistory,
+  addStatusNote,
 } from './enquiry.service';
 import { CreateEnquiryData, FilterOptions, UpdateEnquiryData } from './types';
 
-// Create enquiry
 export const createEnquiryController = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const enquiryData: CreateEnquiryData = req.body;
-    
-    // Validate required fields
-    if (!enquiryData.subject) {
-      res.status(400).json({ success: false, message: 'Subject is required' });
-      return;
-    }
+    try {
+        const enquiryData: CreateEnquiryData = req.body;
+        const userId = (req as any).user?._id; // Assuming you have user authentication
+        
+        // Validate required fields
+        if (!enquiryData.subject) {
+            res.status(400).json({ success: false, message: 'Subject is required' });
+            return;
+        }
 
-    if (!enquiryData.description) {
-      res.status(400).json({ success: false, message: 'Description is required' });
-      return;
-    }
+        if (!enquiryData.description) {
+            res.status(400).json({ success: false, message: 'Description is required' });
+            return;
+        }
 
-    // Validate status-specific fields
-    if (enquiryData.status === 'CLOSED' && !enquiryData.closed_result) {
-      res.status(400).json({ success: false, message: 'Closed result is required when status is CLOSED' });
-      return;
-    }
+        // Validate status-specific fields
+        if (enquiryData.status === 'CLOSED' && !enquiryData.closed_result) {
+            res.status(400).json({ success: false, message: 'Closed result is required when status is CLOSED' });
+            return;
+        }
 
-    if (enquiryData.status === 'CANCELLED' && !enquiryData.cancelled_reason) {
-      res.status(400).json({ success: false, message: 'Cancellation reason is required when status is CANCELLED' });
-      return;
-    }
+        if (enquiryData.status === 'CANCELLED' && !enquiryData.cancelled_reason) {
+            res.status(400).json({ success: false, message: 'Cancellation reason is required when status is CANCELLED' });
+            return;
+        }
 
-    const enquiry = await createEnquiry(enquiryData);
-    
-    res.status(201).json({
-      success: true,
-      message: 'Enquiry created successfully',
-      data: enquiry
-    });
-  } catch (error: any) {
-    console.error('Create enquiry error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to create enquiry'
-    });
-  }
+        const enquiry = await createEnquiry(enquiryData);
+        
+        res.status(201).json({
+            success: true,
+            message: 'Enquiry created successfully',
+            data: enquiry
+        });
+    } catch (error: any) {
+        console.error('Create enquiry error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to create enquiry'
+        });
+    }
 };
 
-// Get single enquiry by ID
 export const getEnquiryByIdController = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
+    try {
+        const { id } = req.params;
 
-    const enquiry = await getEnquiryById(id as string);
+        const enquiry = await getEnquiryById(id as string);
 
-    if (!enquiry) {
-      res.status(404).json({
-        success: false,
-        message: 'Enquiry not found'
-      });
-      return;
+        if (!enquiry) {
+            res.status(404).json({
+                success: false,
+                message: 'Enquiry not found'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: enquiry
+        });
+    } catch (error: any) {
+        console.error('Get enquiry by ID error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to get enquiry'
+        });
     }
-
-    res.status(200).json({
-      success: true,
-      data: enquiry
-    });
-  } catch (error: any) {
-    console.error('Get enquiry by ID error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to get enquiry'
-    });
-  }
 };
 
 // Get all enquiries with filters
@@ -133,43 +134,43 @@ export const getAllEnquiriesController = async (req: Request, res: Response): Pr
   }
 };
 
-// Update enquiry
 export const updateEnquiryController = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const updateData: UpdateEnquiryData = req.body;
+    try {
+        const { id } = req.params;
+        const updateData: UpdateEnquiryData = req.body;
+        const userId = (req as any).user?._id; // Assuming you have user authentication
 
-    const updatedEnquiry = await updateEnquiry(id as string, updateData);
-    
-    if (!updatedEnquiry) {
-      res.status(404).json({
-        success: false,
-        message: 'Enquiry not found'
-      });
-      return;
+        const updatedEnquiry = await updateEnquiry(id as string, updateData, userId);
+        
+        if (!updatedEnquiry) {
+            res.status(404).json({
+                success: false,
+                message: 'Enquiry not found'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Enquiry updated successfully',
+            data: updatedEnquiry
+        });
+    } catch (error: any) {
+        console.error('Update enquiry error:', error);
+        
+        if (error.message.includes('required') || error.message.includes('must be assigned')) {
+            res.status(400).json({
+                success: false,
+                message: error.message
+            });
+            return;
+        }
+
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to update enquiry'
+        });
     }
-
-    res.status(200).json({
-      success: true,
-      message: 'Enquiry updated successfully',
-      data: updatedEnquiry
-    });
-  } catch (error: any) {
-    console.error('Update enquiry error:', error);
-    
-    if (error.message.includes('required') || error.message.includes('must be assigned')) {
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
-      return;
-    }
-
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to update enquiry'
-    });
-  }
 };
 
 // Delete enquiry
@@ -289,4 +290,68 @@ export const getFollowUpEnquiriesController = async (req: Request, res: Response
       message: error.message || 'Failed to get follow-up enquiries'
     });
   }
+};
+
+// Add status note controller
+export const addStatusNoteController = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { note } = req.body;
+        const userId = (req as any).user?._id;
+
+        if (!note) {
+            res.status(400).json({ success: false, message: 'Note is required' });
+            return;
+        }
+
+        const updatedEnquiry = await addStatusNote(id as string, note, userId);
+        
+        if (!updatedEnquiry) {
+            res.status(404).json({
+                success: false,
+                message: 'Enquiry not found'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Status note added successfully',
+            data: updatedEnquiry
+        });
+    } catch (error: any) {
+        console.error('Add status note error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to add status note'
+        });
+    }
+};
+
+// Get status history controller
+export const getStatusHistoryController = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+
+        const statusHistory = await getEnquiryStatusHistory(id as string);
+        
+        if (!statusHistory) {
+            res.status(404).json({
+                success: false,
+                message: 'Enquiry not found'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: statusHistory
+        });
+    } catch (error: any) {
+        console.error('Get status history error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to get status history'
+        });
+    }
 };
