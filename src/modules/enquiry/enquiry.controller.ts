@@ -96,7 +96,7 @@ export const getAllEnquiriesController = async (req: Request, res: Response): Pr
       startDate,
       endDate,
       page = '1',
-      limit = '10'
+      limit = '50'
     } = req.query;
 
     const filterOptions: FilterOptions = {
