@@ -224,7 +224,7 @@ export const getAllEnquiries = async (filters: FilterOptions = {}): Promise<Pagi
             startDate,
             endDate,
             page = 1,
-            limit = 10
+            limit = 50
         } = filters;
 
         const query: any = {};
