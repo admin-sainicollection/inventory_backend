@@ -42,173 +42,370 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
 }
 
 // Updated getAllSalesInvoice service
+// export const getAllSalesInvoice = async (filters: FilterOptions = {}) => {
+//     try {
+//         const { gstType, limit = 50, page = 1, search, status, startDate, endDate, dateRange } = filters;
+//         const query: any = {};
+
+
+//         // Search functionality - FIXED
+//         if (search && search.trim() !== "") {
+//             const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+//             query.$or = [
+//                 { invoiceNumber: { $regex: searchRegex } },
+//                 // These will work when party is populated
+//                 { 'party.partyName': { $regex: searchRegex } },
+//                 { 'party.nickName': { $regex: searchRegex } }
+//             ];
+//         }
+
+//         // Status filter
+//         if (status && status !== 'all') {
+//             query.status = status;
+//         }
+
+//         // Date handling - FIXED variable scope issue
+//         let dateQuery: { $gte?: Date; $lte?: Date } = {};
+
+//         // Handle predefined date ranges
+//         if (dateRange && dateRange !== 'all' && dateRange !== 'custom') {
+//             const now = new Date();
+//             const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+//             const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+
+//             switch (dateRange) {
+//                 case 'today':
+//                     dateQuery = {
+//                         $gte: startOfDay,
+//                         $lte: endOfDay
+//                     };
+//                     break;
+//                 case 'yesterday':
+//                     const yesterday = new Date();
+//                     yesterday.setDate(yesterday.getDate() - 1);
+//                     const startYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
+//                     const endYesterday = new Date(yesterday.setHours(23, 59, 59, 999));
+//                     dateQuery = {
+//                         $gte: startYesterday,
+//                         $lte: endYesterday
+//                     };
+//                     break;
+//                 case 'this_week':
+//                     const today = new Date();
+//                     const startOfWeek = new Date(today);
+//                     startOfWeek.setDate(today.getDate() - today.getDay());
+//                     startOfWeek.setHours(0, 0, 0, 0);
+//                     const endOfWeek = new Date(today);
+//                     endOfWeek.setDate(startOfWeek.getDate() + 6);
+//                     endOfWeek.setHours(23, 59, 59, 999);
+//                     dateQuery = {
+//                         $gte: startOfWeek,
+//                         $lte: endOfWeek
+//                     };
+//                     break;
+//                 case 'this_month':
+//                     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+//                     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+//                     lastDay.setHours(23, 59, 59, 999);
+//                     dateQuery = {
+//                         $gte: firstDay,
+//                         $lte: lastDay
+//                     };
+//                     break;
+//                 case 'last_month':
+//                     const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+//                     const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+//                     lastDayLastMonth.setHours(23, 59, 59, 999);
+//                     dateQuery = {
+//                         $gte: firstDayLastMonth,
+//                         $lte: lastDayLastMonth
+//                     };
+//                     break;
+//             }
+//         }
+
+//         // Manual date range (for custom dates) - FIXED: Use separate variable
+//         if (startDate || endDate) {
+//             const customDateQuery: { $gte?: Date; $lte?: Date } = {};
+//             if (startDate) {
+//                 const start = new Date(startDate);
+//                 start.setHours(0, 0, 0, 0);
+//                 customDateQuery.$gte = start;
+//             }
+//             if (endDate) {
+//                 const end = new Date(endDate);
+//                 end.setHours(23, 59, 59, 999);
+//                 customDateQuery.$lte = end;
+//             }
+
+//             // Merge with existing dateQuery
+//             dateQuery = { ...dateQuery, ...customDateQuery };
+//         }
+
+//         // Apply date query if we have one
+//         if (Object.keys(dateQuery).length > 0) {
+//             query.invoiceDate = dateQuery;
+//         }
+
+//         const skip = (page - 1) * limit;
+
+//         // Simple function using Mongoose populate
+//         const getInvoicesSimple = async (Model: any, matchQuery: any, skipVal: number, limitVal: number) => {
+//             const [invoices, total] = await Promise.all([
+//                 Model.find(matchQuery)
+//                     .sort({ invoiceDate: -1 })
+//                     .skip(skipVal)
+//                     .limit(limitVal)
+//                     .populate('party', 'partyName nickName entityCategory')
+//                     .lean(),
+//                 Model.countDocuments(matchQuery)
+//             ]);
+
+//             return { invoices, total };
+//         };
+
+//         if (gstType === "GST") {
+//             const { invoices, total } = await getInvoicesSimple(InvoiceGst, query, skip, limit);
+//             return {
+//                 data: invoices,
+//                 total,
+//                 page: Number(page),
+//                 limit: Number(limit),
+//                 totalPage: Math.ceil(total / limit)
+//             };
+//         }
+
+//         if (gstType === "NON-GST") {
+//             const { invoices, total } = await getInvoicesSimple(InvoiceNonGst, query, skip, limit);
+//             return {
+//                 data: invoices,
+//                 total,
+//                 page: Number(page),
+//                 limit: Number(limit),
+//                 totalPage: Math.ceil(total / limit)
+//             };
+//         }
+
+//         // For both types
+//         const [gstResult, nonGstResult] = await Promise.all([
+//             getInvoicesSimple(InvoiceGst, query, skip, limit),
+//             getInvoicesSimple(InvoiceNonGst, query, skip, limit)
+//         ]);
+
+//         const combinedData = [...gstResult.invoices, ...nonGstResult.invoices]
+//             .sort((a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime())
+//             .slice(0, limit);
+
+//         const total = gstResult.total + nonGstResult.total;
+
+//         return {
+//             data: combinedData,
+//             total,
+//             page: Number(page),
+//             limit: Number(limit),
+//             totalPage: Math.ceil(total / limit)
+//         };
+
+//     } catch (error: any) {
+//         console.error('Error in getAllSalesInvoice:', error);
+//         throw new Error(error.message || 'Failed to fetch invoices');
+//     }
+// };
+
+const buildInvoiceAggregation = (
+    matchQuery: any,
+    search?: string
+) => {
+    const pipeline: any[] = [];
+
+    if (Object.keys(matchQuery).length > 0) {
+        pipeline.push({ $match: matchQuery });
+    }
+
+    pipeline.push({
+        $lookup: {
+            from: "parties",
+            localField: "party",
+            foreignField: "_id",
+            as: "party"
+        }
+    });
+
+    pipeline.push({
+        $unwind: {
+            path: "$party",
+            preserveNullAndEmptyArrays: true
+        }
+    });
+
+    if (search?.trim()) {
+        const regex = new RegExp(search, "i");
+
+        pipeline.push({
+            $match: {
+                $or: [
+                    { invoiceNumber: regex },
+                    { "party.partyName": regex },
+                    { "party.nickName": regex },
+                    { "party.gstNumber": regex }
+                ]
+            }
+        });
+    }
+
+    pipeline.push({ $sort: { invoiceDate: -1 } });
+
+    return pipeline;
+};
+
 export const getAllSalesInvoice = async (filters: FilterOptions = {}) => {
     try {
-        const { gstType, limit = 50, page = 1, search, status, startDate, endDate, dateRange } = filters;
+        const {
+            gstType = "all",
+            limit = 50,
+            page = 1,
+            search,
+            status,
+            startDate,
+            endDate,
+            dateRange
+        } = filters;
+
         const query: any = {};
 
-
-        // Search functionality - FIXED
-        if (search && search.trim() !== "") {
-            const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-            query.$or = [
-                { invoiceNumber: { $regex: searchRegex } },
-                // These will work when party is populated
-                { 'party.partyName': { $regex: searchRegex } },
-                { 'party.nickName': { $regex: searchRegex } }
-            ];
-        }
-
-        // Status filter
-        if (status && status !== 'all') {
+        if (status && status !== "all") {
             query.status = status;
         }
 
-        // Date handling - FIXED variable scope issue
-        let dateQuery: { $gte?: Date; $lte?: Date } = {};
-
-        // Handle predefined date ranges
-        if (dateRange && dateRange !== 'all' && dateRange !== 'custom') {
-            const now = new Date();
-            const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-            const endOfDay = new Date(now.setHours(23, 59, 59, 999));
-
-            switch (dateRange) {
-                case 'today':
-                    dateQuery = {
-                        $gte: startOfDay,
-                        $lte: endOfDay
-                    };
-                    break;
-                case 'yesterday':
-                    const yesterday = new Date();
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    const startYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
-                    const endYesterday = new Date(yesterday.setHours(23, 59, 59, 999));
-                    dateQuery = {
-                        $gte: startYesterday,
-                        $lte: endYesterday
-                    };
-                    break;
-                case 'this_week':
-                    const today = new Date();
-                    const startOfWeek = new Date(today);
-                    startOfWeek.setDate(today.getDate() - today.getDay());
-                    startOfWeek.setHours(0, 0, 0, 0);
-                    const endOfWeek = new Date(today);
-                    endOfWeek.setDate(startOfWeek.getDate() + 6);
-                    endOfWeek.setHours(23, 59, 59, 999);
-                    dateQuery = {
-                        $gte: startOfWeek,
-                        $lte: endOfWeek
-                    };
-                    break;
-                case 'this_month':
-                    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-                    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                    lastDay.setHours(23, 59, 59, 999);
-                    dateQuery = {
-                        $gte: firstDay,
-                        $lte: lastDay
-                    };
-                    break;
-                case 'last_month':
-                    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                    const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-                    lastDayLastMonth.setHours(23, 59, 59, 999);
-                    dateQuery = {
-                        $gte: firstDayLastMonth,
-                        $lte: lastDayLastMonth
-                    };
-                    break;
-            }
-        }
-
-        // Manual date range (for custom dates) - FIXED: Use separate variable
-        if (startDate || endDate) {
-            const customDateQuery: { $gte?: Date; $lte?: Date } = {};
+        if (dateRange && dateRange !== "all" && dateRange !== "custom") {
+            const dateQuery = getDateRangeQuery(dateRange);
+            if (dateQuery) query.invoiceDate = dateQuery;
+        } else if (startDate || endDate) {
+            const dq: any = {};
             if (startDate) {
-                const start = new Date(startDate);
-                start.setHours(0, 0, 0, 0);
-                customDateQuery.$gte = start;
+                const s = new Date(startDate);
+                s.setHours(0, 0, 0, 0);
+                dq.$gte = s;
             }
             if (endDate) {
-                const end = new Date(endDate);
-                end.setHours(23, 59, 59, 999);
-                customDateQuery.$lte = end;
+                const e = new Date(endDate);
+                e.setHours(23, 59, 59, 999);
+                dq.$lte = e;
             }
-
-            // Merge with existing dateQuery
-            dateQuery = { ...dateQuery, ...customDateQuery };
-        }
-
-        // Apply date query if we have one
-        if (Object.keys(dateQuery).length > 0) {
-            query.invoiceDate = dateQuery;
+            query.invoiceDate = dq;
         }
 
         const skip = (page - 1) * limit;
 
-        // Simple function using Mongoose populate
-        const getInvoicesSimple = async (Model: any, matchQuery: any, skipVal: number, limitVal: number) => {
-            const [invoices, total] = await Promise.all([
-                Model.find(matchQuery)
-                    .sort({ invoiceDate: -1 })
-                    .skip(skipVal)
-                    .limit(limitVal)
-                    .populate('party', 'partyName nickName entityCategory')
-                    .lean(),
-                Model.countDocuments(matchQuery)
+        // =========================
+        // GST ONLY
+        // =========================
+        if (gstType === "GST") {
+            const result = await InvoiceGst.aggregate([
+                ...buildInvoiceAggregation(query, search),
+                {
+                    $facet: {
+                        data: [{ $skip: skip }, { $limit: limit }],
+                        totalCount: [{ $count: "count" }]
+                    }
+                }
             ]);
 
-            return { invoices, total };
-        };
-
-        if (gstType === "GST") {
-            const { invoices, total } = await getInvoicesSimple(InvoiceGst, query, skip, limit);
-            return {
-                data: invoices,
-                total,
-                page: Number(page),
-                limit: Number(limit),
-                totalPage: Math.ceil(total / limit)
-            };
+            return formatResponse(result, page, limit);
         }
 
+        // =========================
+        // NON-GST ONLY
+        // =========================
         if (gstType === "NON-GST") {
-            const { invoices, total } = await getInvoicesSimple(InvoiceNonGst, query, skip, limit);
-            return {
-                data: invoices,
-                total,
-                page: Number(page),
-                limit: Number(limit),
-                totalPage: Math.ceil(total / limit)
-            };
+            const result = await InvoiceNonGst.aggregate([
+                ...buildInvoiceAggregation(query, search),
+                {
+                    $facet: {
+                        data: [{ $skip: skip }, { $limit: limit }],
+                        totalCount: [{ $count: "count" }]
+                    }
+                }
+            ]);
+
+            return formatResponse(result, page, limit);
         }
 
-        // For both types
-        const [gstResult, nonGstResult] = await Promise.all([
-            getInvoicesSimple(InvoiceGst, query, skip, limit),
-            getInvoicesSimple(InvoiceNonGst, query, skip, limit)
+        // =========================
+        // BOTH (FIXED PAGINATION)
+        // =========================
+        const [gstDocs, nonGstDocs] = await Promise.all([
+            InvoiceGst.aggregate(buildInvoiceAggregation(query, search)),
+            InvoiceNonGst.aggregate(buildInvoiceAggregation(query, search))
         ]);
 
-        const combinedData = [...gstResult.invoices, ...nonGstResult.invoices]
-            .sort((a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime())
-            .slice(0, limit);
+        const combined = [...gstDocs, ...nonGstDocs].sort(
+            (a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
+        );
 
-        const total = gstResult.total + nonGstResult.total;
+        const total = combined.length;
+        const paginatedData = combined.slice(skip, skip + limit);
 
         return {
-            data: combinedData,
+            data: paginatedData,
             total,
-            page: Number(page),
-            limit: Number(limit),
+            page,
+            limit,
             totalPage: Math.ceil(total / limit)
         };
 
     } catch (error: any) {
-        console.error('Error in getAllSalesInvoice:', error);
-        throw new Error(error.message || 'Failed to fetch invoices');
+        console.error("Error in getAllSalesInvoice:", error);
+        throw new Error(error.message || "Failed to fetch invoices");
+    }
+};
+
+// Helper function to format response
+const formatResponse = (result: any[], page: number, limit: number) => {
+    const data = result[0]?.data || [];
+    const total = result[0]?.totalCount[0]?.count || 0;
+
+    return {
+        data,
+        total,
+        page,
+        limit,
+        totalPage: Math.ceil(total / limit)
+    };
+};
+
+// Helper function for date ranges
+const getDateRangeQuery = (dateRange: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
+
+    switch (dateRange) {
+        case 'today':
+            return { $gte: today, $lt: tomorrow };
+        case 'yesterday':
+            return { $gte: yesterday, $lt: today };
+        case 'this_week':
+            return { $gte: startOfWeek, $lt: tomorrow };
+        case 'this_month':
+            return { $gte: startOfMonth, $lt: tomorrow };
+        case 'last_month':
+            return { $gte: startOfLastMonth, $lte: endOfLastMonth };
+        default:
+            return null;
     }
 };
 
