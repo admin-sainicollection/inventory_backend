@@ -3,7 +3,7 @@ export const useFinancialYear = () => {
     const year = today.getFullYear();
     const month = today.getMonth();
 
-    const startYear = (month >= 3) ? year : year - 1;
+    const startYear = (month >= 3) ? year : (year - 1);
     const endYear = startYear + 1;
 
     const shortStartYear = String(startYear).slice(-2)
