@@ -5,8 +5,10 @@ import InvoiceCounter from "./invoiceCounter.model";
 import { FilterOptions, GstType, IInvoice } from "./salesInvoice.types";
 import mongoose from "mongoose";
 import Party from '../../party/party.model'
+import { useFinancialYear } from "../../../utils/useFinancialYear";
 
 // ----------------------------------------------------------------------------Helper funtions
+const financialYear = useFinancialYear();
 const generateNextInvoiceNumber = async (invoiceType: string = 'INVOICE', gstType: GstType = 'GST'): Promise<string> => {
     let prefix = "INV";
     try {
@@ -38,7 +40,7 @@ const generateNextInvoiceNumber = async (invoiceType: string = 'INVOICE', gstTyp
             // Find the last invoice number from both GST and NON-GST collections
             const [lastNonGstInvoice] = await Promise.all([
                 InvoiceNonGst.findOne({
-                    invoiceNumber: { $regex: `^${prefix}-` }
+                    invoiceNumber: { $regex: `^${prefix}${financialYear}-` }
                 }).sort({ createdAt: -1 }).select('invoiceNumber')
             ]);
 
@@ -59,12 +61,12 @@ const generateNextInvoiceNumber = async (invoiceType: string = 'INVOICE', gstTyp
 
             // The next number is current max + 1
             const nextSequence = maxSequence + 1;
-            return `${prefix}-${String(nextSequence).padStart(0, "0")}`;
+            return `${prefix}${financialYear}-${String(nextSequence).padStart(0, "0")}`;
         } if (invoiceType && gstType === "GST") {
             // Find the last invoice number from both GST and NON-GST collections
             const [lastGstInvoice] = await Promise.all([
                 InvoiceGst.findOne({
-                    invoiceNumber: { $regex: `^${prefix}-` }
+                    invoiceNumber: { $regex: `^${prefix}${financialYear}-` }
                 }).sort({ createdAt: -1 }).select('invoiceNumber'),
             ]);
 
@@ -85,7 +87,7 @@ const generateNextInvoiceNumber = async (invoiceType: string = 'INVOICE', gstTyp
 
             // The next number is current max + 1
             const nextSequence = maxSequence + 1;
-            return `${prefix}-${String(nextSequence).padStart(0, "0")}`;
+            return `${prefix}${financialYear}-${String(nextSequence).padStart(0, "0")}`;
         }
         throw new Error("Invalid GST Type or Invoice Type")
 
@@ -93,7 +95,7 @@ const generateNextInvoiceNumber = async (invoiceType: string = 'INVOICE', gstTyp
         console.error("Error generating invoice number:", error);
         // Fallback to timestamp-based number
         // const timestamp = Date.now().toString().slice(-6);
-        return `${prefix}-1`;
+        return `${prefix}${financialYear}-1`;
     }
 };
 
@@ -373,7 +375,7 @@ export const getNextInvoiceNumber = async (invoiceType: string = "INVOICE", gstT
             // Find the last invoice number from both GST and NON-GST collections
             const [lastNonGstInvoice] = await Promise.all([
                 InvoiceNonGst.findOne({
-                    invoiceNumber: { $regex: `^${prefix}-` }
+                    invoiceNumber: { $regex: `^${prefix}${financialYear}-` }
                 }).sort({ createdAt: -1 }).select('invoiceNumber')
             ]);
 
@@ -394,12 +396,12 @@ export const getNextInvoiceNumber = async (invoiceType: string = "INVOICE", gstT
 
             // The next number is current max + 1
             const nextSequence = maxSequence + 1;
-            return `${prefix}-${String(nextSequence).padStart(0, "0")}`;
+            return `${prefix}${financialYear}-${String(nextSequence).padStart(0, "0")}`;
         } if (invoiceType && gstType === "GST") {
             // Find the last invoice number from both GST and NON-GST collections
             const [lastGstInvoice] = await Promise.all([
                 InvoiceGst.findOne({
-                    invoiceNumber: { $regex: `^${prefix}-` }
+                    invoiceNumber: { $regex: `^${prefix}${financialYear}-` }
                 }).sort({ createdAt: -1 }).select('invoiceNumber'),
             ]);
 
@@ -420,13 +422,13 @@ export const getNextInvoiceNumber = async (invoiceType: string = "INVOICE", gstT
 
             // The next number is current max + 1
             const nextSequence = maxSequence + 1;
-            return `${prefix}-${String(nextSequence).padStart(0, "0")}`;
+            return `${prefix}${financialYear}-${String(nextSequence).padStart(0, "0")}`;
         }
         throw new Error("Invalid GST Type or Invoice Type")
     } catch (error: any) {
         console.error("Error getting next invoice number:", error);
         // If no invoices exist yet, start from 1
-        return `${prefix}-1`;
+        return `${prefix}${financialYear}-1`;
     }
 };
 
