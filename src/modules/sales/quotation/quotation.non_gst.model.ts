@@ -1,5 +1,5 @@
 import mongoose, {  Schema } from "mongoose";
-import { AdditionalCharge, Discount, IInvoice, ProductItem, TaxBreakdownItem } from "../types";
+import { AdditionalCharge, Discount, IQuotation, ProductItem, TaxBreakdownItem } from "../types";
 
 // Product Item Schema
 const productItemSchema = new Schema<ProductItem>({
@@ -43,11 +43,11 @@ const taxBreakdownSchema = new Schema<TaxBreakdownItem>({
 }, { _id: false });
 
 // Main Invoice Schema
-const invoiceNonGstSchema = new Schema<IInvoice>({
-    invoiceType: {
+const quotationNonGstSchema = new Schema<IQuotation>({
+    quotationType: {
         type: String,
         enum: ['INVOICE', 'QUOTATION', 'SALES_RETURN', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PURCHASE_ORDER'],
-        default: 'INVOICE',
+        default: 'QUOTATION',
         required: true
     },
     gstType: {
@@ -66,13 +66,13 @@ const invoiceNonGstSchema = new Schema<IInvoice>({
             message: 'Invalid party reference'
         }
     },
-    invoiceNumber: {
+    quotationNumber: {
         type: String,
         unique: true,
         trim: true,
         sparse: true // Allows multiple null values but unique for non-null
     },
-    invoiceDate: {
+    quotationDate: {
         type: Date,
         default: Date.now
     },
@@ -118,60 +118,42 @@ const invoiceNonGstSchema = new Schema<IInvoice>({
         default: 0,
         min: 0
     },
-    receivedAmount: {
-        type: Number,
-        default: 0,
-        min: 0
-    },
-    balanceAmount: {
-        type: Number,
-        default: 0,
-        min: 0
-    },
     status: {
         type: String,
-        enum: ['PAID', 'UNPAID', 'PARTIAL_PAID'],
-        default: 'UNPAID',
+        enum: ['DRAFT' , 'SENT' , 'ACCEPTED' , 'REJECTED' , 'EXPIRED' , 'REVISED' , 'CONVERTED'],
+        default: 'DRAFT',
         required: true
     },
     taxBreakdown: [taxBreakdownSchema]
 }, {
-    timestamps: true, // Automatically adds createdAt and updatedAt
-    versionKey: false // Disable __v field
+    timestamps: true, 
+    versionKey: false 
 });
 
 // Indexes for better query performance
-invoiceNonGstSchema.index({ invoiceNumber: 1 });
-invoiceNonGstSchema.index({ party: 1 });
-invoiceNonGstSchema.index({ invoiceDate: 1 });
-invoiceNonGstSchema.index({ createdAt: 1 });
-invoiceNonGstSchema.index({ invoiceType: 1, gstType: 1 });
+quotationNonGstSchema.index({ quotationNumber: 1 });
+quotationNonGstSchema.index({ party: 1 });
+quotationNonGstSchema.index({ quotationDate: 1 });
+quotationNonGstSchema.index({ createdAt: 1 });
+quotationNonGstSchema.index({ quotationType: 1, gstType: 1 });
 
 // Virtual for formatted dates (optional)
-invoiceNonGstSchema.virtual('formattedInvoiceDate').get(function () {
-    return this.invoiceDate ? new Date(this.invoiceDate).toLocaleDateString() : '';
+quotationNonGstSchema.virtual('formattedQuotationDate').get(function () {
+    return this.quotationDate ? new Date(this.quotationDate).toLocaleDateString() : '';
 });
 
-invoiceNonGstSchema.virtual('formattedDueDate').get(function () {
+quotationNonGstSchema.virtual('formattedDueDate').get(function () {
     return this.dueDate ? new Date(this.dueDate).toLocaleDateString() : '';
 });
 
-// Virtual for payment status
-invoiceNonGstSchema.virtual('paymentStatus').get(function () {
-    if (!this.receivedAmount) return 'PENDING';
-    if (this.receivedAmount >= (this.totalAmount || 0)) return 'PAID';
-    if (this.receivedAmount > 0) return 'PARTIAL';
-    return 'PENDING';
-});
-
 // Pre-save middleware to calculate balance
-invoiceNonGstSchema.pre('save', function (next) {
+quotationNonGstSchema.pre('save', function (next) {
     if (this.totalAmount !== undefined && this.receivedAmount !== undefined) {
         this.balanceAmount = Math.max(0, (this.totalAmount || 0) - (this.receivedAmount || 0));
     }
     next();
 });
 
-const InvoiceNonGst = mongoose.model<IInvoice>('InvoiceNonGst', invoiceNonGstSchema);
+const QuotationNonGst = mongoose.model<IQuotation>('QuotationNonGst', quotationNonGstSchema);
 
-export default InvoiceNonGst;
+export default QuotationNonGst;

@@ -1,5 +1,5 @@
-import mongoose, { Document, Schema } from "mongoose";
-import { AdditionalCharge, Discount, IInvoice, ProductItem, TaxBreakdownItem } from "./salesInvoice.types";
+import mongoose, {  Schema } from "mongoose";
+import { AdditionalCharge, Discount, IInvoice, ProductItem, TaxBreakdownItem } from "../types";
 
 // Product Item Schema
 const productItemSchema = new Schema<ProductItem>({
@@ -162,42 +162,6 @@ invoiceGstSchema.virtual('paymentStatus').get(function () {
     if (this.receivedAmount >= (this.totalAmount || 0)) return 'PAID';
     if (this.receivedAmount > 0) return 'PARTIAL';
     return 'PENDING';
-});
-
-// Pre-save middleware to generate invoice number if not provided
-invoiceGstSchema.pre('save', async function (next) {
-    if (!this.invoiceNumber) {
-        // Generate invoice number logic
-        const prefix = this.invoiceType === 'QUOTATION' ? 'QUO' :
-            this.invoiceType === 'CREDIT_NOTE' ? 'CN' :
-                this.invoiceType === 'DEBIT_NOTE' ? 'DN' : 'INV';
-
-        const lastInvoice = await mongoose.model('InvoiceGst').findOne(
-            { invoiceNumber: new RegExp(`^${prefix}-`) },
-            { invoiceNumber: 1 },
-            { sort: { createdAt: -1 } }
-        );
-
-        let nextNumber = 1;
-        if (lastInvoice && lastInvoice.invoiceNumber) {
-            const match = lastInvoice.invoiceNumber.match(/\d+$/);
-            if (match) {
-                nextNumber = parseInt(match[0]) + 1;
-            }
-        }
-
-        this.invoiceNumber = `${prefix}-${nextNumber.toString().padStart(4, '0')}`;
-    }
-
-    // Ensure dueDate is set based on paymentTerms if not provided
-    if (!this.dueDate && this.invoiceDate && this.paymentTerms) {
-        const days = parseInt(this.paymentTerms.replace(/\D/g, '')) || 0;
-        const dueDate = new Date(this.invoiceDate);
-        dueDate.setDate(dueDate.getDate() + days);
-        this.dueDate = dueDate;
-    }
-
-    next();
 });
 
 // Pre-save middleware to calculate balance

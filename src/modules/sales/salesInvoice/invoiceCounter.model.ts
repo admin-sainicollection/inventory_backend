@@ -1,4 +1,4 @@
-import { IInvoiceCounter } from "./salesInvoice.types";
+import { IInvoiceCounter } from "../types";
 import mongoose, { Schema } from "mongoose";
 
 export const invoiceCounterSchema = new Schema<IInvoiceCounter>({

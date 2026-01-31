@@ -35,16 +35,13 @@ export interface TaxBreakdownItem {
     igst: number;
 }
 
-export type Status = 'PAID' | 'UNPAID' | 'PARTIAL_PAID'
+export type Status = 'PAID' | 'UNPAID' | 'PARTIAL_PAID' | 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'REVISED' | 'CONVERTED'
 
-export interface IInvoice extends Document {
-    invoiceType: DocumentType;
+export interface CommonDocument {
     gstType: GstType;
     party?: string;
     // partyBillAddress?: string;
     // partyName?: string;
-    invoiceNumber?: string;
-    invoiceDate?: string | Date;
     date?: string | Date;
     dueDate?: string | Date;
     items?: ProductItem[];
@@ -57,7 +54,7 @@ export interface IInvoice extends Document {
     totalAmount?: number;
     taxableAmount?: number;
     subtotal?: number;
-    status?:Status;
+    status?: Status;
     receivedAmount?: number;
     balanceAmount?: number;
     taxBreakdown?: TaxBreakdownItem[];
@@ -66,20 +63,33 @@ export interface IInvoice extends Document {
     updatedAt?: Date;
 }
 
-// Update your types file
-export interface FilterOptions {
-  gstType?: string;
-  search?: string;
-  status?: string;
-  dateRange?: string;
-  startDate?: string | Date;
-  endDate?: string | Date;
-  page?: number;
-  limit?: number;
+// ---------------------------------------------------- For Invoice
+export interface IInvoice extends CommonDocument {
+    invoiceType: DocumentType;
+    invoiceNumber?: string;
+    invoiceDate?: string | Date;
 }
 
-// ======================================================= Invoice COunter
+//----------------------------------------------------- For Quotation
+export interface IQuotation extends CommonDocument {
+    quotationType: DocumentType;
+    quotationNumber?: string;
+    quotationDate?: string | Date;
+}
+
+export interface FilterOptions {
+    gstType?: string;
+    search?: string;
+    status?: string;
+    dateRange?: string;
+    startDate?: string | Date;
+    endDate?: string | Date;
+    page?: number;
+    limit?: number;
+}
+
+// ======================================================= Invoice Counter
 export interface IInvoiceCounter {
-    key?:string,
-    seq?:number
+    key?: string,
+    seq?: number
 }

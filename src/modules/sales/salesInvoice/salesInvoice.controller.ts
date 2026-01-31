@@ -8,7 +8,7 @@ import {
     updateSalesInvoice,
     deleteSalesInvoice
 } from "./salesInvoice.service";
-import { FilterOptions, GstType } from "./salesInvoice.types";
+import { FilterOptions, GstType } from "../types";
 
 export const createSalesInvoiceController = async (req: Request, res: Response) => {
     try {
