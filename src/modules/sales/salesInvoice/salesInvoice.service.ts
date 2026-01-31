@@ -2,13 +2,15 @@
 import InvoiceGst from "./salesInvoice.gst.model";
 import InvoiceNonGst from "./salesInvoice.non_gst.model";
 import InvoiceCounter from "./invoiceCounter.model";
-import { FilterOptions, GstType, IInvoice } from "./salesInvoice.types";
+import { FilterOptions, GstType, IInvoice } from "../types";
 import mongoose from "mongoose";
 import Party from '../../party/party.model'
 import { useFinancialYear } from "../../../utils/useFinancialYear";
 
 // ----------------------------------------------------------------------------Helper funtions
 const financialYear = useFinancialYear();
+
+// ---------------------------------------------------------------------------Use Other documents also like Quotation etc
 const generateNextInvoiceNumber = async (invoiceType: string = 'INVOICE', gstType: GstType = 'GST'): Promise<string> => {
     let prefix = "INV";
     try {
