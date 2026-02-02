@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createQuotation, deleteQuotation, getAllQuotation, getNextQuotationNumber } from "./quotation.service";
+import { createQuotation, deleteQuotation, getAllQuotation, getNextQuotationNumber, getQuotationById, updateQuotation } from "./quotation.service";
 import { FilterOptions, GstType } from "../types";
 
 export const createQuotationController = async (req: Request, res: Response) => {
@@ -77,6 +77,41 @@ export const getAllQuotationController = async (req: Request, res: Response) => 
     }
 }
 
+export const getQuotationByIdController = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const quotation = await getQuotationById(id as string);
+
+        res.status(200).json({
+            success: true,
+            message: "Quotation retrieved successfully",
+            data: quotation
+        });
+    } catch (error: any) {
+        res.status(404).json({
+            success: false,
+            message: error.message
+        })
+    }
+};
+
+export const updateQuotationController = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const quotation = await updateQuotation(id as string, req.body);
+
+        res.status(200).json({
+            success: true,
+            message: "Quotation updated successfully",
+            data: quotation
+        });
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+};
 
 export const deleteQuotationController = async (req: Request, res: Response) => {
     try {
