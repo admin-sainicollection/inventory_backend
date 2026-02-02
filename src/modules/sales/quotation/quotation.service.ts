@@ -309,6 +309,41 @@ export const getAllQuotation = async (filters: FilterOptions = {}) => {
     }
 };
 
+export const getQuotationById = async (id: string) => {
+    try {
+        // Try to find in GST invoices
+        const gstQuotation = await QuotationGst.findById(id).populate('party');
+        if (gstQuotation) return gstQuotation;
+
+        // Try to find in NON-GST invoices
+        const nonGstQuotation = await QuotationNonGst.findById(id).populate('party');
+        if (nonGstQuotation) return nonGstQuotation;
+
+        throw new Error("Quotation not found");
+    } catch (error: any) {
+        throw new Error(error.message);
+    }
+};
+
+export const updateQuotation = async (id: string, data: Partial<IQuotation>) => {
+    try {
+        // Try to update in GST invoices
+        const gstQuotation = await QuotationGst.findById(id);
+        if (gstQuotation) {
+            return await QuotationGst.findByIdAndUpdate(id, data, { new: true });
+        }
+
+        // Try to update in NON-GST invoices
+        const nonGstQuotation = await QuotationNonGst.findById(id);
+        if (nonGstQuotation) {
+            return await QuotationNonGst.findByIdAndUpdate(id, data, { new: true });
+        }
+
+        throw new Error("Quotation not found");
+    } catch (error: any) {
+        throw new Error(error.message);
+    }
+};
 
 export const deleteQuotation = async (id: string) => {
     try {

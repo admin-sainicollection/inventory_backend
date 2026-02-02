@@ -2,13 +2,17 @@ import { Router } from "express";
 import { protect, restrictToRoles } from "../../../middlewares/auth.middleware";
 import { validate } from "../../../middlewares/validate.middleware";
 import { QuotationSchema } from "./quotation.validation";
-import { createQuotationController, deleteQuotationController, getAllQuotationController, getNextQuotationNumberController } from "./quotation.controller";
+import { createQuotationController, deleteQuotationController, getAllQuotationController, getNextQuotationNumberController, getQuotationByIdController, updateQuotationController } from "./quotation.controller";
 
 const router = Router();
 
 router.post("/quotation/create-quotation", protect, validate(QuotationSchema), restrictToRoles("admin"), createQuotationController)
 
 router.get("/quotation/get-all-quotations", protect, restrictToRoles("admin"), getAllQuotationController)
+
+router.get("/quotation/get-single-quotation/:id", protect, restrictToRoles("admin"), getQuotationByIdController)
+
+router.put("/quotation/update-quotation/:id", protect, restrictToRoles("admin"), updateQuotationController)
 
 router.delete("/quotation/delete-quotation/:id", protect, restrictToRoles("admin"), deleteQuotationController)
 
