@@ -35,7 +35,7 @@ export interface TaxBreakdownItem {
     igst: number;
 }
 
-export type Status = 'PAID' | 'UNPAID' | 'PARTIAL_PAID' | 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'REVISED' | 'CONVERTED'
+export type Status = 'PAID' | 'UNPAID' | 'PARTIAL_PAID' | 'OPEN' | 'CLOSED' | 'EXPIRED' | 'CONVERTED'
 
 export interface CommonDocument {
     gstType: GstType;

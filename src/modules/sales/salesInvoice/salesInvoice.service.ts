@@ -3,10 +3,9 @@ import InvoiceGst from "./salesInvoice.gst.model";
 import InvoiceNonGst from "./salesInvoice.non_gst.model";
 import { FilterOptions, GstType, IInvoice } from "../types";
 import { useFinancialYear } from "../../../utils/useFinancialYear";
-
-// ----------------------------------------------------------------------------Helper funtions
 const financialYear = useFinancialYear();
 
+// ======================================================================HELPER FUNCTION
 const buildInvoiceAggregation = (
     matchQuery: any,
     search?: string
@@ -101,7 +100,7 @@ const getDateRangeQuery = (dateRange: string) => {
     }
 };
 
-// ------------------------------------------------------------------------Services
+// ============================================================================SERVICES
 
 export const createSalesInvoice = async (data: Partial<IInvoice>) => {
     try {
@@ -142,8 +141,6 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
         throw new Error(error.message)
     }
 }
-
-
 
 export const getAllSalesInvoice = async (filters: FilterOptions = {}) => {
     try {
