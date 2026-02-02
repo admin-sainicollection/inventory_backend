@@ -1,4 +1,4 @@
-import mongoose, {  Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { AdditionalCharge, Discount, IQuotation, ProductItem, TaxBreakdownItem } from "../types";
 
 // Product Item Schema
@@ -120,14 +120,14 @@ const quotationNonGstSchema = new Schema<IQuotation>({
     },
     status: {
         type: String,
-        enum: ['DRAFT' , 'SENT' , 'ACCEPTED' , 'REJECTED' , 'EXPIRED' , 'REVISED' , 'CONVERTED'],
-        default: 'DRAFT',
+        enum: ['PAID', 'UNPAID', 'PARTIAL_PAID', 'OPEN', 'CLOSED', 'EXPIRED', 'CONVERTED'],
+        default: 'OPEN',
         required: true
     },
     taxBreakdown: [taxBreakdownSchema]
 }, {
-    timestamps: true, 
-    versionKey: false 
+    timestamps: true,
+    versionKey: false
 });
 
 // Indexes for better query performance
