@@ -1,105 +1,11 @@
 // salesInvoice.service.ts
 import InvoiceGst from "./salesInvoice.gst.model";
 import InvoiceNonGst from "./salesInvoice.non_gst.model";
-import InvoiceCounter from "./invoiceCounter.model";
 import { FilterOptions, GstType, IInvoice } from "../types";
-import mongoose from "mongoose";
-import Party from '../../party/party.model'
 import { useFinancialYear } from "../../../utils/useFinancialYear";
 
 // ----------------------------------------------------------------------------Helper funtions
 const financialYear = useFinancialYear();
-
-// ---------------------------------------------------------------------------Use Other documents also like Quotation etc
-const generateNextInvoiceNumber = async (invoiceType: string = 'INVOICE', gstType: GstType = 'GST'): Promise<string> => {
-    let prefix = "INV";
-    try {
-        // Determine prefix based on invoice type
-        switch (invoiceType) {
-            case 'QUOTATION':
-                prefix = 'QUO';
-                break;
-            case 'CREDIT_NOTE':
-                prefix = 'CN';
-                break;
-            case 'DEBIT_NOTE':
-                prefix = 'DN';
-                break;
-            case 'SALES_RETURN':
-                prefix = 'SR';
-                break;
-            case 'PROFORMA':
-                prefix = 'PRO';
-                break;
-            case 'PURCHASE_ORDER':
-                prefix = 'PO';
-                break;
-            default:
-                prefix = 'INV';
-        }
-
-        if (invoiceType && gstType === "NON-GST") {
-            // Find the last invoice number from both GST and NON-GST collections
-            const [lastNonGstInvoice] = await Promise.all([
-                InvoiceNonGst.findOne({
-                    invoiceNumber: { $regex: `^${prefix}${financialYear}-` }
-                }).sort({ createdAt: -1 }).select('invoiceNumber')
-            ]);
-
-            // Get the highest sequence number from both collections
-            let maxSequence = 0;
-
-            [lastNonGstInvoice].forEach(invoice => {
-                if (invoice && invoice.invoiceNumber) {
-                    const match = invoice.invoiceNumber.match(/-(\d+)$/);
-                    if (match) {
-                        const sequence = parseInt(match[1] as string);
-                        if (sequence > maxSequence) {
-                            maxSequence = sequence;
-                        }
-                    }
-                }
-            });
-
-            // The next number is current max + 1
-            const nextSequence = maxSequence + 1;
-            return `${prefix}${financialYear}-${String(nextSequence).padStart(0, "0")}`;
-        } if (invoiceType && gstType === "GST") {
-            // Find the last invoice number from both GST and NON-GST collections
-            const [lastGstInvoice] = await Promise.all([
-                InvoiceGst.findOne({
-                    invoiceNumber: { $regex: `^${prefix}${financialYear}-` }
-                }).sort({ createdAt: -1 }).select('invoiceNumber'),
-            ]);
-
-            // Get the highest sequence number from both collections
-            let maxSequence = 0;
-
-            [lastGstInvoice].forEach(invoice => {
-                if (invoice && invoice.invoiceNumber) {
-                    const match = invoice.invoiceNumber.match(/-(\d+)$/);
-                    if (match) {
-                        const sequence = parseInt(match[1] as string);
-                        if (sequence > maxSequence) {
-                            maxSequence = sequence;
-                        }
-                    }
-                }
-            });
-
-            // The next number is current max + 1
-            const nextSequence = maxSequence + 1;
-            return `${prefix}${financialYear}-${String(nextSequence).padStart(0, "0")}`;
-        }
-        throw new Error("Invalid GST Type or Invoice Type")
-
-    } catch (error: any) {
-        console.error("Error generating invoice number:", error);
-        // Fallback to timestamp-based number
-        // const timestamp = Date.now().toString().slice(-6);
-        return `${prefix}${financialYear}-1`;
-    }
-};
 
 const buildInvoiceAggregation = (
     matchQuery: any,
@@ -205,7 +111,7 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
 
         if (data.gstType === 'GST') {
             if (!data.invoiceNumber) {
-                data.invoiceNumber = await generateNextInvoiceNumber(data.invoiceType || 'INVOICE', data.gstType || 'GST');
+                data.invoiceNumber = await getNextInvoiceNumber(data.invoiceType || 'INVOICE', data.gstType || 'GST');
             }
 
             const [existingGst] = await Promise.all([
@@ -220,7 +126,7 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
 
         if (data.gstType === 'NON-GST') {
             if (!data.invoiceNumber) {
-                data.invoiceNumber = await generateNextInvoiceNumber(data.invoiceType || 'INVOICE');
+                data.invoiceNumber = await getNextInvoiceNumber(data.invoiceType || 'INVOICE');
             }
             const [existingNonGst] = await Promise.all([
                 InvoiceNonGst.findOne({ invoiceNumber: data.invoiceNumber })
@@ -350,28 +256,6 @@ export const getAllSalesInvoice = async (filters: FilterOptions = {}) => {
 export const getNextInvoiceNumber = async (invoiceType: string = "INVOICE", gstType: GstType = 'GST'): Promise<string> => {
     let prefix = "INV";
     try {
-        switch (invoiceType) {
-            case 'QUOTATION':
-                prefix = 'QUO';
-                break;
-            case 'CREDIT_NOTE':
-                prefix = 'CN';
-                break;
-            case 'DEBIT_NOTE':
-                prefix = 'DN';
-                break;
-            case 'SALES_RETURN':
-                prefix = 'SR';
-                break;
-            case 'PROFORMA':
-                prefix = 'PRO';
-                break;
-            case 'PURCHASE_ORDER':
-                prefix = 'PO';
-                break;
-            default:
-                prefix = 'INV';
-        }
 
         if (invoiceType && gstType === "NON-GST") {
             // Find the last invoice number from both GST and NON-GST collections
