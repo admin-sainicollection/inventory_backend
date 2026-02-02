@@ -120,7 +120,7 @@ const quotationGstSchema = new Schema<IQuotation>({
     },
     status: {
         type: String,
-        enum: ['PAID' ,'UNPAID' ,'PARTIAL_PAID' ,'OPEN' ,'CLOSED' ,'EXPIRED' ,'CONVERTED'],
+        enum: ['OPEN' ,'CLOSED' ,'EXPIRED' ,'CONVERTED'],
         default: 'OPEN',
         required: true
     },

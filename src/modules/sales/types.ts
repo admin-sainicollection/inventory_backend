@@ -35,7 +35,8 @@ export interface TaxBreakdownItem {
     igst: number;
 }
 
-export type Status = 'PAID' | 'UNPAID' | 'PARTIAL_PAID' | 'OPEN' | 'CLOSED' | 'EXPIRED' | 'CONVERTED'
+export type InvoiceStatus = 'PAID' | 'UNPAID' | 'PARTIAL_PAID';
+export type QuotationStatus = 'OPEN' | 'CLOSED' | 'EXPIRED' | 'CONVERTED';
 
 export interface CommonDocument {
     gstType: GstType;
@@ -54,7 +55,6 @@ export interface CommonDocument {
     totalAmount?: number;
     taxableAmount?: number;
     subtotal?: number;
-    status?: Status;
     receivedAmount?: number;
     balanceAmount?: number;
     taxBreakdown?: TaxBreakdownItem[];
@@ -68,6 +68,8 @@ export interface IInvoice extends CommonDocument {
     invoiceType: DocumentType;
     invoiceNumber?: string;
     invoiceDate?: string | Date;
+    status?: InvoiceStatus;
+
 }
 
 //----------------------------------------------------- For Quotation
@@ -75,6 +77,8 @@ export interface IQuotation extends CommonDocument {
     quotationType: DocumentType;
     quotationNumber?: string;
     quotationDate?: string | Date;
+    status?: QuotationStatus;
+
 }
 
 export interface FilterOptions {
