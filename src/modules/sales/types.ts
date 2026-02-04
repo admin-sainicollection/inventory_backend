@@ -1,3 +1,4 @@
+import { Schema } from "mongoose";
 
 export type DocumentType = 'INVOICE' | 'QUOTATION' | 'SALES_RETURN' | 'CREDIT_NOTE' | 'DEBIT_NOTE' | 'PURCHASE_ORDER';
 export type GstType = 'GST' | 'NON-GST';
@@ -5,14 +6,14 @@ export interface ProductItem {
     id: string;
     srNo: number;
     itemName: string;
-    hsnNo: string;
+    hsnNo?: string;
     quantity: number;
     price: number;
     discount: {
         amount: number;
         isPercentage: boolean;
     };
-    tax: {
+    tax?: {
         type: 'none' | 'gst' | 'custom';
         rate: number;
     };
@@ -69,7 +70,6 @@ export interface IInvoice extends CommonDocument {
     invoiceNumber?: string;
     invoiceDate?: string | Date;
     status?: InvoiceStatus;
-
 }
 
 //----------------------------------------------------- For Quotation
@@ -78,7 +78,15 @@ export interface IQuotation extends CommonDocument {
     quotationNumber?: string;
     quotationDate?: string | Date;
     status?: QuotationStatus;
+}
 
+// ---------------------------------------------------- For Credit Note
+export interface ICreditNote extends CommonDocument {
+    creditNoteType: DocumentType;
+    creditNoteNumber?: string;
+    creditNoteDate?: string | Date;
+    status?: InvoiceStatus;
+    invoiceId?:string;
 }
 
 export interface FilterOptions {
@@ -97,3 +105,47 @@ export interface IInvoiceCounter {
     key?: string,
     seq?: number
 }
+
+
+
+// ============================================================================= COMMON SCHEMAS
+// Product Item Schema
+export const productItemSchema = new Schema<ProductItem>({
+    id: { type: String, required: true },
+    srNo: { type: Number, required: true, min: 1 },
+    itemName: { type: String, required: true, trim: true },
+    hsnNo: { type: String, trim: true },
+    quantity: { type: Number, required: true, min: 1 },
+    price: { type: Number, required: true, min: 0 },
+    discount: {
+        amount: { type: Number, default: 0, min: 0 },
+        isPercentage: { type: Boolean, default: false }
+    },
+    tax: {
+        type: { type: String, enum: ['none', 'gst', 'custom'], default: 'none' },
+        rate: { type: Number, default: 0, min: 0, max: 100 }
+    },
+    amount: { type: Number, required: true, min: 0 },
+    productId: { type: String, trim: true }
+}, { _id: false }); 
+
+// Additional Charge Schema
+export const additionalChargeSchema = new Schema<AdditionalCharge>({
+    id: { type: String, required: true },
+    label: { type: String, required: true, trim: true },
+    amount: { type: Number, required: true, min: 0 }
+}, { _id: false });
+
+// Discount Schema
+export const discountSchema = new Schema<Discount>({
+    type: { type: String, enum: ['before_tax', 'after_tax'], default: 'before_tax' },
+    amount: { type: Number, default: 0, min: 0 },
+    isPercentage: { type: Boolean, default: false }
+}, { _id: false });
+
+// Tax Breakdown Schema
+export const taxBreakdownSchema = new Schema<TaxBreakdownItem>({
+    sgst: { type: Number, default: 0, min: 0, max: 100 },
+    cgst: { type: Number, default: 0, min: 0, max: 100 },
+    igst: { type: Number, default: 0, min: 0, max: 100 }
+}, { _id: false });

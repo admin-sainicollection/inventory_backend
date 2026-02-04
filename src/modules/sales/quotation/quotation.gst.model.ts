@@ -1,46 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { AdditionalCharge, Discount, IQuotation, ProductItem, TaxBreakdownItem } from "../types";
-
-// Product Item Schema
-const productItemSchema = new Schema<ProductItem>({
-    id: { type: String, required: true },
-    srNo: { type: Number, required: true, min: 1 },
-    itemName: { type: String, required: true, trim: true },
-    hsnNo: { type: String, trim: true },
-    quantity: { type: Number, required: true, min: 1 },
-    price: { type: Number, required: true, min: 0 },
-    discount: {
-        amount: { type: Number, default: 0, min: 0 },
-        isPercentage: { type: Boolean, default: false }
-    },
-    tax: {
-        type: { type: String, enum: ['none', 'gst', 'custom'], default: 'none' },
-        rate: { type: Number, default: 0, min: 0, max: 100 }
-    },
-    amount: { type: Number, required: true, min: 0 },
-    productId: { type: String, trim: true }
-}, { _id: false }); // No separate _id for subdocument
-
-// Additional Charge Schema
-const additionalChargeSchema = new Schema<AdditionalCharge>({
-    id: { type: String, required: true },
-    label: { type: String, required: true, trim: true },
-    amount: { type: Number, required: true, min: 0 }
-}, { _id: false });
-
-// Discount Schema
-const discountSchema = new Schema<Discount>({
-    type: { type: String, enum: ['before_tax', 'after_tax'], default: 'before_tax' },
-    amount: { type: Number, default: 0, min: 0 },
-    isPercentage: { type: Boolean, default: false }
-}, { _id: false });
-
-// Tax Breakdown Schema
-const taxBreakdownSchema = new Schema<TaxBreakdownItem>({
-    sgst: { type: Number, default: 0, min: 0, max: 100 },
-    cgst: { type: Number, default: 0, min: 0, max: 100 },
-    igst: { type: Number, default: 0, min: 0, max: 100 }
-}, { _id: false });
+import {IQuotation, additionalChargeSchema, discountSchema, productItemSchema, taxBreakdownSchema } from "../types";
 
 // Main Invoice Schema
 const quotationGstSchema = new Schema<IQuotation>({
@@ -120,7 +79,7 @@ const quotationGstSchema = new Schema<IQuotation>({
     },
     status: {
         type: String,
-        enum: ['OPEN' ,'CLOSED' ,'EXPIRED' ,'CONVERTED'],
+        enum: ['OPEN', 'CLOSED', 'EXPIRED', 'CONVERTED'],
         default: 'OPEN',
         required: true
     },
