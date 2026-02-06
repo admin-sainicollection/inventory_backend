@@ -111,7 +111,7 @@ creditNoteGstSchema.index({ createdAt: 1 });
 creditNoteGstSchema.index({ creditNoteType: 1, gstType: 1 });
 
 // Virtual for formatted dates (optional)
-creditNoteGstSchema.virtual('formattedcreditNoteDate').get(function () {
+creditNoteGstSchema.virtual('formattedCreditNoteDate').get(function () {
     return this.creditNoteDate ? new Date(this.creditNoteDate).toLocaleDateString() : '';
 });
 

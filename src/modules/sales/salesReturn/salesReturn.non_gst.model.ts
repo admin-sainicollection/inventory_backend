@@ -1,12 +1,12 @@
 import mongoose, { Schema } from "mongoose";
-import { ICreditNote, additionalChargeSchema, discountSchema, productItemSchema, taxBreakdownSchema } from "../types";
+import {  ISalesReturn, additionalChargeSchema, discountSchema, productItemSchema, taxBreakdownSchema } from "../types";
 
 // Main Invoice Schema
-const creditNoteNonGstSchema = new Schema<ICreditNote>({
-    creditNoteType: {
+const salesReturnNonGstSchema = new Schema<ISalesReturn>({
+    salesReturnType: {
         type: String,
         enum: ['INVOICE', 'QUOTATION', 'SALES_RETURN', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PURCHASE_ORDER'],
-        default: 'CREDIT_NOTE',
+        default: 'SALES_RETURN',
         required: true
     },
     gstType: {
@@ -36,13 +36,13 @@ const creditNoteNonGstSchema = new Schema<ICreditNote>({
         },
         required: false
     },
-    creditNoteNumber: {
+    salesReturnNumber: {
         type: String,
         unique: true,
         trim: true,
         sparse: true // Allows multiple null values but unique for non-null
     },
-    creditNoteDate: {
+    salesReturnDate: {
         type: Date,
         default: Date.now
     },
@@ -104,23 +104,23 @@ const creditNoteNonGstSchema = new Schema<ICreditNote>({
 });
 
 // Indexes for better query performance
-creditNoteNonGstSchema.index({ creditNoteNumber: 1 });
-creditNoteNonGstSchema.index({ party: 1 });
-creditNoteNonGstSchema.index({ creditNoteDate: 1 });
-creditNoteNonGstSchema.index({ createdAt: 1 });
-creditNoteNonGstSchema.index({ creditNoteType: 1, gstType: 1 });
+salesReturnNonGstSchema.index({ salesReturnNumber: 1 });
+salesReturnNonGstSchema.index({ party: 1 });
+salesReturnNonGstSchema.index({ salesReturnDate: 1 });
+salesReturnNonGstSchema.index({ createdAt: 1 });
+salesReturnNonGstSchema.index({ salesReturnType: 1, gstType: 1 });
 
 // Virtual for formatted dates (optional)
-creditNoteNonGstSchema.virtual('formattedCreditNoteDate').get(function () {
-    return this.creditNoteDate ? new Date(this.creditNoteDate).toLocaleDateString() : '';
+salesReturnNonGstSchema.virtual('formattedSalesReturnDate').get(function () {
+    return this.salesReturnDate ? new Date(this.salesReturnDate).toLocaleDateString() : '';
 });
 
-creditNoteNonGstSchema.virtual('formattedDueDate').get(function () {
+salesReturnNonGstSchema.virtual('formattedDueDate').get(function () {
     return this.dueDate ? new Date(this.dueDate).toLocaleDateString() : '';
 });
 
 // Virtual for payment status
-creditNoteNonGstSchema.virtual('paymentStatus').get(function () {
+salesReturnNonGstSchema.virtual('paymentStatus').get(function () {
     if (!this.receivedAmount) return 'PENDING';
     if (this.receivedAmount >= (this.totalAmount || 0)) return 'PAID';
     if (this.receivedAmount > 0) return 'PARTIAL';
@@ -128,13 +128,13 @@ creditNoteNonGstSchema.virtual('paymentStatus').get(function () {
 });
 
 // Pre-save middleware to calculate balance
-creditNoteNonGstSchema.pre('save', function (next) {
+salesReturnNonGstSchema.pre('save', function (next) {
     if (this.totalAmount !== undefined && this.receivedAmount !== undefined) {
         this.balanceAmount = Math.max(0, (this.totalAmount || 0) - (this.receivedAmount || 0));
     }
     next();
 });
 
-const CreditNoteNonGst = mongoose.model<ICreditNote>('CreditNoteNonGst', creditNoteNonGstSchema);
+const SalesReturnNonGst = mongoose.model<ISalesReturn>('SalesReturnNonGst', salesReturnNonGstSchema);
 
-export default CreditNoteNonGst;
+export default SalesReturnNonGst;
