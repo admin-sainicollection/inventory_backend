@@ -40,12 +40,12 @@ const TaxBreakdownItemSchema = z.object({
 
 // Single schema with conditional validation
 export const CreditNoteSchema = z.object({
-  invoiceType: z.enum(['INVOICE', 'QUOTATION', 'SALES_RETURN', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PURCHASE_ORDER']).default('CREDIT_NOTE'),
+  creditNoteType: z.enum(['INVOICE', 'QUOTATION', 'SALES_RETURN', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PURCHASE_ORDER']).default('CREDIT_NOTE'),
   gstType: z.enum(['GST', 'NON-GST']).default('GST'),
   party: z.string().optional(),
   invoiceId: z.string().optional(),
-  invoiceNumber: z.string().optional(),
-  invoiceDate: z.union([z.string(), z.date()]).default(() => new Date().toISOString()),
+  creditNoteNumber: z.string().optional(),
+  creditNoteDate: z.union([z.string(), z.date()]).default(() => new Date().toISOString()),
   date: z.union([z.string(), z.date()]).default(() => new Date().toISOString()),
   dueDate: z.union([z.string(), z.date()]).optional(),
   items: z.array(ProductItemSchema).min(1),
