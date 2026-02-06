@@ -89,6 +89,14 @@ export interface ICreditNote extends CommonDocument {
     invoiceId?:string;
 }
 
+export interface ISalesReturn extends CommonDocument {
+    salesReturnType: DocumentType;
+    salesReturnNumber?: string;
+    salesReturnDate?: string | Date;
+    status?: InvoiceStatus;
+    invoiceId?:string;
+}
+
 export interface FilterOptions {
     gstType?: string;
     search?: string;
