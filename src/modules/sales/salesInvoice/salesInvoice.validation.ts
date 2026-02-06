@@ -1,4 +1,5 @@
 import z from "zod";
+import { partial } from "zod/v4/core/util.cjs";
 
 // Common schemas
 const ProductItemSchema = z.object({
@@ -94,6 +95,8 @@ export const InvoiceSchema = z.object({
 });
 
 export type Invoice = z.infer<typeof InvoiceSchema>;
+
+export const updateInvoiceSchema = InvoiceSchema.partial();
 
 // Validation function with type guards
 // export const validateInvoice = (data: unknown): { success: boolean; data?: Invoice; error?: string } => {

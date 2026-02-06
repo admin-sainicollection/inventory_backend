@@ -96,6 +96,8 @@ export const CreditNoteSchema = z.object({
 
 export type CreditNote = z.infer<typeof CreditNoteSchema>;
 
+export const updateCreditNote = CreditNoteSchema.partial();
+
 // Validation function with type guards
 // export const validateInvoice = (data: unknown): { success: boolean; data?: Invoice; error?: string } => {
 //   const result = CreditNoteSchema.safeParse(data);

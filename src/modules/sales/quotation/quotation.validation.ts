@@ -93,6 +93,8 @@ export const QuotationSchema = z.object({
 
 export type Quotation = z.infer<typeof QuotationSchema>;
 
+export const updateQuotationSchema = QuotationSchema.partial();
+
 // Validation function with type guards
 // export const validateInvoice = (data: unknown): { success: boolean; data?: Quotation; error?: string } => {
 //   const result = QuotationSchema.safeParse(data);
