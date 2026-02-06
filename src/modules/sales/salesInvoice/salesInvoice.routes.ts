@@ -2,7 +2,7 @@ import { Router } from "express";
 import { protect, restrictToRoles } from "../../../middlewares/auth.middleware";
 import { validate } from "../../../middlewares/validate.middleware";
 import { createSalesInvoiceController, deleteSalesInvoiceController, getAllInvoiceController, getNextInvoiceNumberController, getSalesInvoiceByIdController, updateSalesInvoiceController } from "./salesInvoice.controller";
-import { InvoiceSchema } from "./salesInvoice.validation";
+import { InvoiceSchema, updateInvoiceSchema } from "./salesInvoice.validation";
 
 const router = Router();
 
@@ -12,7 +12,7 @@ router.get("/invoice/get-all-sales-invoices", protect, restrictToRoles("admin"),
 
 router.get("/invoice/get-single-sales-invoice/:id", protect, restrictToRoles("admin"), getSalesInvoiceByIdController)
 
-router.put("/invoice/update-sales-invoice/:id", protect, restrictToRoles("admin"), updateSalesInvoiceController)
+router.put("/invoice/update-sales-invoice/:id", protect, validate(updateInvoiceSchema), restrictToRoles("admin"), updateSalesInvoiceController)
 
 router.delete("/invoice/delete-sales-invoice/:id", protect, restrictToRoles("admin"), deleteSalesInvoiceController)
 

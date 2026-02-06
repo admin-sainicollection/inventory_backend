@@ -20,6 +20,7 @@ import attendanceRoutes from "./modules/attendance/attendance.routes";
 import enquiryRoutes from "./modules/enquiry/enquiry.routes";
 import invoiceRoutes from "./modules/sales/salesInvoice/salesInvoice.routes";
 import quotationRoutes from "./modules/sales/quotation/quotation.routes";
+import creditNoteRoutes from "./modules/sales/creditNote/creditNote.routes"
 
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
@@ -67,6 +68,7 @@ app.use('/api/v1/inventory', vendorDailyLedgerRoutes)
 app.use('/api/v1/inventory', enquiryRoutes)
 app.use('/api/v1/inventory', invoiceRoutes)
 app.use('/api/v1/inventory', quotationRoutes)
+app.use('/api/v1/inventory', creditNoteRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));

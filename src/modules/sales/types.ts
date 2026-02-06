@@ -13,7 +13,7 @@ export interface ProductItem {
         amount: number;
         isPercentage: boolean;
     };
-    tax?: {
+    tax: {
         type: 'none' | 'gst' | 'custom';
         rate: number;
     };
@@ -105,8 +105,6 @@ export interface IInvoiceCounter {
     key?: string,
     seq?: number
 }
-
-
 
 // ============================================================================= COMMON SCHEMAS
 // Product Item Schema

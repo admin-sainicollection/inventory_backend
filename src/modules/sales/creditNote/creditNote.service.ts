@@ -33,37 +33,40 @@ const buildCreditNoteAggregation = (
         }
     });
 
+    // Lookup for invoice details based on invoiceId
+    // For GST credit notes, look up GST invoices
     if (gstType === 'GST') {
         pipeline.push({
             $lookup: {
-                from: "creditNoteGsts",
+                from: "invoicegsts",  // Changed from "creditNoteGsts" to "invoicegsts"
                 localField: "invoiceId",
                 foreignField: "_id",
-                as: "creditNoteGst"
+                as: "invoice"
             }
         });
 
         pipeline.push({
             $unwind: {
-                path: "$invoiceId",
+                path: "$invoice",
                 preserveNullAndEmptyArrays: true
             }
         });
     }
 
+    // For NON-GST credit notes, look up NON-GST invoices
     if (gstType === 'NON-GST') {
         pipeline.push({
             $lookup: {
-                from: "creditNoteNonGsts",
+                from: "invoicenongsts",  // Changed from "creditNoteNonGsts" to "invoicenongsts"
                 localField: "invoiceId",
                 foreignField: "_id",
-                as: "creditNoteNonGst"
+                as: "invoice"
             }
         });
 
         pipeline.push({
             $unwind: {
-                path: "$invoiceId",
+                path: "$invoice",
                 preserveNullAndEmptyArrays: true
             }
         });
@@ -79,8 +82,7 @@ const buildCreditNoteAggregation = (
                     { "party.partyName": regex },
                     { "party.nickName": regex },
                     { "party.gstNumber": regex },
-                    { "creditNoteGst.creditNoteNumber": regex },
-                    { "creditNoteNonGst.creditNoteNumber": regex },
+                    { "invoice.invoiceNumber": regex },  // Add invoice number to search
                 ]
             }
         });
@@ -164,7 +166,7 @@ export const createCreditNote = async (data: Partial<ICreditNote>) => {
 
         if (data.gstType === 'NON-GST') {
             if (!data.creditNoteNumber) {
-                data.creditNoteNumber = await getNextCreditNoteNumber(data.creditNoteType || 'CREDIT_NOTE');
+                data.creditNoteNumber = await getNextCreditNoteNumber(data.creditNoteType || 'CREDIT_NOTE', data.gstType || 'GST');
             }
             const [existingNonGst] = await Promise.all([
                 CreditNoteNonGst.findOne({ creditNoteNumber: data.creditNoteNumber })
@@ -225,7 +227,7 @@ export const getAllCreditNote = async (filters: FilterOptions = {}) => {
         // =========================
         if (gstType === "GST") {
             const result = await CreditNoteGst.aggregate([
-                ...buildCreditNoteAggregation(query, search, gstType),
+                ...buildCreditNoteAggregation(query, search, "GST"),
                 {
                     $facet: {
                         data: [{ $skip: skip }, { $limit: limit }],
@@ -242,7 +244,7 @@ export const getAllCreditNote = async (filters: FilterOptions = {}) => {
         // =========================
         if (gstType === "NON-GST") {
             const result = await CreditNoteNonGst.aggregate([
-                ...buildCreditNoteAggregation(query, search, gstType),
+                ...buildCreditNoteAggregation(query, search, "NON-GST"),
                 {
                     $facet: {
                         data: [{ $skip: skip }, { $limit: limit }],

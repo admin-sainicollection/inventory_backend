@@ -33,7 +33,8 @@ const creditNoteGstSchema = new Schema<ICreditNote>({
                 return v === null || mongoose.Types.ObjectId.isValid(v);
             },
             message: 'Invalid credit note reference'
-        }
+        },
+        required: false
     },
     creditNoteNumber: {
         type: String,
