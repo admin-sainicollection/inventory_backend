@@ -3,6 +3,10 @@ import InvoiceGst from "./salesInvoice.gst.model";
 import InvoiceNonGst from "./salesInvoice.non_gst.model";
 import { FilterOptions, GstType, IInvoice } from "../types";
 import { useFinancialYear } from "../../../utils/useFinancialYear";
+import CreditNoteGst from "../creditNote/creditNote.gst.model";
+import CreditNoteNonGst from "../creditNote/creditNote.non_gst.model";
+import SalesReturnGst from "../salesReturn/salesReturn.gst.model";
+import SalesReturnNonGst from "../salesReturn/salesReturn.non_gst.model";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -356,6 +360,19 @@ export const updateSalesInvoice = async (id: string, data: Partial<IInvoice>) =>
 // Delete invoice
 export const deleteSalesInvoice = async (id: string) => {
     try {
+        const invoice = await getSalesInvoiceById(id);
+
+        const [existingGstCn, existingNonGstCn, existingGstSr, existingNonGstSr] = await Promise.all([
+            CreditNoteGst.findOne({ invoiceId: id }),
+            CreditNoteNonGst.findOne({ invoiceId: id }),
+            SalesReturnGst.findOne({ invoiceId: id }),
+            SalesReturnNonGst.findOne({ invoiceId: id }),
+        ]);
+
+        if(existingGstCn || existingNonGstCn || existingGstSr || existingNonGstSr ){
+            throw new Error(`Invoice having number ${invoice.invoiceNumber} is linked with other document. first unlink to delete`)
+        }
+
         // Try to delete from GST invoices
         const gstInvoice = await InvoiceGst.findByIdAndDelete(id);
         if (gstInvoice) return gstInvoice;
