@@ -15,6 +15,11 @@ const creditNoteGstSchema = new Schema<ICreditNote>({
         default: 'GST',
         required: true
     },
+    paymentType: {
+        type: String,
+        enum: ['CASH' , 'UPI' , 'CARD' , 'BANK_TRANSFER'],
+        default: 'CASH',
+    },
     party: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Party',

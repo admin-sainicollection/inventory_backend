@@ -42,6 +42,7 @@ const TaxBreakdownItemSchema = z.object({
 export const salesReturnSchema = z.object({
   salesReturnType: z.enum(['INVOICE', 'QUOTATION', 'SALES_RETURN', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PURCHASE_ORDER']).default('SALES_RETURN'),
   gstType: z.enum(['GST', 'NON-GST']).default('GST'),
+  paymentType: z.enum(['CASH' , 'UPI' , 'CARD' , 'BANK_TRANSFER']).default('CASH'),
   party: z.string().optional(),
   invoiceId: z.string().optional(),
   salesReturnNumber: z.string().optional(),

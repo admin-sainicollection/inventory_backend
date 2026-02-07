@@ -1,5 +1,6 @@
 import { Schema } from "mongoose";
 
+export type PaymentType = 'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER';
 export type DocumentType = 'INVOICE' | 'QUOTATION' | 'SALES_RETURN' | 'CREDIT_NOTE' | 'DEBIT_NOTE' | 'PURCHASE_ORDER';
 export type GstType = 'GST' | 'NON-GST';
 export interface ProductItem {
@@ -70,6 +71,7 @@ export interface IInvoice extends CommonDocument {
     invoiceNumber?: string;
     invoiceDate?: string | Date;
     status?: InvoiceStatus;
+    paymentType?:PaymentType;
 }
 
 //----------------------------------------------------- For Quotation
@@ -87,6 +89,7 @@ export interface ICreditNote extends CommonDocument {
     creditNoteDate?: string | Date;
     status?: InvoiceStatus;
     invoiceId?:string;
+    paymentType?:PaymentType;
 }
 
 export interface ISalesReturn extends CommonDocument {
@@ -95,6 +98,7 @@ export interface ISalesReturn extends CommonDocument {
     salesReturnDate?: string | Date;
     status?: InvoiceStatus;
     invoiceId?:string;
+    paymentType?:PaymentType;
 }
 
 export interface FilterOptions {
