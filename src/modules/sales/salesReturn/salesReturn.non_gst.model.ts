@@ -15,6 +15,11 @@ const salesReturnNonGstSchema = new Schema<ISalesReturn>({
         default: 'NON-GST',
         required: true
     },
+    paymentType: {
+        type: String,
+        enum: ['CASH' , 'UPI' , 'CARD' , 'BANK_TRANSFER'],
+        default: 'CASH',
+    },
     party: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Party',
