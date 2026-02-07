@@ -1,5 +1,5 @@
-import mongoose, {  Schema } from "mongoose";
-import {  IInvoice, additionalChargeSchema, discountSchema, productItemSchema, taxBreakdownSchema } from "../types";
+import mongoose, { Schema } from "mongoose";
+import { IInvoice, additionalChargeSchema, discountSchema, productItemSchema, taxBreakdownSchema } from "../types";
 
 // Main Invoice Schema
 const invoiceGstSchema = new Schema<IInvoice>({
@@ -17,7 +17,7 @@ const invoiceGstSchema = new Schema<IInvoice>({
     },
     paymentType: {
         type: String,
-        enum: ['CASH' , 'UPI' , 'CARD' , 'BANK_TRANSFER'],
+        enum: ['CASH', 'UPI', 'CARD', 'BANK_TRANSFER'],
         default: 'CASH',
     },
     party: {

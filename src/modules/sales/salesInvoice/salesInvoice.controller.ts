@@ -18,10 +18,10 @@ export const createSalesInvoiceController = async (req: Request, res: Response) 
             message: "Invoice Created Successfully!",
             data: invoice
         })
-    } catch (error: any) {
+    } catch (errors: any) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: errors.message
         })
     }
 }
