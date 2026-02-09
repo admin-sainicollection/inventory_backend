@@ -1,7 +1,7 @@
 import { Schema } from "mongoose";
 
 export type PaymentType = 'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER';
-export type DocumentType = 'INVOICE' | 'QUOTATION' | 'SALES_RETURN' | 'CREDIT_NOTE' | 'DEBIT_NOTE' | 'PURCHASE_ORDER';
+export type DocumentType = 'INVOICE' | 'QUOTATION' | 'SALES_RETURN' | 'CREDIT_NOTE' | 'DEBIT_NOTE' | 'PURCHASE_ORDER' | 'PAYMENT_IN';
 export type GstType = 'GST' | 'NON-GST';
 export interface ProductItem {
     id: string;
@@ -99,6 +99,15 @@ export interface ISalesReturn extends CommonDocument {
     status?: InvoiceStatus;
     invoiceId?:string;
     paymentType?:PaymentType;
+}
+
+export interface IPaymentIn extends CommonDocument {
+    paymentInType: DocumentType;
+    paymentInNumber?: string;
+    paymentInDate?: string | Date;
+    invoiceId?:string;
+    paymentType?:PaymentType;
+    settledAmount?:number;
 }
 
 export interface FilterOptions {
