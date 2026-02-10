@@ -36,7 +36,7 @@ const buildPaymentInAggregation = (
     if (gstType === 'GST') {
         pipeline.push({
             $lookup: {
-                from: "invoicegsts", 
+                from: "invoicegsts",
                 localField: "invoiceId",
                 foreignField: "_id",
                 as: "invoice"
@@ -353,11 +353,11 @@ export const getNextPaymentInNumber = async (paymentInType: string = "PAYMENT_IN
 export const getPaymentInById = async (id: string) => {
     try {
         // Try to find in GST payment ins
-        const gstPaymentIn = await PaymentInGst.findById(id).populate('party');
+        const gstPaymentIn = await PaymentInGst.findById(id).populate('party').populate('invoiceId');
         if (gstPaymentIn) return gstPaymentIn;
 
         // Try to find in NON-GST payment ins
-        const nonGstPaymentIn = await PaymentInNonGst.findById(id).populate('party');
+        const nonGstPaymentIn = await PaymentInNonGst.findById(id).populate('party').populate('invoiceId');;
         if (nonGstPaymentIn) return nonGstPaymentIn;
 
         throw new Error("Payment In not found");
