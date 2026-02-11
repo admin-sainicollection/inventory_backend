@@ -3,6 +3,7 @@ import { FilterOptions, GstType, ISalesReturn } from "../types";
 import { useFinancialYear } from "../../../utils/useFinancialYear";
 import SalesReturnGst from "./salesReturn.gst.model";
 import SalesReturnNonGst from "./salesReturn.non_gst.model";
+import { getInvoiceStatus } from "../../../utils/invoiceStatus";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -145,6 +146,8 @@ const getDateRangeQuery = (dateRange: string) => {
 
 export const createSalesReturn = async (data: Partial<ISalesReturn>) => {
     try {
+        const status = getInvoiceStatus(data.receivedAmount, data.totalAmount);
+
         if (!data.gstType) {
             throw new Error("GST type is required")
         }
@@ -161,7 +164,7 @@ export const createSalesReturn = async (data: Partial<ISalesReturn>) => {
             if (existingGst) {
                 throw new Error("Sales return number already exists")
             }
-            return await SalesReturnGst.create(data);
+            return await SalesReturnGst.create({ ...data, status });
         }
 
         if (data.gstType === 'NON-GST') {
@@ -175,7 +178,7 @@ export const createSalesReturn = async (data: Partial<ISalesReturn>) => {
             if (existingNonGst) {
                 throw new Error("Sales return number already exists")
             }
-            return await SalesReturnNonGst.create(data);
+            return await SalesReturnNonGst.create({ ...data, status });
         }
         throw new Error("Invalid GST Type")
     } catch (error: any) {
@@ -371,16 +374,17 @@ export const getSalesReturnById = async (id: string) => {
 // Update sales return 
 export const updateSalesReturn = async (id: string, data: Partial<ISalesReturn>) => {
     try {
+        const status = getInvoiceStatus(data.receivedAmount, data.totalAmount);
         // Try to update in GST sales return s
         const gstSalesReturn = await SalesReturnGst.findById(id);
         if (gstSalesReturn) {
-            return await SalesReturnGst.findByIdAndUpdate(id, data, { new: true });
+            return await SalesReturnGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
         }
 
         // Try to update in NON-GST sales return s
         const nonGstSalesReturn = await SalesReturnNonGst.findById(id);
         if (nonGstSalesReturn) {
-            return await SalesReturnNonGst.findByIdAndUpdate(id, data, { new: true });
+            return await SalesReturnNonGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
         }
 
         throw new Error("Sales return not found");

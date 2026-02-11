@@ -94,7 +94,7 @@ const invoiceNonGstSchema = new Schema<IInvoice>({
     },
     status: {
         type: String,
-        enum: ['PAID', 'UNPAID', 'PARTIAL_PAID'],
+        enum: ['PAID', 'UNPAID', 'PARTIAL_PAID','OVERPAID'],
         default: 'UNPAID',
         required: true
     },

@@ -3,6 +3,7 @@ import { FilterOptions, GstType, ICreditNote } from "../types";
 import { useFinancialYear } from "../../../utils/useFinancialYear";
 import CreditNoteGst from "./creditNote.gst.model";
 import CreditNoteNonGst from "./creditNote.non_gst.model";
+import { getInvoiceStatus } from "../../../utils/invoiceStatus";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -145,6 +146,7 @@ const getDateRangeQuery = (dateRange: string) => {
 
 export const createCreditNote = async (data: Partial<ICreditNote>) => {
     try {
+        const status = getInvoiceStatus(data.receivedAmount, data.totalAmount)
         if (!data.gstType) {
             throw new Error("GST type is required")
         }
@@ -161,7 +163,7 @@ export const createCreditNote = async (data: Partial<ICreditNote>) => {
             if (existingGst) {
                 throw new Error("Credit note number already exists")
             }
-            return await CreditNoteGst.create(data);
+            return await CreditNoteGst.create({ ...data, status });
         }
 
         if (data.gstType === 'NON-GST') {
@@ -175,7 +177,7 @@ export const createCreditNote = async (data: Partial<ICreditNote>) => {
             if (existingNonGst) {
                 throw new Error("Credit note number already exists")
             }
-            return await CreditNoteNonGst.create(data);
+            return await CreditNoteNonGst.create({ ...data, status });
         }
         throw new Error("Invalid GST Type")
     } catch (error: any) {
@@ -371,16 +373,18 @@ export const getCreditNoteById = async (id: string) => {
 // Update credit note
 export const updateCreditNote = async (id: string, data: Partial<ICreditNote>) => {
     try {
+        const status = getInvoiceStatus(data.receivedAmount, data.totalAmount)
+
         // Try to update in GST credit notes
         const gstCreditNote = await CreditNoteGst.findById(id);
         if (gstCreditNote) {
-            return await CreditNoteGst.findByIdAndUpdate(id, data, { new: true });
+            return await CreditNoteGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
         }
 
         // Try to update in NON-GST credit notes
         const nonGstCreditNote = await CreditNoteNonGst.findById(id);
         if (nonGstCreditNote) {
-            return await CreditNoteNonGst.findByIdAndUpdate(id, data, { new: true });
+            return await CreditNoteNonGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
         }
 
         throw new Error("Credit Note not found");

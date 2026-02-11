@@ -37,7 +37,7 @@ export interface TaxBreakdownItem {
     igst: number;
 }
 
-export type InvoiceStatus = 'PAID' | 'UNPAID' | 'PARTIAL_PAID';
+export type InvoiceStatus = 'PAID' | 'UNPAID' | 'PARTIAL_PAID' | 'OVERPAID';
 export type QuotationStatus = 'OPEN' | 'CLOSED' | 'EXPIRED' | 'CONVERTED';
 
 export interface CommonDocument {

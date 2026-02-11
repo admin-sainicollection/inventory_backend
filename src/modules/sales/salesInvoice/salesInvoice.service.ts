@@ -7,6 +7,7 @@ import CreditNoteGst from "../creditNote/creditNote.gst.model";
 import CreditNoteNonGst from "../creditNote/creditNote.non_gst.model";
 import SalesReturnGst from "../salesReturn/salesReturn.gst.model";
 import SalesReturnNonGst from "../salesReturn/salesReturn.non_gst.model";
+import { getInvoiceStatus } from "../../../utils/invoiceStatus";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -108,6 +109,8 @@ const getDateRangeQuery = (dateRange: string) => {
 
 export const createSalesInvoice = async (data: Partial<IInvoice>) => {
     try {
+        const status = getInvoiceStatus(data.receivedAmount, data.totalAmount)
+
         if (!data.gstType) {
             throw new Error("GST type is required")
         }
@@ -124,7 +127,7 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
             if (existingGst) {
                 throw new Error("Invoice number already exists")
             }
-            return await InvoiceGst.create(data);
+            return await InvoiceGst.create({ ...data, status });
         }
 
         if (data.gstType === 'NON-GST') {
@@ -138,7 +141,7 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
             if (existingNonGst) {
                 throw new Error("Invoice number already exists")
             }
-            return await InvoiceNonGst.create(data);
+            return await InvoiceNonGst.create({ ...data, status });
         }
         throw new Error("Invalid GST Type")
     } catch (error: any) {
@@ -339,16 +342,17 @@ export const getSalesInvoiceById = async (id: string) => {
 // Update invoice
 export const updateSalesInvoice = async (id: string, data: Partial<IInvoice>) => {
     try {
+        const status = getInvoiceStatus(data.receivedAmount, data.totalAmount)
         // Try to update in GST invoices
         const gstInvoice = await InvoiceGst.findById(id);
         if (gstInvoice) {
-            return await InvoiceGst.findByIdAndUpdate(id, data, { new: true });
+            return await InvoiceGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
         }
 
         // Try to update in NON-GST invoices
         const nonGstInvoice = await InvoiceNonGst.findById(id);
         if (nonGstInvoice) {
-            return await InvoiceNonGst.findByIdAndUpdate(id, data, { new: true });
+            return await InvoiceNonGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
         }
 
         throw new Error("Invoice not found");
@@ -369,7 +373,7 @@ export const deleteSalesInvoice = async (id: string) => {
             SalesReturnNonGst.findOne({ invoiceId: id }),
         ]);
 
-        if(existingGstCn || existingNonGstCn || existingGstSr || existingNonGstSr ){
+        if (existingGstCn || existingNonGstCn || existingGstSr || existingNonGstSr) {
             throw new Error(`Invoice having number ${invoice.invoiceNumber} is linked with other document. first unlink to delete`)
         }
 
