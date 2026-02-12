@@ -2,6 +2,7 @@ import { FilterOptions, GstType, IQuotation } from "../types";
 import QuotationGst from "./quotation.gst.model";
 import QuotationNonGst from "./quotation.non_gst.model";
 import { useFinancialYear } from "../../../utils/useFinancialYear";
+import { getQuotationStatus } from "../../../utils/quotationStatus";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -103,6 +104,7 @@ const getDateRangeQuery = (dateRange: string) => {
 
 export const createQuotation = async (data: Partial<IQuotation>) => {
     try {
+        const status = getQuotationStatus(data.dueDate);
         if (!data.gstType) {
             throw new Error("GST type is required")
         }
@@ -119,7 +121,7 @@ export const createQuotation = async (data: Partial<IQuotation>) => {
             if (existingGst) {
                 throw new Error("Quotation number already exists")
             }
-            return await QuotationGst.create(data);
+            return await QuotationGst.create({ ...data, status });
         }
 
         if (data.gstType === 'NON-GST') {
@@ -133,7 +135,7 @@ export const createQuotation = async (data: Partial<IQuotation>) => {
             if (existingNonGst) {
                 throw new Error("Quotation number already exists")
             }
-            return await QuotationNonGst.create(data);
+            return await QuotationNonGst.create({ ...data, status });
         }
         throw new Error("Invalid GST Type")
     } catch (error: any) {
@@ -327,16 +329,17 @@ export const getQuotationById = async (id: string) => {
 
 export const updateQuotation = async (id: string, data: Partial<IQuotation>) => {
     try {
+        const status = getQuotationStatus(data.dueDate);
         // Try to update in GST invoices
         const gstQuotation = await QuotationGst.findById(id);
         if (gstQuotation) {
-            return await QuotationGst.findByIdAndUpdate(id, data, { new: true });
+            return await QuotationGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
         }
 
         // Try to update in NON-GST invoices
         const nonGstQuotation = await QuotationNonGst.findById(id);
         if (nonGstQuotation) {
-            return await QuotationNonGst.findByIdAndUpdate(id, data, { new: true });
+            return await QuotationNonGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
         }
 
         throw new Error("Quotation not found");
@@ -344,6 +347,49 @@ export const updateQuotation = async (id: string, data: Partial<IQuotation>) => 
         throw new Error(error.message);
     }
 };
+
+export const setIsClosedStatus = async (
+    id: string | undefined,
+    isClosed: boolean
+) => {
+    try {
+
+        // First try GST
+        let quotation = await QuotationGst.findById(id);
+        let Model = QuotationGst;
+
+        // If not found, try NON-GST
+        if (!quotation) {
+            quotation = await QuotationNonGst.findById(id);
+            Model = QuotationNonGst;
+        }
+
+        if (!quotation) {
+            throw new Error("Quotation not found");
+        }
+
+        // Calculate new status
+        const status = getQuotationStatus(
+            quotation.dueDate,
+            !!quotation.isConverted,
+            isClosed
+        );
+
+        // Update quotation
+        return await Model.findByIdAndUpdate(
+            id,
+            {
+                isClosed,
+                status
+            },
+            { new: true }
+        );
+
+    } catch (error: any) {
+        throw new Error(error.message);
+    }
+};
+
 
 export const deleteQuotation = async (id: string) => {
     try {

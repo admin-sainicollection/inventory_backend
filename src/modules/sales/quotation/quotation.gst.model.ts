@@ -83,6 +83,10 @@ const quotationGstSchema = new Schema<IQuotation>({
         default: 'OPEN',
         required: true
     },
+    isClosed:{
+        type:Boolean,
+        default:false
+    },
     taxBreakdown: [taxBreakdownSchema]
 }, {
     timestamps: true,

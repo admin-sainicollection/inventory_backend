@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createQuotation, deleteQuotation, getAllQuotation, getNextQuotationNumber, getQuotationById, updateQuotation } from "./quotation.service";
+import { createQuotation, deleteQuotation, getAllQuotation, getNextQuotationNumber, getQuotationById, setIsClosedStatus, updateQuotation } from "./quotation.service";
 import { FilterOptions, GstType } from "../types";
 
 export const createQuotationController = async (req: Request, res: Response) => {
@@ -71,7 +71,7 @@ export const getAllQuotationController = async (req: Request, res: Response) => 
 
     } catch (error: any) {
         res.status(500).json({
-            success: false, 
+            success: false,
             message: error.message
         })
     }
@@ -112,6 +112,19 @@ export const updateQuotationController = async (req: Request, res: Response) => 
         })
     }
 };
+
+export const setIsClosedStatusController = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const quotation = await setIsClosedStatus(id, req.body.isClosed);
+        res.json({ success: true, message: "Closed status updates", data: quotation });
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
 
 export const deleteQuotationController = async (req: Request, res: Response) => {
     try {

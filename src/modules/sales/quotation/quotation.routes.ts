@@ -2,7 +2,7 @@ import { Router } from "express";
 import { protect, restrictToRoles } from "../../../middlewares/auth.middleware";
 import { validate } from "../../../middlewares/validate.middleware";
 import { QuotationSchema, updateQuotationSchema } from "./quotation.validation";
-import { createQuotationController, deleteQuotationController, getAllQuotationController, getNextQuotationNumberController, getQuotationByIdController, updateQuotationController } from "./quotation.controller";
+import { createQuotationController, deleteQuotationController, getAllQuotationController, getNextQuotationNumberController, getQuotationByIdController, setIsClosedStatusController, updateQuotationController } from "./quotation.controller";
 
 const router = Router();
 
@@ -13,6 +13,8 @@ router.get("/quotation/get-all-quotations", protect, restrictToRoles("admin"), g
 router.get("/quotation/get-single-quotation/:id", protect, restrictToRoles("admin"), getQuotationByIdController)
 
 router.put("/quotation/update-quotation/:id", protect, validate(updateQuotationSchema), restrictToRoles("admin"), updateQuotationController)
+
+router.put("/quotation/update-quotation-close-status/:id", protect, restrictToRoles("admin"), setIsClosedStatusController)
 
 router.delete("/quotation/delete-quotation/:id", protect, restrictToRoles("admin"), deleteQuotationController)
 

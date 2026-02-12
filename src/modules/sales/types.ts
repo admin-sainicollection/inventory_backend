@@ -80,6 +80,8 @@ export interface IQuotation extends CommonDocument {
     quotationNumber?: string;
     quotationDate?: string | Date;
     status?: QuotationStatus;
+    isClosed?:boolean;
+    isConverted?:boolean;
 }
 
 // ---------------------------------------------------- For Credit Note
