@@ -43,6 +43,7 @@ export const QuotationSchema = z.object({
   quotationType: z.enum(['INVOICE', 'QUOTATION', 'SALES_RETURN', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PURCHASE_ORDER']).default('QUOTATION'),
   gstType: z.enum(['GST', 'NON-GST']).default('GST'),
   party: z.string().min(1, 'Please select party first'),
+  isClosed:z.boolean().default(false),
   quotationNumber: z.string().optional(),
   quotationDate: z.union([z.string(), z.date()]).default(() => new Date().toISOString()),
   date: z.union([z.string(), z.date()]).default(() => new Date().toISOString()),
