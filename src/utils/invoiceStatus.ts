@@ -8,8 +8,8 @@ export const getInvoiceStatus = (
     const received = receivedAmount ?? 0;
     const total = totalAmount ?? 0;
 
-    if (received <= 0) return 'UNPAID';
-    if (received < total) return 'PARTIAL_PAID';
     if (received === total) return 'PAID';
-    return 'OVERPAID';
+    else if (received > total) return 'OVERPAID';
+    else if(received > 0 && received< total) return 'PARTIAL_PAID';
+    else return 'UNPAID';
 };
