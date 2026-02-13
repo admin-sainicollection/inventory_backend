@@ -8,6 +8,8 @@ import CreditNoteNonGst from "../creditNote/creditNote.non_gst.model";
 import SalesReturnGst from "../salesReturn/salesReturn.gst.model";
 import SalesReturnNonGst from "../salesReturn/salesReturn.non_gst.model";
 import { getInvoiceStatus } from "../../../utils/invoiceStatus";
+import PaymentInNonGst from "../paymentIn/paymentIn.non_gst.model";
+import PaymentInGst from "../paymentIn/paymentIn.gst.model";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -342,7 +344,7 @@ export const getSalesInvoiceById = async (id: string) => {
 // Update invoice
 export const updateSalesInvoice = async (id: string, data: Partial<IInvoice>) => {
     try {
-        const status = getInvoiceStatus(data.receivedAmount, data.totalAmount)
+        const status =data.status ?? getInvoiceStatus(data.receivedAmount, data.totalAmount)
         // Try to update in GST invoices
         const gstInvoice = await InvoiceGst.findById(id);
         if (gstInvoice) {
@@ -366,14 +368,16 @@ export const deleteSalesInvoice = async (id: string) => {
     try {
         const invoice = await getSalesInvoiceById(id);
 
-        const [existingGstCn, existingNonGstCn, existingGstSr, existingNonGstSr] = await Promise.all([
+        const [existingGstCn, existingNonGstCn, existingGstSr, existingNonGstSr, existingGstPi, existingNonGstPi] = await Promise.all([
             CreditNoteGst.findOne({ invoiceId: id }),
             CreditNoteNonGst.findOne({ invoiceId: id }),
             SalesReturnGst.findOne({ invoiceId: id }),
             SalesReturnNonGst.findOne({ invoiceId: id }),
+            PaymentInGst.findOne({ invoiceId: id }),
+            PaymentInNonGst.findOne({ invoiceId: id }),
         ]);
 
-        if (existingGstCn || existingNonGstCn || existingGstSr || existingNonGstSr) {
+        if (existingGstCn || existingNonGstCn || existingGstSr || existingNonGstSr || existingGstPi || existingNonGstPi) {
             throw new Error(`Invoice having number ${invoice.invoiceNumber} is linked with other document. first unlink to delete`)
         }
 
