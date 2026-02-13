@@ -17,6 +17,12 @@ import dailyLedgerRoutes from "./modules/dailyLedger/dailyLedger.routes"
 import vendorDailyLedgerRoutes from "./modules/vendorDailyLedger/vendorDailyLedger.routes"
 import employeeRoutes from "./modules/employee/employee.routes";
 import attendanceRoutes from "./modules/attendance/attendance.routes";
+import enquiryRoutes from "./modules/enquiry/enquiry.routes";
+import invoiceRoutes from "./modules/sales/salesInvoice/salesInvoice.routes";
+import quotationRoutes from "./modules/sales/quotation/quotation.routes";
+import creditNoteRoutes from "./modules/sales/creditNote/creditNote.routes";
+import salesReturnRoutes from "./modules/sales/salesReturn/salesReturn.routes";
+import paymentInRoutes from "./modules/sales/paymentIn/paymentIn.routes";
 
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
@@ -61,6 +67,12 @@ app.use('/api/v1/inventory', dailyLedgerRoutes)
 app.use('/api/v1/inventory', employeeRoutes)
 app.use('/api/v1/inventory', attendanceRoutes)
 app.use('/api/v1/inventory', vendorDailyLedgerRoutes)
+app.use('/api/v1/inventory', enquiryRoutes)
+app.use('/api/v1/inventory', invoiceRoutes)
+app.use('/api/v1/inventory', quotationRoutes)
+app.use('/api/v1/inventory', creditNoteRoutes)
+app.use('/api/v1/inventory', salesReturnRoutes)
+app.use('/api/v1/inventory', paymentInRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));

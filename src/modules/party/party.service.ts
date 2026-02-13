@@ -1,4 +1,4 @@
-import Party, {IParty} from "./party.model";
+import Party, { IParty } from "./party.model";
 
 export const createParty = async (data: IParty) => {
     // Check for duplicate vendor name
@@ -8,24 +8,24 @@ export const createParty = async (data: IParty) => {
     }
 
     // // Process GST number
-    // const processedGst = data.gstNumber && data.gstNumber.trim() !== ''
-    //     ? data.gstNumber.trim().toUpperCase()
-    //     : null;
+    const processedGst = data.gstNumber && data.gstNumber.trim() !== ''
+        ? data.gstNumber.trim().toUpperCase()
+        : null;
 
     // // Check for duplicate GST number only if provided
-    // if (processedGst) {
-    //     const existingGST = await Vendor.findOne({
-    //         gstNumber: processedGst
-    //     });
-    //     if (existingGST) {
-    //         throw new Error("Vendor with this GST number already exists");
-    //     }
-    // }
+    if (processedGst) {
+        const existingGST = await Party.findOne({
+            gstNumber: processedGst
+        });
+        if (existingGST) {
+            throw new Error("Vendor with this GST number already exists");
+        }
+    }
 
     // Prepare data for creation
     const partyData = {
         ...data,
-        // gstNumber: processedGst
+        gstNumber: processedGst
     };
 
     return await Party.create(partyData);
@@ -50,25 +50,25 @@ export const updateParty = async (id: string, data: Partial<IParty>) => {
     }
 
     // // Process GST number if provided
-    // if (data.gstNumber !== undefined) {
-    //     const processedGst = data.gstNumber && data.gstNumber.trim() !== ''
-    //         ? data.gstNumber.trim().toUpperCase()
-    //         : null;
+    if (data.gstNumber !== undefined) {
+        const processedGst = data.gstNumber && data.gstNumber.trim() !== ''
+            ? data.gstNumber.trim().toUpperCase()
+            : null;
 
-    //     // Check for duplicate GST number only if it's a new non-empty value
-    //     if (processedGst && processedGst !== existingParty.gstNumber) {
-    //         const duplicateGST = await Vendor.findOne({
-    //             gstNumber: processedGst,
-    //             _id: { $ne: id }
-    //         });
-    //         if (duplicateGST) {
-    //             throw new Error("Vendor with this GST number already exists");
-    //         }
-    //     }
+        // Check for duplicate GST number only if it's a new non-empty value
+        if (processedGst && processedGst !== existingParty.gstNumber) {
+            const duplicateGST = await Party.findOne({
+                gstNumber: processedGst,
+                _id: { $ne: id }
+            });
+            if (duplicateGST) {
+                throw new Error("Vendor with this GST number already exists");
+            }
+        }
 
-    //     // Update the data with processed GST
-    //     data.gstNumber = processedGst;
-    // }
+        // Update the data with processed GST
+        data.gstNumber = processedGst;
+    }
 
     const updated = await Party.findByIdAndUpdate(
         id,
@@ -80,7 +80,7 @@ export const updateParty = async (id: string, data: Partial<IParty>) => {
     return updated;
 }
 
-export const getAllParties = async (q?: string, page?: number, limit?: number) => {
+export const getAllParties = async (q?: string, entityCategory?: string, page?: number, limit?: number) => {
     let query = {};
 
     // Search across all fields if q parameter is provided
@@ -91,10 +91,11 @@ export const getAllParties = async (q?: string, page?: number, limit?: number) =
             $or: [
                 { partyName: { $regex: searchRegex } },
                 { nickName: { $regex: searchRegex } },
+                { entityCategory: { $regex: searchRegex } },
                 // { type: { $in: [searchRegex] } },
-                { 'contact.phone.phoneNo': { $regex: searchRegex } }, 
-                { 'contact.phone.label': { $regex: searchRegex } },   
-                { 'contact.email': { $regex: searchRegex } },  
+                { 'contact.phone.phoneNo': { $regex: searchRegex } },
+                { 'contact.phone.label': { $regex: searchRegex } },
+                { 'contact.email': { $regex: searchRegex } },
                 { location: { $regex: searchRegex } },
                 // { 'brands.brandName': { $in: [searchRegex] } },
                 // { gstNumber: { $regex: searchRegex } },
@@ -105,6 +106,19 @@ export const getAllParties = async (q?: string, page?: number, limit?: number) =
                 { 'address.pinCode': { $regex: searchRegex } },
             ]
         };
+    }
+
+    // Add customer type filter if provided and not "ALL"
+    if (entityCategory && entityCategory !== 'ALL') {
+        // If query already exists (from search), add entityCategory to it
+        if (Object.keys(query).length > 0) {
+            query = {
+                ...query,
+                entityCategory: entityCategory
+            };
+        } else {
+            query = { entityCategory: entityCategory };
+        }
     }
 
     // Pagination setup
@@ -133,7 +147,7 @@ export const getAllParties = async (q?: string, page?: number, limit?: number) =
         limit: perPage,
         totalPages: Math.ceil(total / perPage)
     };
-}
+};
 
 export const getPartyById = async (id: string) => {
     const party = await Party.findById(id);

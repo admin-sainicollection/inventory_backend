@@ -7,10 +7,14 @@
 
 # Environment variables (API keys, DB connection strings, secrets)
 .env
+.env.development
+.env.staging
+.env.production
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
 
 # Logs
 logs

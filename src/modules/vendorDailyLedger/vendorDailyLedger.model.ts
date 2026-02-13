@@ -1,10 +1,22 @@
 import mongoose, { Document, Schema } from "mongoose";
 
+export type SourceType =
+    | "MANUAL"
+    | "SALES_INVOICE"
+    | "PURCHASE_INVOICE"
+    | "PAYMENT"
+    | "SALES_RETURN"
+    | "PURCHASE_RETURN"
+    | "OPENING_BALANCE";
+
 export interface IVendorDailyLedger extends Document {
     vendorId: string,
     date?: string | Date,
     voucher?: string,
+    sourceType: SourceType;
+    sourceId?: string;
     srNo?: string,
+    withGST?: boolean;
     credit?: number,
     debit?: number,
     description?: string,
@@ -30,6 +42,32 @@ export const vendorDailyLedgerSchema = new Schema<IVendorDailyLedger>(
             type: String,
             required: false,
             trim: true
+        },
+        sourceType: {
+            type: String,
+            enum: [
+                "MANUAL",
+                "SALES_INVOICE",
+                "PURCHASE_INVOICE",
+                "PAYMENT",
+                "SALES_RETURN",
+                "PURCHASE_RETURN",
+                "OPENING_BALANCE"
+            ],
+            required: true,
+            default: "MANUAL",
+            index: true
+        },
+
+        sourceId: {
+            type: String,
+            required: false,
+            index: true
+        },
+        withGST: {
+            type: Boolean,
+            trim: true,
+            default: false
         },
         srNo: {
             type: String,
