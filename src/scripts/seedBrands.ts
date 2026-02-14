@@ -124,6 +124,38 @@ const defaultBrands = [
         brandLogo: "https://upload.wikimedia.org/wikipedia/en/thumb/4/4a/LandRover.svg/2560px-LandRover.svg.png",
         manufactureType: ["Cars"]
     },
+
+    // --- Auto parts Brands ---
+    {
+        name: "Bosch",
+        parentCompany: "Robert Bosch GmbH",
+        brandLogo: "https://static.wikia.nocookie.net/logopedia/images/6/6d/Bosch_symbol_%283D_metallic_style%29.svg/revision/latest/scale-to-width-down/250?cb=20240614090551",
+        manufactureType: ["Parts"]
+    },
+    {
+        name: "Denso",
+        parentCompany: "Denso Corporation",
+        brandLogo: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Denso_logo.svg/1280px-Denso_logo.svg.png",
+        manufactureType: ["Parts"]
+    },
+    {
+        name: "Motherson",
+        parentCompany: "Samvardhana Motherson Group",
+        brandLogo: "https://healthandmedical.motherson.com/wp-content/uploads/2024/11/Motherson_Logo-01-1024x232-1.png",
+        manufactureType: ["Parts"]
+    },
+    {
+        name: "Sundram Fasteners",
+        parentCompany: "TVS Group",
+        brandLogo: "https://www.fastener-world.com/data/article/Sundram_Fasteners_4000_Crore_EV_Order_8879_0.jpg",
+        manufactureType: ["Parts"]
+    },
+    {
+        name: "Mahle",
+        parentCompany: "MAHLE GmbH",
+        brandLogo: "https://www.tvh.com/sites/tvh/files/styles/max_650x650/public/2024-07/Mahle%20-%20logo%20%28removeBG%29.png?itok=LybXycJ_",
+        manufactureType: ["Parts"]
+    },
 ];
 
 export const seedBrands = async () => {
