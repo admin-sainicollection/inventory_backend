@@ -6,7 +6,7 @@ import { seedCarModels } from "./scripts/seedCompatibility";
 import { seedDefaultUnknownCustomer } from "./scripts/seedDefaultUnknownCustomer";
 import { seedPriceCode } from "./scripts/seedPriceCode";
 import { seedRolesAndAdmin } from "./scripts/seedRolesAndAdmin";
-import { PORT } from "./utils";
+import { APP_ENV, PORT } from "./utils";
 import { BASE_URL_SERVER } from "./utils";
 
 
@@ -20,5 +20,12 @@ import { BASE_URL_SERVER } from "./utils";
     await seedDefaultUnknownCustomer();
     app.listen(PORT, () => {
         console.log(`Server running on this URL -> ${BASE_URL_SERVER}`)
+        if (APP_ENV === "staging") {
+            console.log("Running on staging server");
+          }else if(APP_ENV === "development"){
+            console.log("Running on development server");
+          }else if(APP_ENV === "production"){
+            console.log("Running on production server");
+          }
     })
 })()
