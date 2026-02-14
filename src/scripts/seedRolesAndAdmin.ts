@@ -20,7 +20,14 @@ export const seedRolesAndAdmin = async () => {
 
   // create single admin user if none exists
   const adminRole = await Role.findOne({ name: "admin" });
-  const existingAdmin = await User.findOne({ role: adminRole?._id });
+  // const existingAdmin = await User.findOne({ role: adminRole?._id });
+  const existingAdmin = await User.findOne({
+    $or: [
+      { role: adminRole?._id },
+      { userName: ADMIN_USER || "admin" },
+      { email: ADMIN_EMAIL || "mukesh.scroffice@gmail.com" }
+    ]
+  });
   if (!existingAdmin) {
     const hashed = await hashPassword(ADMIN_PASSWORD || "password");
     await User.create({
