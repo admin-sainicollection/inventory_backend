@@ -116,7 +116,7 @@ export const updateQuotationController = async (req: Request, res: Response) => 
 export const setIsClosedStatusController = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const quotation = await setIsClosedStatus(id, req.body.isClosed);
+        const quotation = await setIsClosedStatus(id as any, req.body.isClosed);
         res.json({ success: true, message: "Closed status updates", data: quotation });
     } catch (error: any) {
         res.status(500).json({
