@@ -8,7 +8,7 @@ router.post("/attendance/add-update-attendance", protect, restrictToRoles('admin
 
 router.get("/attendance/get-attendance", protect, restrictToRoles('admin', 'manager'), AttendanceController.getAttendanceByDate);
 
-router.get("/attendance/employee-monthly-attendance/:employeeId", protect, restrictToRoles('admin', 'manager'), AttendanceController.getEmployeeMOnthlyAttendance);
+router.get("/attendance/employee-monthly-attendance/:employeeId", protect, restrictToRoles('admin', 'manager'), AttendanceController.getEmployeeMonthlyAttendance);
 
 router.delete("/attendance/delete-attendance/:date", protect, restrictToRoles('admin','manager'), AttendanceController.deleteAttendance)
 

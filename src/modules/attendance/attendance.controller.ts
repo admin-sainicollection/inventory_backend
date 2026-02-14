@@ -56,7 +56,7 @@ export const getAttendanceByDate = async (req: Request, res: Response): Promise<
 }
 
 // get monthly attendance
-export const getEmployeeMOnthlyAttendance = async (req: Request, res: Response): Promise<void> => {
+export const getEmployeeMonthlyAttendance = async (req: Request, res: Response): Promise<void> => {
     try {
         const { employeeId } = req.params;
         const { month } = req.query;
@@ -68,7 +68,7 @@ export const getEmployeeMOnthlyAttendance = async (req: Request, res: Response):
             return;
         }
 
-        const result = await getEmployeeMonthlyAttendanceService(employeeId, month as any);
+        const result = await getEmployeeMonthlyAttendanceService(employeeId as string, month as any);
         res.status(200).json(result);
     } catch (error: any) {
         console.error("Monthly attendance error : ", error)
