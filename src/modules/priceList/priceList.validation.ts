@@ -1,6 +1,6 @@
 import z from 'zod';
 
-export const createPriceListSchemaValidation = z.object({
+const createPriceListBaseSchemaValidation = z.object({
     partNo: z.string().trim().optional(),
     productName: z.string().trim().optional(),
     vendorName: z.string().trim().optional(),
@@ -16,12 +16,14 @@ export const createPriceListSchemaValidation = z.object({
         .optional()
         .or(z.literal('').transform(() => undefined)),
     description: z.object({
-    text: z.string().optional(),
-    jsonFields: z.record(z.string(), z.any()).optional()
-  }).optional(),
+        text: z.string().optional(),
+        jsonFields: z.record(z.string(), z.any()).optional()
+    }).optional(),
     status: z.enum(["active", "inactive"]).default("active").optional(),
     createdBy: z.string().optional()
-}).refine((data) => {
+})
+
+export const createPriceListSchemaValidation = createPriceListBaseSchemaValidation.refine((data) => {
     // Custom validation: purchasePrice cannot be greater than MRP
     if (data.mrp !== undefined && data.purchasePrice !== undefined) {
         return data.purchasePrice <= data.mrp;
@@ -32,7 +34,7 @@ export const createPriceListSchemaValidation = z.object({
     path: ["purchasePrice"]
 });
 
-export const updatePriceListSchemaValidation = createPriceListSchemaValidation.partial();
+export const updatePriceListSchemaValidation = createPriceListBaseSchemaValidation.partial();
 
 export const bulkCreatePriceListSchemaValidation = z.object({
     entries: z.array(createPriceListSchemaValidation).min(1, "At least one entry is required")
