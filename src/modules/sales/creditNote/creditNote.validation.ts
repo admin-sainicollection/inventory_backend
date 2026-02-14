@@ -38,8 +38,7 @@ const TaxBreakdownItemSchema = z.object({
   igst: z.number().min(0).max(100).default(0)
 });
 
-// Single schema with conditional validation
-export const CreditNoteSchema = z.object({
+const CreditNoteBaseSchema = z.object({
   creditNoteType: z.enum(['INVOICE', 'QUOTATION', 'SALES_RETURN', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PURCHASE_ORDER']).default('CREDIT_NOTE'),
   gstType: z.enum(['GST', 'NON-GST']).default('GST'),
   paymentType: z.enum(['CASH' , 'UPI' , 'CARD' , 'BANK_TRANSFER']).default('CASH'),
@@ -63,6 +62,9 @@ export const CreditNoteSchema = z.object({
   balanceAmount: z.number().nonnegative().default(0),
   taxBreakdown: z.array(TaxBreakdownItemSchema).default([])
 })
+
+// Single schema with conditional validation
+export const CreditNoteSchema = CreditNoteBaseSchema
 .refine((data) => {
   // HSN validation based on GST type
   if (data.gstType === 'GST') {
@@ -97,21 +99,4 @@ export const CreditNoteSchema = z.object({
 
 export type CreditNote = z.infer<typeof CreditNoteSchema>;
 
-export const updateCreditNote = CreditNoteSchema.partial();
-
-// Validation function with type guards
-// export const validateInvoice = (data: unknown): { success: boolean; data?: Invoice; error?: string } => {
-//   const result = CreditNoteSchema.safeParse(data);
-  
-//   if (!result.success) {
-//     return {
-//       success: false,
-//       error: result.error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ')
-//     };
-//   }
-  
-//   return {
-//     success: true,
-//     data: result.data
-//   };
-// };
+export const updateCreditNote = CreditNoteBaseSchema.partial();

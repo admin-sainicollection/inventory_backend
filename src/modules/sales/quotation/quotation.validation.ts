@@ -38,8 +38,7 @@ const TaxBreakdownItemSchema = z.object({
   igst: z.number().min(0).max(100).default(0)
 });
 
-// Single schema with conditional validation
-export const QuotationSchema = z.object({
+const QuotationBaseSchema = z.object({
   quotationType: z.enum(['INVOICE', 'QUOTATION', 'SALES_RETURN', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PURCHASE_ORDER']).default('QUOTATION'),
   gstType: z.enum(['GST', 'NON-GST']).default('GST'),
   party: z.string().min(1, 'Please select party first'),
@@ -60,6 +59,9 @@ export const QuotationSchema = z.object({
   subtotal: z.number().nonnegative().default(0),
   taxBreakdown: z.array(TaxBreakdownItemSchema).default([])
 })
+
+// Single schema with conditional validation
+export const QuotationSchema = QuotationBaseSchema
 .refine((data) => {
   // HSN validation based on GST type
   if (data.gstType === 'GST') {
@@ -94,7 +96,7 @@ export const QuotationSchema = z.object({
 
 export type Quotation = z.infer<typeof QuotationSchema>;
 
-export const updateQuotationSchema = QuotationSchema.partial();
+export const updateQuotationSchema = QuotationBaseSchema.partial();
 
 // Validation function with type guards
 // export const validateInvoice = (data: unknown): { success: boolean; data?: Quotation; error?: string } => {

@@ -38,8 +38,7 @@ const TaxBreakdownItemSchema = z.object({
   igst: z.number().min(0).max(100).default(0)
 });
 
-// Single schema with conditional validation
-export const salesReturnSchema = z.object({
+const salesReturnBaseSchema = z.object({
   salesReturnType: z.enum(['INVOICE', 'QUOTATION', 'SALES_RETURN', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PURCHASE_ORDER']).default('SALES_RETURN'),
   gstType: z.enum(['GST', 'NON-GST']).default('GST'),
   paymentType: z.enum(['CASH' , 'UPI' , 'CARD' , 'BANK_TRANSFER']).default('CASH'),
@@ -63,6 +62,8 @@ export const salesReturnSchema = z.object({
   balanceAmount: z.number().nonnegative().default(0),
   taxBreakdown: z.array(TaxBreakdownItemSchema).default([])
 })
+// Single schema with conditional validation
+export const salesReturnSchema = salesReturnBaseSchema
 .refine((data) => {
   // HSN validation based on GST type
   if (data.gstType === 'GST') {
@@ -97,7 +98,7 @@ export const salesReturnSchema = z.object({
 
 export type SalesReturn = z.infer<typeof salesReturnSchema>;
 
-export const updateSalesReturn = salesReturnSchema.partial();
+export const updateSalesReturn = salesReturnBaseSchema.partial();
 
 // Validation function with type guards
 // export const validateInvoice = (data: unknown): { success: boolean; data?: Invoice; error?: string } => {
