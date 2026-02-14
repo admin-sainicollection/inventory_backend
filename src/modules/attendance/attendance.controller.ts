@@ -68,7 +68,7 @@ export const getEmployeeMOnthlyAttendance = async (req: Request, res: Response):
             return;
         }
 
-        const result = await getEmployeeMonthlyAttendanceService(employeeId, month as string);
+        const result = await getEmployeeMonthlyAttendanceService(employeeId, month as any);
         res.status(200).json(result);
     } catch (error: any) {
         console.error("Monthly attendance error : ", error)
@@ -92,7 +92,7 @@ export const deleteAttendance = async (req: Request, res: Response): Promise<voi
             return;
         }
 
-        const targetDate = new Date(date);
+        const targetDate = new Date(date as any);
         targetDate.setHours(0, 0, 0, 0);
 
         const nextDate = new Date(targetDate);

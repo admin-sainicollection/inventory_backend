@@ -144,7 +144,7 @@ export const getAttendanceByDateService = async (date: string): Promise<ServiceR
 };
 
 // get attendance monthly
-export const getEmployeeMonthlyAttendanceService = async (employeeId: string, month: string): Promise<ServiceResponse<any>> => {
+export const getEmployeeMonthlyAttendanceService = async (employeeId: string, month: any): Promise<ServiceResponse<any>> => {
     try {
         if (!employeeId) {
             throw new Error("Employee id is required")
