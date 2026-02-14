@@ -1,7 +1,12 @@
 import dotenv from "dotenv";
 
-dotenv.config();
+const env = process.env.APP_ENV ||  "development";
 
+dotenv.config({
+  path:`env.${env}`
+});
+
+export const APP_ENV = env;
 export const PORT = process.env.PORT || "3000";
 export const BASE_URL_SERVER = process.env.BASE_URL_SERVER || "http://0.0.0.0:3000";
 export const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -26,3 +31,5 @@ export const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 export const ADMIN_USER = process.env.ADMIN_USER;
 export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 export const ADMIN_NAME = process.env.ADMIN_NAME;
+
+
