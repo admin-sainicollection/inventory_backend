@@ -150,7 +150,7 @@ export const getCharacterForDigit = async (digit: number): Promise<string> => {
 }
 
 // -----------------------------------------------------------------------------------GET DIGIT FOR SPECIFIC CHARACTER
-export const getDigitForCharacter = async (character: string): Promise<number> => {
+export const getDigitForCharacter = async (character: any): Promise<number> => {
     try {
         if (!character || character.length !== 1) {
             throw new Error("Character must be single character")

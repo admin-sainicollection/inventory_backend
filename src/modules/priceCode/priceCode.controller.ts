@@ -186,7 +186,7 @@ export const getDigitForCharacterController = async (req: Request, res: Response
             });
         }
 
-        const digit = await getDigitForCharacter(character);
+        const digit = await getDigitForCharacter(character as any);
 
         res.status(200).json({
             status: 'success',

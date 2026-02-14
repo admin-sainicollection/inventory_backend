@@ -349,7 +349,7 @@ export const updateQuotation = async (id: string, data: Partial<IQuotation>) => 
 };
 
 export const setIsClosedStatus = async (
-    id: string | undefined,
+    id: string | undefined | any,
     isClosed: boolean
 ) => {
     try {
