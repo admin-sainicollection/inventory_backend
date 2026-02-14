@@ -94,7 +94,7 @@ const quotationGstSchema = new Schema<IQuotation>({
 });
 
 // Indexes for better query performance
-quotationGstSchema.index({ quotationNumber: 1 });
+// quotationGstSchema.index({ quotationNumber: 1 });
 quotationGstSchema.index({ party: 1 });
 quotationGstSchema.index({ quotationDate: 1 });
 quotationGstSchema.index({ createdAt: 1 });

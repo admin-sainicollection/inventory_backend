@@ -39,7 +39,5 @@ const UserSchema = new Schema<IUser>({
     passwordChangedAt: Date,
 }, { timestamps: true });
 
-UserSchema.index({ email: 1 });
-UserSchema.index({ userName: 1 });
 
 export default mongoose.model<IUser>("User", UserSchema);

@@ -2,9 +2,11 @@ import dotenv from "dotenv";
 
 const env = process.env.APP_ENV ||  "development";
 
-dotenv.config({
-  path:`env.${env}`
-});
+// dotenv.config({
+//   path:`env.${env}`
+// });
+
+dotenv.config();
 
 export const APP_ENV = env;
 export const PORT = process.env.PORT || "3000";

@@ -94,7 +94,7 @@ const quotationNonGstSchema = new Schema<IQuotation>({
 });
 
 // Indexes for better query performance
-quotationNonGstSchema.index({ quotationNumber: 1 });
+// quotationNonGstSchema.index({ quotationNumber: 1 });
 quotationNonGstSchema.index({ party: 1 });
 quotationNonGstSchema.index({ quotationDate: 1 });
 quotationNonGstSchema.index({ createdAt: 1 });

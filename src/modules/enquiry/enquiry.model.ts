@@ -238,9 +238,9 @@ enquirySchema.virtual('products', {
 
 // Indexes
 enquirySchema.index({ enquiry_date: -1 });
-enquirySchema.index({ status: 1, priority: -1 });
+enquirySchema.index({  priority: -1 });
 enquirySchema.index({ party_id: 1, enquiry_date: -1 });
-enquirySchema.index({ assigned_employee_id: 1, status: 1 });
+enquirySchema.index({ assigned_employee_id: 1});
 enquirySchema.index({ createdAt: -1 });
 enquirySchema.index({ 'status_history.changed_at': -1 });
 

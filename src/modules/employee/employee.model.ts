@@ -128,7 +128,7 @@ EmployeeSchema.index({ 'contact.phone.phone_no': 1 });
 EmployeeSchema.index({ 'address.city': 1, 'address.state': 1 });
 EmployeeSchema.index({ 'job.employee_type': 1 });
 EmployeeSchema.index({ 'job.base_salary': 1 });
-EmployeeSchema.index({ status: 1 });
+// EmployeeSchema.index({ status: 1 });
 EmployeeSchema.index({ gender: 1 });
 EmployeeSchema.index({ dob: 1 });
 EmployeeSchema.index({ createdAt: -1 });

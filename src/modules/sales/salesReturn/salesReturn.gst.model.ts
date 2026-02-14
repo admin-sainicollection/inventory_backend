@@ -109,7 +109,7 @@ const salesReturnGstSchema = new Schema<ISalesReturn>({
 });
 
 // Indexes for better query performance
-salesReturnGstSchema.index({ salesReturnNumber: 1 });
+// salesReturnGstSchema.index({ salesReturnNumber: 1 });
 salesReturnGstSchema.index({ party: 1 });
 salesReturnGstSchema.index({ salesReturnDate: 1 });
 salesReturnGstSchema.index({ createdAt: 1 });

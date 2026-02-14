@@ -14,6 +14,6 @@ const TokenSchema = new Schema<IToken>({
     expiresAt: { type: Date, required: true, index: true }
 }, { timestamps: true })
 
-TokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// TokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.model<IToken>("Token", TokenSchema)

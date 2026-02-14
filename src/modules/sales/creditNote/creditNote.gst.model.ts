@@ -109,7 +109,7 @@ const creditNoteGstSchema = new Schema<ICreditNote>({
 });
 
 // Indexes for better query performance
-creditNoteGstSchema.index({ creditNoteNumber: 1 });
+// creditNoteGstSchema.index({ creditNoteNumber: 1 });
 creditNoteGstSchema.index({ party: 1 });
 creditNoteGstSchema.index({ creditNoteDate: 1 });
 creditNoteGstSchema.index({ createdAt: 1 });

@@ -76,7 +76,7 @@ const paymentInGstSchema = new Schema<IPaymentIn>({
 });
 
 // Indexes for better query performance
-paymentInGstSchema.index({ paymentInNumber: 1 });
+// paymentInGstSchema.index({ paymentInNumber: 1 });
 paymentInGstSchema.index({ party: 1 });
 paymentInGstSchema.index({ paymentInDate: 1 });
 paymentInGstSchema.index({ createdAt: 1 });

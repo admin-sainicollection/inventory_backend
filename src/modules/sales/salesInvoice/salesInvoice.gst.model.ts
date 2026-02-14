@@ -105,7 +105,7 @@ const invoiceGstSchema = new Schema<IInvoice>({
 });
 
 // Indexes for better query performance
-invoiceGstSchema.index({ invoiceNumber: 1 });
+// invoiceGstSchema.index({ invoiceNumber: 1 });
 invoiceGstSchema.index({ party: 1 });
 invoiceGstSchema.index({ invoiceDate: 1 });
 invoiceGstSchema.index({ createdAt: 1 });

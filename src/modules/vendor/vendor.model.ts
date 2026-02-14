@@ -153,7 +153,7 @@ export const vendorSchema = new Schema<IVendor>(
 // Index for better search performance
 vendorSchema.index({ vendorName: 1 });
 vendorSchema.index({ nickName: 1 });
-vendorSchema.index({ gstNumber: 1 });
+// vendorSchema.index({ gstNumber: 1 });
 vendorSchema.index({ location: 1 });
 vendorSchema.index({ 'contact.email': 1 });
 vendorSchema.index({ 'contact.phone.phoneNo': 1 }); // New index for phone numbers

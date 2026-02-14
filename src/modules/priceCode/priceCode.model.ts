@@ -30,7 +30,7 @@ const priceCodeSchema = new Schema<IPriceCode>({
     timestamps: true
 });
 
-priceCodeSchema.index({ "digitMappings.digit": 1 }, { unique: true });
+// priceCodeSchema.index({ "digitMappings.digit": 1 }, { unique: true });
 priceCodeSchema.index({ "digitMappings.character": 1 }, { unique: true });
 
 export default mongoose.model<IPriceCode>("PriceCode", priceCodeSchema);

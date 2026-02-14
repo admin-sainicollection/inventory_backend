@@ -169,7 +169,7 @@ const productSchema = new Schema<IProduct>(
 productSchema.index({ category: 1, brand: 1, createdAt: -1 });
 productSchema.index({ name: "text", aliasNames: "text", brand: "text" }); // enables text search
 productSchema.index({'source.type':1});
-productSchema.index({'source.id': 1});
-productSchema.index({importBatchId: 1})
+// productSchema.index({'source.id': 1});
+// productSchema.index({importBatchId: 1})
 
 export default mongoose.model<IProduct>("Product", productSchema);

@@ -185,7 +185,7 @@ export const partySchema = new Schema<IParty>(
 partySchema.index({ partyName: 1 });
 partySchema.index({ nickName: 1 });
 partySchema.index({ entityCategory: 1 });
-partySchema.index({ gstNumber: 1 });
+// partySchema.index({ gstNumber: 1 });
 partySchema.index({ location: 1 });
 partySchema.index({ 'contact.email': 1 });
 partySchema.index({ 'contact.phone.phoneNo': 1 }); // New index for phone numbers

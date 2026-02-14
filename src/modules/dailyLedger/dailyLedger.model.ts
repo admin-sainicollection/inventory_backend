@@ -110,10 +110,10 @@ dailyLedgerSchema.index({ date: 1 });
 dailyLedgerSchema.index({ voucher: 1 });
 dailyLedgerSchema.index({ srNo: 1 });
 // dailyLedgerSchema.index({ tdsDeductBySelf: 1 });
-dailyLedgerSchema.index({ status: 1 });
+// dailyLedgerSchema.index({ status: 1 });
 dailyLedgerSchema.index({ partyId: 1, date: 1 });
-dailyLedgerSchema.index({ sourceType: 1 });
-dailyLedgerSchema.index({ sourceId: 1 });
+// dailyLedgerSchema.index({ sourceType: 1 });
+// dailyLedgerSchema.index({ sourceId: 1 });
 dailyLedgerSchema.index({ withGST: 1 });
 dailyLedgerSchema.index({ status: 1 });
 
