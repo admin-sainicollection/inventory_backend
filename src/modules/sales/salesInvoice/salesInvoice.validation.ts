@@ -45,6 +45,7 @@ const InvoiceBaseSchema = z.object({
   paymentType: z.enum(['CASH' , 'UPI' , 'CARD' , 'BANK_TRANSFER']).default('CASH'),
   party: z.string().min(1,"Please select party first"),
   invoiceNumber: z.string().optional(),
+  convertedFromQuotationId:z.string().optional(),
   invoiceDate: z.union([z.string(), z.date()]).default(() => new Date().toISOString()),
   date: z.union([z.string(), z.date()]).default(() => new Date().toISOString()),
   dueDate: z.union([z.string(), z.date()]).optional(),

@@ -10,6 +10,8 @@ import SalesReturnNonGst from "../salesReturn/salesReturn.non_gst.model";
 import { getInvoiceStatus } from "../../../utils/invoiceStatus";
 import PaymentInNonGst from "../paymentIn/paymentIn.non_gst.model";
 import PaymentInGst from "../paymentIn/paymentIn.gst.model";
+import QuotationGst from "../quotation/quotation.gst.model";
+import QuotationNonGst from "../quotation/quotation.non_gst.model";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -107,6 +109,32 @@ const getDateRangeQuery = (dateRange: string) => {
     }
 };
 
+export const updateQuotationStatus = async (quotationId: string, status: string) => {
+    try {
+        let quotation = await QuotationGst.findById(quotationId);
+        let Model = QuotationGst;
+        if (!quotation) {
+            quotation = await QuotationNonGst.findById(quotationId);
+            Model = QuotationNonGst;
+        }
+        if (!quotation) {
+            throw new Error("Quotation not found")
+        }
+        return await Model.findByIdAndUpdate(
+            quotationId,
+            {
+                status,
+                isConverted: true,
+                convertedAt: new Date()
+            }, {
+            new: true
+        }
+        )
+    } catch (error) {
+        throw error
+    }
+}
+
 // ============================================================================SERVICES
 
 export const createSalesInvoice = async (data: Partial<IInvoice>) => {
@@ -129,7 +157,11 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
             if (existingGst) {
                 throw new Error("Invoice number already exists")
             }
-            return await InvoiceGst.create({ ...data, status });
+            const invoice = await InvoiceGst.create({ ...data, status });
+            if (data.convertedFromQuotationId) {
+                await updateQuotationStatus(data.convertedFromQuotationId, 'CONVERTED');
+            }
+            return invoice;
         }
 
         if (data.gstType === 'NON-GST') {
@@ -143,7 +175,13 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
             if (existingNonGst) {
                 throw new Error("Invoice number already exists")
             }
-            return await InvoiceNonGst.create({ ...data, status });
+
+            const invoice = await InvoiceNonGst.create({ ...data, status });
+
+            if (data.convertedFromQuotationId) {
+                await updateQuotationStatus(data.convertedFromQuotationId, 'CONVERTED');
+            }
+            return invoice;
         }
         throw new Error("Invalid GST Type")
     } catch (error: any) {
@@ -344,7 +382,7 @@ export const getSalesInvoiceById = async (id: string) => {
 // Update invoice
 export const updateSalesInvoice = async (id: string, data: Partial<IInvoice>) => {
     try {
-        const status =data.status ?? getInvoiceStatus(data.receivedAmount, data.totalAmount)
+        const status = data.status ?? getInvoiceStatus(data.receivedAmount, data.totalAmount)
         // Try to update in GST invoices
         const gstInvoice = await InvoiceGst.findById(id);
         if (gstInvoice) {
