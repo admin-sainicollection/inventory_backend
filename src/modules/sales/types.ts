@@ -72,6 +72,7 @@ export interface IInvoice extends CommonDocument {
     invoiceDate?: string | Date;
     status?: InvoiceStatus;
     paymentType?:PaymentType;
+    convertedFromQuotationId?:string;
 }
 
 //----------------------------------------------------- For Quotation
@@ -82,6 +83,8 @@ export interface IQuotation extends CommonDocument {
     status?: QuotationStatus;
     isClosed?:boolean;
     isConverted?:boolean;
+    convertedAt?:Date;
+    convertedToInvoiceId?:string;
 }
 
 // ---------------------------------------------------- For Credit Note

@@ -371,7 +371,7 @@ export const setIsClosedStatus = async (
         // Calculate new status
         const status = getQuotationStatus(
             quotation.dueDate,
-            !!quotation.isConverted,
+            quotation.isConverted,
             isClosed
         );
 
