@@ -124,6 +124,7 @@ export interface FilterOptions {
     endDate?: string | Date;
     page?: number;
     limit?: number;
+    partyId?: string;
 }
 
 // ======================================================= Invoice Counter
