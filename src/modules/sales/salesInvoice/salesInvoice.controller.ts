@@ -29,7 +29,7 @@ export const createSalesInvoiceController = async (req: Request, res: Response) 
 // Updated controller
 export const getAllInvoiceController = async (req: Request, res: Response) => {
     try {
-        const { gstType, limit = 50, page = 1, search, status, startDate, endDate, dateRange } = req.query;
+        const { gstType, limit = 50, page = 1, search, status, startDate, endDate, dateRange, partyId } = req.query;
 
         const pageNum = parseInt(page as string) || 1;
         const limitNum = parseInt(limit as string) || 50;
@@ -42,7 +42,8 @@ export const getAllInvoiceController = async (req: Request, res: Response) => {
             startDate: startDate as string,
             endDate: endDate as string,
             page: pageNum,
-            limit: limitNum
+            limit: limitNum,
+            partyId: partyId as string
         }
 
         const result = await getAllSalesInvoice(filterOptions);

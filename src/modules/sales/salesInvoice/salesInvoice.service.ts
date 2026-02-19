@@ -12,6 +12,7 @@ import PaymentInNonGst from "../paymentIn/paymentIn.non_gst.model";
 import PaymentInGst from "../paymentIn/paymentIn.gst.model";
 import QuotationGst from "../quotation/quotation.gst.model";
 import QuotationNonGst from "../quotation/quotation.non_gst.model";
+import mongoose from "mongoose";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -199,13 +200,20 @@ export const getAllSalesInvoice = async (filters: FilterOptions = {}) => {
             status,
             startDate,
             endDate,
-            dateRange
+            dateRange,
+            partyId // Add this
         } = filters;
 
         const query: any = {};
 
         if (status && status !== "all") {
             query.status = status;
+        }
+
+        // ADD PARTY FILTER HERE
+        if (partyId) {
+            // query.party = partyId;
+            query.party = new mongoose.Types.ObjectId(partyId)
         }
 
         if (dateRange && dateRange !== "all" && dateRange !== "custom") {
