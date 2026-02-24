@@ -1,5 +1,4 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { brandIdParamSchema } from '../brand/brand.validation';
 
 export interface IVendor extends Document {
     vendorName: string;

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { IEnquiry, IStatusHistory, IStatusNote, Priority, Source, StatusType } from "./enquiry.model";
+import {  IStatusHistory, IStatusNote, Priority, Source, StatusType } from "./enquiry.model";
 
 export interface CreateEnquiryData {
     enquiry_date?: Date;
