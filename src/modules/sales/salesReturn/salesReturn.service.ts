@@ -4,6 +4,9 @@ import { useFinancialYear } from "../../../utils/useFinancialYear";
 import SalesReturnGst from "./salesReturn.gst.model";
 import SalesReturnNonGst from "./salesReturn.non_gst.model";
 import { getInvoiceStatus } from "../../../utils/invoiceStatus";
+import { getNextProductReturnNumber } from "../../productReturn/productReturn.service";
+import { CreateProductReurn, IStatusActivity, IStatusNote } from "../../productReturn/types";
+import { ProductReturn } from "../../productReturn/productReturn.model";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -142,7 +145,101 @@ const getDateRangeQuery = (dateRange: string) => {
     }
 };
 
+export const createProductReturnFromSalesReturn = async (salesReturnData: any) => {
+    try {
+        const productReturnNumber = await getNextProductReturnNumber();
+        const items = salesReturnData.items?.map((item: any, index: number) => ({
+            srNo: index + 1,
+            productId: item.productId || item.product?._id,
+            itemName: item.itemName || item.product?.name,
+            aliasName: item.aliasName || '',
+            hsnNo: item.hsnNo || item.product?.partNo || '',
+            quantity: item.quantity || 0,
+            price: item.price || 0,
+            amount: (item.quantity || 0) * (item.price || 0),
+        })) || [];
+
+        const initialStatusActivity: IStatusActivity = {
+            from_status: undefined,
+            to_status: 'RETURN_CREATED',
+            note: `Auto-created from sales return: ${salesReturnData.salesReturnNumber}`,
+            changed_at: new Date(),
+            is_initial: true
+        }
+
+        const initialStatusNote: IStatusNote = {
+            previous_status: undefined,
+            current_status: 'RETURN_CREATED',
+            note: `Product return auto-generated from sales return ${salesReturnData.salesReturnNumber}`,
+            created_at: new Date()
+        };
+
+        const productReturnData: CreateProductReurn = {
+            productReturnNumber,
+            productReturnDate: salesReturnData.salesReturnDate || new Date(),
+            in_date: salesReturnData.in_date || null,
+            out_date: salesReturnData.out_date || null,
+            items: items,
+            party: salesReturnData.party,
+            vendor: salesReturnData.vendor || null,
+            description: `Auto-created from sales return ${salesReturnData.salesReturnNumber}. Original sales return description: ${salesReturnData.description || ''}`,
+            status: 'RETURN_CREATED',
+            status_note: `Auto-created from sales return ${salesReturnData.salesReturnNumber}`,
+        };
+
+        // Create the product return
+        const productReturn = await ProductReturn.create(productReturnData);
+
+        return productReturn;
+    } catch (error: any) {
+        console.error('Error creating product return from sales return:', error);
+        throw new Error(`Failed to create product return: ${error.message}`);
+    }
+}
+
 // ============================================================================SERVICES
+
+// export const createSalesReturn = async (data: Partial<ISalesReturn>) => {
+//     try {
+//         const status = getInvoiceStatus(data.receivedAmount, data.totalAmount);
+
+//         if (!data.gstType) {
+//             throw new Error("GST type is required")
+//         }
+
+//         if (data.gstType === 'GST') {
+//             if (!data.salesReturnNumber) {
+//                 data.salesReturnNumber = await getNextSalesReturnNumber(data.salesReturnType || 'SALES_RETURN', data.gstType || 'GST');
+//             }
+
+//             const [existingGst] = await Promise.all([
+//                 SalesReturnGst.findOne({ salesReturnNumber: data.salesReturnNumber })
+//             ]);
+
+//             if (existingGst) {
+//                 throw new Error("Sales return number already exists")
+//             }
+//             return await SalesReturnGst.create({ ...data, status });
+//         }
+
+//         if (data.gstType === 'NON-GST') {
+//             if (!data.salesReturnNumber) {
+//                 data.salesReturnNumber = await getNextSalesReturnNumber(data.salesReturnType || 'SALES_RETURN', data.gstType || 'GST');
+//             }
+//             const [existingNonGst] = await Promise.all([
+//                 SalesReturnNonGst.findOne({ salesReturnNumber: data.salesReturnNumber })
+//             ]);
+
+//             if (existingNonGst) {
+//                 throw new Error("Sales return number already exists")
+//             }
+//             return await SalesReturnNonGst.create({ ...data, status });
+//         }
+//         throw new Error("Invalid GST Type")
+//     } catch (error: any) {
+//         throw new Error(error.message)
+//     }
+// }
 
 export const createSalesReturn = async (data: Partial<ISalesReturn>) => {
     try {
@@ -151,6 +248,8 @@ export const createSalesReturn = async (data: Partial<ISalesReturn>) => {
         if (!data.gstType) {
             throw new Error("GST type is required")
         }
+
+        let salesReturn: any;
 
         if (data.gstType === 'GST') {
             if (!data.salesReturnNumber) {
@@ -164,10 +263,9 @@ export const createSalesReturn = async (data: Partial<ISalesReturn>) => {
             if (existingGst) {
                 throw new Error("Sales return number already exists")
             }
-            return await SalesReturnGst.create({ ...data, status });
-        }
 
-        if (data.gstType === 'NON-GST') {
+            salesReturn = await SalesReturnGst.create({ ...data, status });
+        } else if (data.gstType === 'NON-GST') {
             if (!data.salesReturnNumber) {
                 data.salesReturnNumber = await getNextSalesReturnNumber(data.salesReturnType || 'SALES_RETURN', data.gstType || 'GST');
             }
@@ -178,13 +276,26 @@ export const createSalesReturn = async (data: Partial<ISalesReturn>) => {
             if (existingNonGst) {
                 throw new Error("Sales return number already exists")
             }
-            return await SalesReturnNonGst.create({ ...data, status });
+
+            salesReturn = await SalesReturnNonGst.create({ ...data, status });
+        } else {
+            throw new Error("Invalid GST Type")
         }
-        throw new Error("Invalid GST Type")
+
+        createProductReturnFromSalesReturn(salesReturn.toObject ? salesReturn.toObject() : salesReturn)
+            .then(productReturn => {
+                console.log(`Product return ${productReturn.productReturnNumber} created for sales return ${salesReturn.salesReturnNumber}`);
+            })
+            .catch(error => {
+                console.error('Failed to create product return:', error);
+            });
+
+        return salesReturn;
+
     } catch (error: any) {
         throw new Error(error.message)
     }
-}
+};
 
 export const getAllSalesReturn = async (filters: FilterOptions = {}) => {
     try {
