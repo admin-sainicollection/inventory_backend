@@ -3,13 +3,9 @@ import { IProductReturn, IStatusActivity, IStatusNote, Item } from "./types";
 
 export const RETURN_STATUS = [
     'RETURN_CREATED',
-    'AWAITING_RECEIPT',
     'RECEIVED_AT_SHOP',
-    'INSPECTED',
     'SENT_TO_VENDOR',
-    'RECEIVED_BY_VENDOR',
-    'RESOLVED',
-    'CLOSED'
+    'RECEIVED_BY_VENDOR'
   ] as const;
 
 const itemSchema = new Schema<Item>({
@@ -87,11 +83,11 @@ const statusNoteSchema = new Schema<IStatusNote>({
 }, { _id: true });
 
 export const productReturnSchema = new Schema<IProductReturn>({
-    returnNumber: {
+    productReturnNumber: {
         type: String,
         trim: true
     },
-    returnDate: {
+    productReturnDate: {
         type: Date,
         default: Date.now
     },
