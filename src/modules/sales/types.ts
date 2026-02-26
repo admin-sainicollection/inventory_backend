@@ -174,3 +174,26 @@ export const taxBreakdownSchema = new Schema<TaxBreakdownItem>({
     cgst: { type: Number, default: 0, min: 0, max: 100 },
     igst: { type: Number, default: 0, min: 0, max: 100 }
 }, { _id: false });
+
+// ======================================================================================== invoice History
+export type HistoryAction = 'CREATE' | 'UPDATE' | 'STATUS_CHANGE' | 'PAYMENT_RECEIVED' | 'EMAIL_SENT' | 'PRINTED' | 'CANCELLED';
+export type ChangedField = {
+  field: string;
+  oldValue: any;
+  newValue: any;
+};
+
+export interface IInvoiceHistory {
+  invoiceId: string; // Reference to the invoice (can be GST or NON-GST)
+  gstType: 'GST' | 'NON-GST';
+  action: HistoryAction;
+  changedBy?: string; // User ID if you have user management
+  changedAt: Date;
+  changes: ChangedField[];
+  notes?: string;
+  previousStatus?: string;
+  newStatus?: string;
+  previousAmount?: number;
+  newAmount?: number;
+  metadata?: Record<string, any>;
+}
