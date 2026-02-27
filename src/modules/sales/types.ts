@@ -39,6 +39,10 @@ export interface TaxBreakdownItem {
 
 export type InvoiceStatus = 'PAID' | 'UNPAID' | 'PARTIAL_PAID' | 'OVERPAID';
 export type QuotationStatus = 'OPEN' | 'CLOSED' | 'EXPIRED' | 'CONVERTED';
+export interface PaymentReference {
+    paymentInId: string;
+    amount: number;
+}
 
 export interface CommonDocument {
     gstType: GstType;
@@ -71,8 +75,9 @@ export interface IInvoice extends CommonDocument {
     invoiceNumber?: string;
     invoiceDate?: string | Date;
     status?: InvoiceStatus;
-    paymentType?:PaymentType;
-    convertedFromQuotationId?:string;
+    paymentType?: PaymentType;
+    convertedFromQuotationId?: string;
+    paymentReferences?: PaymentReference[];
 }
 
 //----------------------------------------------------- For Quotation
@@ -81,10 +86,10 @@ export interface IQuotation extends CommonDocument {
     quotationNumber?: string;
     quotationDate?: string | Date;
     status?: QuotationStatus;
-    isClosed?:boolean;
-    isConverted?:boolean;
-    convertedAt?:Date;
-    convertedToInvoiceId?:string;
+    isClosed?: boolean;
+    isConverted?: boolean;
+    convertedAt?: Date;
+    convertedToInvoiceId?: string;
 }
 
 // ---------------------------------------------------- For Credit Note
@@ -93,8 +98,8 @@ export interface ICreditNote extends CommonDocument {
     creditNoteNumber?: string;
     creditNoteDate?: string | Date;
     status?: InvoiceStatus;
-    invoiceId?:string;
-    paymentType?:PaymentType;
+    invoiceId?: string;
+    paymentType?: PaymentType;
 }
 
 export interface ISalesReturn extends CommonDocument {
@@ -102,17 +107,17 @@ export interface ISalesReturn extends CommonDocument {
     salesReturnNumber?: string;
     salesReturnDate?: string | Date;
     status?: InvoiceStatus;
-    invoiceId?:string;
-    paymentType?:PaymentType;
+    invoiceId?: string;
+    paymentType?: PaymentType;
 }
 
 export interface IPaymentIn extends CommonDocument {
     paymentInType: DocumentType;
     paymentInNumber?: string;
     paymentInDate?: string | Date;
-    invoiceId?:string;
-    paymentType?:PaymentType;
-    settledAmount?:number;
+    invoiceId?: string;
+    paymentType?: PaymentType;
+    settledAmount?: number;
 }
 
 export interface FilterOptions {
@@ -152,7 +157,7 @@ export const productItemSchema = new Schema<ProductItem>({
     },
     amount: { type: Number, required: true, min: 0 },
     productId: { type: String, trim: true }
-}, { _id: false }); 
+}, { _id: false });
 
 // Additional Charge Schema
 export const additionalChargeSchema = new Schema<AdditionalCharge>({
@@ -175,25 +180,36 @@ export const taxBreakdownSchema = new Schema<TaxBreakdownItem>({
     igst: { type: Number, default: 0, min: 0, max: 100 }
 }, { _id: false });
 
+export const paymentReferenceSchema = new Schema<PaymentReference>({
+    paymentInId: {
+        type: String,
+    },
+    amount: {
+        type: Number,
+        required: true,
+        min: 0
+    }
+}, { _id: true });
+
 // ======================================================================================== invoice History
 export type HistoryAction = 'CREATE' | 'UPDATE' | 'STATUS_CHANGE' | 'PAYMENT_RECEIVED' | 'EMAIL_SENT' | 'PRINTED' | 'CANCELLED';
 export type ChangedField = {
-  field: string;
-  oldValue: any;
-  newValue: any;
+    field: string;
+    oldValue: any;
+    newValue: any;
 };
 
 export interface IInvoiceHistory {
-  invoiceId: string; // Reference to the invoice (can be GST or NON-GST)
-  gstType: 'GST' | 'NON-GST';
-  action: HistoryAction;
-  changedBy?: string; // User ID if you have user management
-  changedAt: Date;
-  changes: ChangedField[];
-  notes?: string;
-  previousStatus?: string;
-  newStatus?: string;
-  previousAmount?: number;
-  newAmount?: number;
-  metadata?: Record<string, any>;
+    invoiceId: string; // Reference to the invoice (can be GST or NON-GST)
+    gstType: 'GST' | 'NON-GST';
+    action: HistoryAction;
+    changedBy?: string; // User ID if you have user management
+    changedAt: Date;
+    changes: ChangedField[];
+    notes?: string;
+    previousStatus?: string;
+    newStatus?: string;
+    previousAmount?: number;
+    newAmount?: number;
+    metadata?: Record<string, any>;
 }

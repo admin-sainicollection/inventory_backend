@@ -1,5 +1,5 @@
 import mongoose, {  Schema } from "mongoose";
-import { IInvoice, additionalChargeSchema, discountSchema, productItemSchema, taxBreakdownSchema } from "../types";
+import { IInvoice, additionalChargeSchema, discountSchema, paymentReferenceSchema, productItemSchema, taxBreakdownSchema } from "../types";
 
 // Main Invoice Schema
 const invoiceNonGstSchema = new Schema<IInvoice>({
@@ -98,7 +98,8 @@ const invoiceNonGstSchema = new Schema<IInvoice>({
         default: 'UNPAID',
         required: true
     },
-    taxBreakdown: [taxBreakdownSchema]
+    taxBreakdown: [taxBreakdownSchema],
+    paymentReferences: [paymentReferenceSchema],
 }, {
     timestamps: true, // Automatically adds createdAt and updatedAt
     versionKey: false // Disable __v field
