@@ -142,6 +142,16 @@ export const updateQuotationStatus = async (quotationId: string, status: string)
 
 export const createSalesInvoice = async (data: Partial<IInvoice>) => {
     try {
+        // If receivedAmount is provided at creation, add it as a payment reference
+        // if (data.receivedAmount && data.receivedAmount > 0) {
+        //     const paymentReference = {
+        //         paymentInId: 'initial', // Mark as initial payment
+        //         amount: data.receivedAmount
+        //     };
+
+        //     data.paymentReferences = [paymentReference];
+        // }
+
         const status = getInvoiceStatus(data.receivedAmount, data.totalAmount)
 
         if (!data.gstType) {
@@ -149,7 +159,7 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
         }
 
         let invoice;
-        
+
         if (data.gstType === 'GST') {
             if (!data.invoiceNumber) {
                 data.invoiceNumber = await getNextInvoiceNumber(data.invoiceType || 'INVOICE', data.gstType || 'GST');
@@ -163,7 +173,7 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
                 throw new Error("Invoice number already exists")
             }
             invoice = await InvoiceGst.create({ ...data, status });
-            
+
         } else if (data.gstType === 'NON-GST') {
             if (!data.invoiceNumber) {
                 data.invoiceNumber = await getNextInvoiceNumber(data.invoiceType || 'INVOICE');
@@ -196,26 +206,29 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
                 notes: `Invoice ${invoice.invoiceNumber} created`,
                 newStatus: status
             });
+
+            // If there was an initial payment, add a payment history entry
+            if (data.receivedAmount && data.receivedAmount > 0) {
+                await InvoiceHistory.create({
+                    invoiceId: invoice._id.toString(),
+                    gstType: data.gstType,
+                    action: 'PAYMENT_RECEIVED',
+                    changedAt: new Date(),
+                    changes: [{
+                        field: 'paymentReferences',
+                        oldValue: null,
+                        newValue: { amount: data.receivedAmount }
+                    }],
+                    previousAmount: 0,
+                    newAmount: data.receivedAmount,
+                    notes: `Initial payment received: ₹${data.receivedAmount.toFixed(2)}`
+                });
+            }
         }
 
         // Handle quotation conversion if needed
         if (data.convertedFromQuotationId) {
             await updateQuotationStatus(data.convertedFromQuotationId, 'CONVERTED');
-            
-            // Also create history for conversion
-            await InvoiceHistory.create({
-                invoiceId: invoice._id.toString(),
-                gstType: data.gstType,
-                action: 'UPDATE',
-                changedAt: new Date(),
-                changes: [{
-                    field: 'convertedFromQuotationId',
-                    oldValue: null,
-                    newValue: data.convertedFromQuotationId
-                }],
-                notes: `Converted from quotation ${data.convertedFromQuotationId}`,
-                metadata: { quotationId: data.convertedFromQuotationId }
-            });
         }
 
         return invoice;
@@ -446,12 +459,12 @@ export const getSalesInvoiceById = async (id: string) => {
 export const updateSalesInvoice = async (id: string, data: Partial<IInvoice>) => {
     try {
         const status = data.status ?? getInvoiceStatus(data.receivedAmount, data.totalAmount);
-        
+
         // Find existing invoice
         let existingInvoice;
         let gstType;
         let Model;
-        
+
         const gstInvoice = await InvoiceGst.findById(id);
         if (gstInvoice) {
             existingInvoice = gstInvoice.toObject();
@@ -474,19 +487,19 @@ export const updateSalesInvoice = async (id: string, data: Partial<IInvoice>) =>
             'notes', 'terms', 'paymentTerms', 'totalAmount', 'receivedAmount',
             'balanceAmount', 'taxBreakdown'
         ];
-        
+
         const changes = detectInvoiceChanges(existingInvoice, data, fieldsToTrack);
-        
+
         // Check for status change
         const oldStatus = existingInvoice.status;
         const newStatus = status;
         const isStatusChange = oldStatus !== newStatus;
-        
+
         // Check for amount change
         const oldTotal = existingInvoice.totalAmount || 0;
         const newTotal = data.totalAmount ?? oldTotal;
         const isAmountChange = oldTotal !== newTotal;
-        
+
         // Check for payment received
         const oldReceived = existingInvoice.receivedAmount || 0;
         const newReceived = data.receivedAmount ?? oldReceived;
