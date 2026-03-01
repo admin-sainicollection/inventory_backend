@@ -4,6 +4,7 @@ import { useFinancialYear } from "../../../utils/useFinancialYear";
 import CreditNoteGst from "./creditNote.gst.model";
 import CreditNoteNonGst from "./creditNote.non_gst.model";
 import { getInvoiceStatus } from "../../../utils/invoiceStatus";
+import mongoose from "mongoose";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -30,6 +31,22 @@ const buildCreditNoteAggregation = (
     pipeline.push({
         $unwind: {
             path: "$party",
+            preserveNullAndEmptyArrays: true
+        }
+    });
+
+    pipeline.push({
+        $lookup: {
+            from: "vendors",
+            localField: "vendor",
+            foreignField: "_id",
+            as: "vendor"
+        }
+    });
+
+    pipeline.push({
+        $unwind: {
+            path: "$vendor",
             preserveNullAndEmptyArrays: true
         }
     });
@@ -83,6 +100,7 @@ const buildCreditNoteAggregation = (
                     { "party.partyName": regex },
                     { "party.nickName": regex },
                     { "party.gstNumber": regex },
+                    { "vendor.vendorName": regex },
                     { "invoice.invoiceNumber": regex },  // Add invoice number to search
                 ]
             }
@@ -195,13 +213,25 @@ export const getAllCreditNote = async (filters: FilterOptions = {}) => {
             status,
             startDate,
             endDate,
-            dateRange
+            dateRange,
+            partyId,
+            vendorId
         } = filters;
 
         const query: any = {};
 
         if (status && status !== "all") {
             query.status = status;
+        }
+
+        if (partyId) {
+            // query.party = partyId;
+            query.party = new mongoose.Types.ObjectId(partyId)
+        }
+
+        if (vendorId) {
+            // query.party = partyId;
+            query.vendor = new mongoose.Types.ObjectId(vendorId)
         }
 
         if (dateRange && dateRange !== "all" && dateRange !== "custom") {
