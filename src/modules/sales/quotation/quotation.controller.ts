@@ -39,7 +39,7 @@ export const getNextQuotationNumberController = async (req: Request, res: Respon
 
 export const getAllQuotationController = async (req: Request, res: Response) => {
     try {
-        const { gstType, limit = 50, page = 1, search, status, startDate, endDate, dateRange } = req.query;
+        const { gstType, limit = 50, page = 1, search, status, startDate, endDate, dateRange, partyId, vendorId  } = req.query;
 
         const pageNum = parseInt(page as string) || 1;
         const limitNum = parseInt(limit as string) || 50;
@@ -52,7 +52,9 @@ export const getAllQuotationController = async (req: Request, res: Response) => 
             startDate: startDate as string,
             endDate: endDate as string,
             page: pageNum,
-            limit: limitNum
+            limit: limitNum,
+            partyId: partyId as string,
+            vendorId: vendorId as string
         }
 
         const result = await getAllQuotation(filterOptions);
