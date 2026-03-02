@@ -23,7 +23,7 @@ export const createPaymentInController = async (req: Request, res: Response) => 
 // Updated controller
 export const getAllPaymentInController = async (req: Request, res: Response) => {
     try {
-        const { gstType, limit = 50, page = 1, search, status, startDate, endDate, dateRange } = req.query;
+        const { gstType, limit = 50, page = 1, search, status, startDate, endDate, dateRange, partyId, vendorId  } = req.query;
 
         const pageNum = parseInt(page as string) || 1;
         const limitNum = parseInt(limit as string) || 50;
@@ -36,7 +36,9 @@ export const getAllPaymentInController = async (req: Request, res: Response) => 
             startDate: startDate as string,
             endDate: endDate as string,
             page: pageNum,
-            limit: limitNum
+            limit: limitNum,
+            partyId: partyId as string,
+            vendorId: vendorId as string
         }
 
         const result = await getAllPaymentIn(filterOptions);

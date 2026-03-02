@@ -4,6 +4,11 @@ import PaymentInNonGst from "./paymentIn.non_gst.model";
 import PaymentInGst from "./paymentIn.gst.model";
 import { getSalesInvoiceById, updateSalesInvoice } from "../salesInvoice/salesInvoice.service";
 import { getInvoiceStatus } from "../../../utils/invoiceStatus";
+import InvoiceGst from "../salesInvoice/salesInvoice.gst.model";
+import { calculateInvoiceTotals } from "../../../utils/invoiceCalculations";
+import { InvoiceHistory } from "../invoiceHistory/invoiceHistory.model";
+import InvoiceNonGst from "../salesInvoice/salesInvoice.non_gst.model";
+import mongoose from "mongoose";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -30,6 +35,22 @@ const buildPaymentInAggregation = (
     pipeline.push({
         $unwind: {
             path: "$party",
+            preserveNullAndEmptyArrays: true
+        }
+    });
+
+    pipeline.push({
+        $lookup: {
+            from: "vendors",
+            localField: "vendor",
+            foreignField: "_id",
+            as: "vendor"
+        }
+    });
+
+    pipeline.push({
+        $unwind: {
+            path: "$vendor",
             preserveNullAndEmptyArrays: true
         }
     });
@@ -82,6 +103,7 @@ const buildPaymentInAggregation = (
                     { "party.partyName": regex },
                     { "party.nickName": regex },
                     { "party.gstNumber": regex },
+                    { "vendor.vendorName": regex },
                     { "invoice.invoiceNumber": regex },  // Add invoice number to search
                 ]
             }
@@ -143,6 +165,97 @@ const getDateRangeQuery = (dateRange: string) => {
 
 // ============================================================================SERVICES
 
+// export const createPaymentIn = async (data: Partial<IPaymentIn>) => {
+//     try {
+//         if (!data.gstType) {
+//             throw new Error("GST type is required")
+//         }
+
+//         if (data.gstType === 'GST') {
+//             if (!data.paymentInNumber) {
+//                 data.paymentInNumber = await getNextPaymentInNumber(data.paymentInType || 'PAYMENT_IN', data.gstType || 'GST');
+//             }
+
+//             const [existingGst] = await Promise.all([
+//                 PaymentInGst.findOne({ paymentInNumber: data.paymentInNumber })
+//             ]);
+
+//             if (existingGst) {
+//                 throw new Error("Payment In number already exists")
+//             }
+
+//             const invoice = await getSalesInvoiceById(data.invoiceId as string);
+//             if (!invoice) {
+//                 throw new Error("Invoice not found");
+//             }
+
+//             const newReceivedAmount = (invoice.receivedAmount || 0) + (data.receivedAmount || 0);
+//             const newBalanceAmount = (invoice.totalAmount || 0) - newReceivedAmount;
+//             const status = getInvoiceStatus(newReceivedAmount, invoice.totalAmount || 0);
+//             console.log('status->', status)
+
+//             const updatedInvoice = await updateSalesInvoice(
+//                 data.invoiceId as string,
+//                 {
+//                     receivedAmount: newReceivedAmount,
+//                     balanceAmount: newBalanceAmount,
+//                     status
+//                 }
+//             );
+
+//             if (!updatedInvoice) {
+//                 throw new Error("Failed to update invoice amount");
+//             }
+
+//             const settledAmount = newReceivedAmount;
+
+//             return await PaymentInGst.create({ ...data, settledAmount });
+//         }
+
+//         if (data.gstType === 'NON-GST') {
+//             if (!data.paymentInNumber) {
+//                 data.paymentInNumber = await getNextPaymentInNumber(data.paymentInType || 'PAYMENT_IN', data.gstType || 'NON-GST');
+//             }
+//             const [existingNonGst] = await Promise.all([
+//                 PaymentInNonGst.findOne({ paymentInNumber: data.paymentInNumber })
+//             ]);
+
+//             if (existingNonGst) {
+//                 throw new Error("Payment In number already exists")
+//             }
+
+//             const invoice = await getSalesInvoiceById(data.invoiceId as string);
+//             if (!invoice) {
+//                 throw new Error("Invoice not found");
+//             }
+
+//             const newReceivedAmount = (invoice.receivedAmount || 0) + (data.receivedAmount || 0);
+//             const newBalanceAmount = (invoice.totalAmount || 0) - newReceivedAmount;
+//             const status = getInvoiceStatus(newReceivedAmount, invoice.totalAmount || 0);
+
+//             const updatedInvoice = await updateSalesInvoice(
+//                 data.invoiceId as string,
+//                 {
+//                     receivedAmount: newReceivedAmount,
+//                     balanceAmount: newBalanceAmount,
+//                     status
+//                 }
+//             );
+
+//             if (!updatedInvoice) {
+//                 throw new Error("Failed to update invoice amount");
+//             }
+
+//             const settledAmount = newReceivedAmount;
+
+//             return await PaymentInNonGst.create({ ...data, settledAmount });
+//         }
+//         throw new Error("Invalid GST Type")
+//     } catch (error: any) {
+//         throw new Error(error.message)
+//     }
+// }
+
 export const createPaymentIn = async (data: Partial<IPaymentIn>) => {
     try {
         if (!data.gstType) {
@@ -162,38 +275,88 @@ export const createPaymentIn = async (data: Partial<IPaymentIn>) => {
                 throw new Error("Payment In number already exists")
             }
 
-            const invoice = await getSalesInvoiceById(data.invoiceId as string);
+            // Get the invoice to check if it exists
+            const invoice = await InvoiceGst.findById(data.invoiceId);
             if (!invoice) {
                 throw new Error("Invoice not found");
             }
 
-            const newReceivedAmount = (invoice.receivedAmount || 0) + (data.receivedAmount || 0);
-            const newBalanceAmount = (invoice.totalAmount || 0) - newReceivedAmount;
-            const status = getInvoiceStatus(newReceivedAmount, invoice.totalAmount || 0);
-            console.log('status->', status)
+            // Create the payment in first
+            const paymentIn = await PaymentInGst.create(data);
 
-            const updatedInvoice = await updateSalesInvoice(
-                data.invoiceId as string,
+            // Create simplified payment reference
+            const paymentReference = {
+                paymentInId: paymentIn._id.toString(),
+                amount: data.receivedAmount || 0
+            };
+
+            // Add reference to invoice's paymentReferences array
+            const updatedInvoice = await InvoiceGst.findByIdAndUpdate(
+                data.invoiceId,
                 {
-                    receivedAmount: newReceivedAmount,
-                    balanceAmount: newBalanceAmount,
+                    $push: { paymentReferences: paymentReference }
+                },
+                { new: true }
+            );
+
+            if (!updatedInvoice) {
+                throw new Error("Failed to update invoice with payment reference");
+            }
+
+            // Calculate new totals
+            // const totals = calculateInvoiceTotals(updatedInvoice, (data.receivedAmount || 0));
+            const totalReferenceAmount = (invoice.paymentReferences || []).reduce(
+                (sum, ref) => sum + (ref.amount || 0),
+                0
+            )
+            const totalReceived = totalReferenceAmount + (invoice.receivedAmount || 0) + (data.receivedAmount || 0);
+
+            const totalAmount = invoice.totalAmount || 0;
+            const balanceAmount = Math.max(0, totalAmount - totalReceived);
+            const status = getInvoiceStatus(totalReceived, totalAmount || 0);
+
+            // Update invoice with calculated values
+            await InvoiceGst.findByIdAndUpdate(
+                data.invoiceId,
+                {
+                    // receivedAmount: totals.receivedAmount,
+                    balanceAmount: balanceAmount,
                     status
                 }
             );
 
-            if (!updatedInvoice) {
-                throw new Error("Failed to update invoice amount");
-            }
+            // Update payment in with settled amount
+            await PaymentInGst.findByIdAndUpdate(
+                paymentIn._id,
+                { settledAmount: totalReceived }
+            );
 
-            const settledAmount = newReceivedAmount;
+            // Create history entry for payment
+            await InvoiceHistory.create({
+                invoiceId: data.invoiceId as string,
+                gstType: 'GST',
+                action: 'PAYMENT_RECEIVED',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'paymentReferences',
+                    oldValue: null,
+                    newValue: paymentReference
+                }],
+                previousAmount: invoice.receivedAmount || 0,
+                newAmount: totalReceived,
+                notes: `Payment received: ₹${(data.receivedAmount || 0).toFixed(2)} via ${data.paymentType} (Ref: ${paymentIn.paymentInNumber})`,
+                metadata: { paymentInId: paymentIn._id }
+            });
 
-            return await PaymentInGst.create({ ...data, settledAmount });
+            return paymentIn;
         }
 
+        // Similar for NON-GST...
         if (data.gstType === 'NON-GST') {
             if (!data.paymentInNumber) {
                 data.paymentInNumber = await getNextPaymentInNumber(data.paymentInType || 'PAYMENT_IN', data.gstType || 'NON-GST');
             }
+
             const [existingNonGst] = await Promise.all([
                 PaymentInNonGst.findOne({ paymentInNumber: data.paymentInNumber })
             ]);
@@ -202,37 +365,79 @@ export const createPaymentIn = async (data: Partial<IPaymentIn>) => {
                 throw new Error("Payment In number already exists")
             }
 
-            const invoice = await getSalesInvoiceById(data.invoiceId as string);
+            const invoice = await InvoiceNonGst.findById(data.invoiceId);
             if (!invoice) {
                 throw new Error("Invoice not found");
             }
 
-            const newReceivedAmount = (invoice.receivedAmount || 0) + (data.receivedAmount || 0);
-            const newBalanceAmount = (invoice.totalAmount || 0) - newReceivedAmount;
-            const status = getInvoiceStatus(newReceivedAmount, invoice.totalAmount || 0);
+            const paymentIn = await PaymentInNonGst.create(data);
 
-            const updatedInvoice = await updateSalesInvoice(
-                data.invoiceId as string,
+            const paymentReference = {
+                paymentInId: paymentIn._id.toString(),
+                amount: data.receivedAmount || 0
+            };
+
+            const updatedInvoice = await InvoiceNonGst.findByIdAndUpdate(
+                data.invoiceId,
                 {
-                    receivedAmount: newReceivedAmount,
-                    balanceAmount: newBalanceAmount,
+                    $push: { paymentReferences: paymentReference }
+                },
+                { new: true }
+            );
+
+            if (!updatedInvoice) {
+                throw new Error("Failed to update invoice with payment reference");
+            }
+
+            // const totals = calculateInvoiceTotals(updatedInvoice, (data.receivedAmount || 0));
+            const totalReferenceAmount = (invoice.paymentReferences || []).reduce(
+                (sum, ref) => sum + (ref.amount || 0),
+                0
+            )
+            const totalReceived = totalReferenceAmount + (invoice.receivedAmount || 0) + (data.receivedAmount || 0);
+
+            const totalAmount = invoice.totalAmount || 0;
+            const balanceAmount = Math.max(0, totalAmount - totalReceived);
+            const status = getInvoiceStatus(totalReceived, totalAmount || 0);
+
+            await InvoiceNonGst.findByIdAndUpdate(
+                data.invoiceId,
+                {
+                    // receivedAmount: totals.receivedAmount,
+                    balanceAmount: balanceAmount,
                     status
                 }
             );
 
-            if (!updatedInvoice) {
-                throw new Error("Failed to update invoice amount");
-            }
+            await PaymentInNonGst.findByIdAndUpdate(
+                paymentIn._id,
+                { settledAmount: totalReceived }
+            );
 
-            const settledAmount = newReceivedAmount;
+            await InvoiceHistory.create({
+                invoiceId: data.invoiceId as string,
+                gstType: 'NON-GST',
+                action: 'PAYMENT_RECEIVED',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'paymentReferences',
+                    oldValue: null,
+                    newValue: paymentReference
+                }],
+                previousAmount: invoice.receivedAmount || 0,
+                newAmount: totalReceived,
+                notes: `Payment received: ₹${(data.receivedAmount || 0).toFixed(2)} via ${data.paymentType} (Ref: ${paymentIn.paymentInNumber})`,
+                metadata: { paymentInId: paymentIn._id }
+            });
 
-            return await PaymentInNonGst.create({ ...data, settledAmount });
+            return paymentIn;
         }
+
         throw new Error("Invalid GST Type")
     } catch (error: any) {
         throw new Error(error.message)
     }
-}
+};
 
 export const getAllPaymentIn = async (filters: FilterOptions = {}) => {
     try {
@@ -244,13 +449,25 @@ export const getAllPaymentIn = async (filters: FilterOptions = {}) => {
             status,
             startDate,
             endDate,
-            dateRange
+            dateRange,
+            partyId,
+            vendorId
         } = filters;
 
         const query: any = {};
 
         if (status && status !== "all") {
             query.status = status;
+        }
+
+        if (partyId) {
+            // query.party = partyId;
+            query.party = new mongoose.Types.ObjectId(partyId)
+        }
+
+        if (vendorId) {
+            // query.party = partyId;
+            query.vendor = new mongoose.Types.ObjectId(vendorId)
         }
 
         if (dateRange && dateRange !== "all" && dateRange !== "custom") {
@@ -420,76 +637,258 @@ export const getPaymentInById = async (id: string) => {
 };
 
 // Update payment in
+// export const updatePaymentIn = async (id: string, data: Partial<IPaymentIn>) => {
+//     try {
+//         // Try to update in GST payment ins
+//         const gstPaymentIn = await PaymentInGst.findById(id);
+//         if (gstPaymentIn) {
+//             const oldReceivedAmount = gstPaymentIn.receivedAmount || 0;
+//             const invoice = await getSalesInvoiceById(
+//                 data.invoiceId as string || gstPaymentIn.invoiceId as string
+//             );
+//             if (!invoice) {
+//                 throw new Error("Invoice not found");
+//             }
+
+//             const newReceivedAmount = data.receivedAmount ?? oldReceivedAmount;
+
+//             const updatedInvoiceReceived = (invoice.receivedAmount || 0) - oldReceivedAmount + newReceivedAmount;
+
+//             const newBalanceAmount = (invoice.totalAmount || 0) - updatedInvoiceReceived;
+//             const status = getInvoiceStatus(updatedInvoiceReceived, invoice.totalAmount || 0);
+
+//             const updatedInvoice = await updateSalesInvoice(
+//                 data.invoiceId as string || gstPaymentIn.invoiceId as string,
+//                 {
+//                     receivedAmount: updatedInvoiceReceived,
+//                     balanceAmount: newBalanceAmount,
+//                     status
+//                 }
+//             );
+
+//             if (!updatedInvoice) {
+//                 throw new Error("Failed to update invoice amount");
+//             }
+
+//             const settledAmount = updatedInvoiceReceived;
+//             return await PaymentInGst.findByIdAndUpdate(id, { ...data, settledAmount }, { new: true });
+//         }
+
+//         // Try to update in NON-GST payment ins
+//         const nonGstPaymentIn = await PaymentInNonGst.findById(id);
+//         if (nonGstPaymentIn) {
+//             const oldReceivedAmount = nonGstPaymentIn.receivedAmount || 0;
+//             const invoice = await getSalesInvoiceById(
+//                 data.invoiceId as string || nonGstPaymentIn.invoiceId as string
+//             );
+//             if (!invoice) {
+//                 throw new Error("Invoice not found");
+//             }
+
+//             const newReceivedAmount = data.receivedAmount ?? oldReceivedAmount;
+
+//             const updatedInvoiceReceived = (invoice.receivedAmount || 0) - oldReceivedAmount + newReceivedAmount;
+
+//             const newBalanceAmount = (invoice.totalAmount || 0) - updatedInvoiceReceived;
+//             const status = getInvoiceStatus(updatedInvoiceReceived, invoice.totalAmount || 0);
+
+//             const updatedInvoice = await updateSalesInvoice(
+//                 data.invoiceId as string || nonGstPaymentIn.invoiceId as string,
+//                 {
+//                     receivedAmount: updatedInvoiceReceived,
+//                     balanceAmount: newBalanceAmount,
+//                     status
+//                 }
+//             );
+
+//             if (!updatedInvoice) {
+//                 throw new Error("Failed to update invoice amount");
+//             }
+
+//             const settledAmount = updatedInvoiceReceived;
+//             return await PaymentInNonGst.findByIdAndUpdate(id, { ...data, settledAmount }, { new: true });
+//         }
+
+//         throw new Error("Payment In not found");
+//     } catch (error: any) {
+//         throw new Error(error.message);
+//     }
+// };
+
 export const updatePaymentIn = async (id: string, data: Partial<IPaymentIn>) => {
     try {
         // Try to update in GST payment ins
         const gstPaymentIn = await PaymentInGst.findById(id);
         if (gstPaymentIn) {
-            const oldReceivedAmount = gstPaymentIn.receivedAmount || 0;
-            const invoice = await getSalesInvoiceById(
-                data.invoiceId as string || gstPaymentIn.invoiceId as string
-            );
+            // Check if invoiceId exists
+            if (!gstPaymentIn.invoiceId) {
+                throw new Error("Invoice ID not found in payment record");
+            }
+
+            const oldAmount = gstPaymentIn.receivedAmount || 0;
+            const newAmount = data.receivedAmount ?? oldAmount;
+            const amountDiff = newAmount - oldAmount;
+
+            // Get the invoice
+            const invoice = await InvoiceGst.findById(gstPaymentIn.invoiceId);
             if (!invoice) {
                 throw new Error("Invoice not found");
             }
 
-            const newReceivedAmount = data.receivedAmount ?? oldReceivedAmount;
-
-            const updatedInvoiceReceived = (invoice.receivedAmount || 0) - oldReceivedAmount + newReceivedAmount;
-            
-            const newBalanceAmount = (invoice.totalAmount || 0) - updatedInvoiceReceived;
-            const status = getInvoiceStatus(updatedInvoiceReceived, invoice.totalAmount || 0);
-
-            const updatedInvoice = await updateSalesInvoice(
-                data.invoiceId as string || gstPaymentIn.invoiceId as string,
+            // Update the payment reference amount in invoice
+            const updatedInvoice = await InvoiceGst.findOneAndUpdate(
                 {
-                    receivedAmount: updatedInvoiceReceived,
-                    balanceAmount: newBalanceAmount,
+                    _id: gstPaymentIn.invoiceId,
+                    "paymentReferences.paymentInId": id
+                },
+                {
+                    $set: {
+                        "paymentReferences.$.amount": newAmount
+                    }
+                },
+                { new: true }
+            );
+
+            if (!updatedInvoice) {
+                throw new Error("Failed to update payment reference in invoice");
+            }
+
+            // Recalculate totals
+            // const totals = calculateInvoiceTotals(updatedInvoice, (data.receivedAmount || 0));
+            const totalReferenceAmount = (invoice.paymentReferences || []).reduce(
+                (sum, ref) => sum + (ref.amount || 0),
+                0
+            )
+            const totalReceived = totalReferenceAmount + (invoice.receivedAmount || 0) - oldAmount + (newAmount || 0);
+
+            const totalAmount = invoice.totalAmount || 0;
+            const balanceAmount = Math.max(0, totalAmount - totalReceived);
+            const status = getInvoiceStatus(totalReceived, totalAmount || 0);
+
+            // Update invoice with new totals
+            await InvoiceGst.findByIdAndUpdate(
+                gstPaymentIn.invoiceId,
+                {
+                    // receivedAmount: totals.receivedAmount,
+                    balanceAmount: balanceAmount,
                     status
                 }
             );
 
-            if (!updatedInvoice) {
-                throw new Error("Failed to update invoice amount");
+            // Update the payment in
+            const updatedPaymentIn = await PaymentInGst.findByIdAndUpdate(
+                id,
+                {
+                    ...data,
+                    settledAmount: totalReceived
+                },
+                { new: true }
+            );
+
+            // Create history entry if amount changed
+            if (amountDiff !== 0) {
+                await InvoiceHistory.create({
+                    invoiceId: gstPaymentIn.invoiceId.toString(),
+                    gstType: 'GST',
+                    action: 'PAYMENT_RECEIVED',
+                    changedAt: new Date(),
+                    changes: [{
+                        field: 'paymentReferences',
+                        oldValue: { amount: oldAmount },
+                        newValue: { amount: newAmount }
+                    }],
+                    previousAmount: invoice.receivedAmount || 0,
+                    newAmount: totalReceived,
+                    notes: `Payment updated: ${amountDiff > 0 ? '+' : '-'}₹${Math.abs(amountDiff).toFixed(2)}`,
+                    metadata: { paymentInId: id }
+                });
             }
 
-            const settledAmount = updatedInvoiceReceived;
-            return await PaymentInGst.findByIdAndUpdate(id, {...data, settledAmount}, { new: true });
+            return updatedPaymentIn;
         }
 
-        // Try to update in NON-GST payment ins
+        // Similar for NON-GST...
         const nonGstPaymentIn = await PaymentInNonGst.findById(id);
         if (nonGstPaymentIn) {
-            const oldReceivedAmount = nonGstPaymentIn.receivedAmount || 0;
-            const invoice = await getSalesInvoiceById(
-                data.invoiceId as string || nonGstPaymentIn.invoiceId as string
-            );
+            // Check if invoiceId exists
+            if (!nonGstPaymentIn.invoiceId) {
+                throw new Error("Invoice ID not found in payment record");
+            }
+
+            const oldAmount = nonGstPaymentIn.receivedAmount || 0;
+            const newAmount = data.receivedAmount ?? oldAmount;
+            const amountDiff = newAmount - oldAmount;
+
+            const invoice = await InvoiceNonGst.findById(nonGstPaymentIn.invoiceId);
             if (!invoice) {
                 throw new Error("Invoice not found");
             }
 
-            const newReceivedAmount = data.receivedAmount ?? oldReceivedAmount;
-
-            const updatedInvoiceReceived = (invoice.receivedAmount || 0) - oldReceivedAmount + newReceivedAmount;
-            
-            const newBalanceAmount = (invoice.totalAmount || 0) - updatedInvoiceReceived;
-            const status = getInvoiceStatus(updatedInvoiceReceived, invoice.totalAmount || 0);
-
-            const updatedInvoice = await updateSalesInvoice(
-                data.invoiceId as string || nonGstPaymentIn.invoiceId as string,
+            const updatedInvoice = await InvoiceNonGst.findOneAndUpdate(
                 {
-                    receivedAmount: updatedInvoiceReceived,
-                    balanceAmount: newBalanceAmount,
+                    _id: nonGstPaymentIn.invoiceId,
+                    "paymentReferences.paymentInId": id
+                },
+                {
+                    $set: {
+                        "paymentReferences.$.amount": newAmount
+                    }
+                },
+                { new: true }
+            );
+
+            if (!updatedInvoice) {
+                throw new Error("Failed to update payment reference in invoice");
+            }
+
+            // const totals = calculateInvoiceTotals(updatedInvoice, (data.receivedAmount || 0));
+            const totalReferenceAmount = (invoice.paymentReferences || []).reduce(
+                (sum, ref) => sum + (ref.amount || 0),
+                0
+            )
+            const totalReceived = totalReferenceAmount + (invoice.receivedAmount || 0) - oldAmount + (newAmount || 0);
+
+            const totalAmount = invoice.totalAmount || 0;
+            const balanceAmount = Math.max(0, totalAmount - totalReceived);
+            const status = getInvoiceStatus(totalReceived, totalAmount || 0);
+
+            await InvoiceNonGst.findByIdAndUpdate(
+                nonGstPaymentIn.invoiceId,
+                {
+                    // receivedAmount: totals.receivedAmount,
+                    balanceAmount: balanceAmount,
                     status
                 }
             );
 
-            if (!updatedInvoice) {
-                throw new Error("Failed to update invoice amount");
+            const updatedPaymentIn = await PaymentInNonGst.findByIdAndUpdate(
+                id,
+                {
+                    ...data,
+                    settledAmount: totalReceived
+                },
+                { new: true }
+            );
+
+            if (amountDiff !== 0) {
+                await InvoiceHistory.create({
+                    invoiceId: nonGstPaymentIn.invoiceId.toString(),
+                    gstType: 'NON-GST',
+                    action: 'PAYMENT_RECEIVED',
+                    changedAt: new Date(),
+                    changes: [{
+                        field: 'paymentReferences',
+                        oldValue: { amount: oldAmount },
+                        newValue: { amount: newAmount }
+                    }],
+                    previousAmount: invoice.receivedAmount || 0,
+                    newAmount: totalReceived,
+                    notes: `Payment updated: ${amountDiff > 0 ? '+' : '-'}₹${Math.abs(amountDiff).toFixed(2)}`,
+                    metadata: { paymentInId: id }
+                });
             }
 
-            const settledAmount = updatedInvoiceReceived;
-            return await PaymentInNonGst.findByIdAndUpdate(id, {...data, settledAmount}, { new: true });
+            return updatedPaymentIn;
         }
 
         throw new Error("Payment In not found");
@@ -499,15 +898,149 @@ export const updatePaymentIn = async (id: string, data: Partial<IPaymentIn>) => 
 };
 
 // Delete payment in
+// export const deletePaymentIn = async (id: string) => {
+//     try {
+//         // Try to delete from GST payment ins
+//         const gstPaymentIn = await PaymentInGst.findByIdAndDelete(id);
+//         if (gstPaymentIn) return gstPaymentIn;
+
+//         // Try to delete from NON-GST payment ins
+//         const nonGstPaymentIn = await PaymentInNonGst.findByIdAndDelete(id);
+//         if (nonGstPaymentIn) return nonGstPaymentIn;
+
+//         throw new Error("Payment In not found");
+//     } catch (error: any) {
+//         throw new Error(error.message);
+//     }
+// };
+
 export const deletePaymentIn = async (id: string) => {
     try {
-        // Try to delete from GST payment ins
-        const gstPaymentIn = await PaymentInGst.findByIdAndDelete(id);
-        if (gstPaymentIn) return gstPaymentIn;
+        // Try to delete from GST
+        const gstPaymentIn = await PaymentInGst.findById(id);
+        if (gstPaymentIn) {
+            // Check if invoiceId exists
+            if (!gstPaymentIn.invoiceId) {
+                throw new Error("Invoice ID not found in payment record");
+            }
 
-        // Try to delete from NON-GST payment ins
-        const nonGstPaymentIn = await PaymentInNonGst.findByIdAndDelete(id);
-        if (nonGstPaymentIn) return nonGstPaymentIn;
+            // Remove payment reference from invoice
+            const updatedInvoice = await InvoiceGst.findByIdAndUpdate(
+                gstPaymentIn.invoiceId,
+                {
+                    $pull: {
+                        paymentReferences: { paymentInId: id }
+                    }
+                },
+                { new: true }
+            );
+
+            const invoice = await InvoiceGst.findById(gstPaymentIn.invoiceId);
+
+            if (updatedInvoice) {
+                // Recalculate totals
+                // const totals = calculateInvoiceTotals(updatedInvoice, (gstPaymentIn.receivedAmount || 0));
+                const totalReferenceAmount = (invoice?.paymentReferences || []).reduce(
+                    (sum, ref) => sum + (ref.amount || 0),
+                    0
+                )
+                const totalReceived = totalReferenceAmount + (invoice?.receivedAmount || 0);
+
+                const totalAmount = invoice?.totalAmount || 0;
+                const balanceAmount = Math.max(0, totalAmount - totalReceived);
+                const status = getInvoiceStatus(totalReceived, totalAmount || 0);
+
+                // Update invoice with new totals
+                await InvoiceGst.findByIdAndUpdate(
+                    gstPaymentIn.invoiceId,
+                    {
+                        // receivedAmount: totals.receivedAmount,
+                        balanceAmount: balanceAmount,
+                        status
+                    }
+                );
+            }
+
+            // Delete the payment in
+            await PaymentInGst.findByIdAndDelete(id);
+
+            // Create history entry
+            await InvoiceHistory.create({
+                invoiceId: gstPaymentIn.invoiceId.toString(),
+                gstType: 'GST',
+                action: 'UPDATE',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'paymentReferences',
+                    oldValue: { paymentInId: id, amount: gstPaymentIn.receivedAmount || 0 },
+                    newValue: null
+                }],
+                notes: `Payment reference removed: ${gstPaymentIn.paymentInNumber}`,
+                metadata: { paymentInId: id }
+            });
+
+            return { success: true, message: "Payment In deleted successfully" };
+        }
+
+        // Similar for NON-GST...
+        const nonGstPaymentIn = await PaymentInNonGst.findById(id);
+        if (nonGstPaymentIn) {
+            // Check if invoiceId exists
+            if (!nonGstPaymentIn.invoiceId) {
+                throw new Error("Invoice ID not found in payment record");
+            }
+
+            const updatedInvoice = await InvoiceNonGst.findByIdAndUpdate(
+                nonGstPaymentIn.invoiceId,
+                {
+                    $pull: {
+                        paymentReferences: { paymentInId: id }
+                    }
+                },
+                { new: true }
+            );
+
+            const invoice = await InvoiceNonGst.findById(nonGstPaymentIn.invoiceId);
+
+            if (updatedInvoice) {
+                // const totals = calculateInvoiceTotals(updatedInvoice, (nonGstPaymentIn.receivedAmount || 0));
+                const totalReferenceAmount = (invoice?.paymentReferences || []).reduce(
+                    (sum, ref) => sum + (ref.amount || 0),
+                    0
+                )
+                const totalReceived = totalReferenceAmount + (invoice?.receivedAmount || 0);
+
+                const totalAmount = invoice?.totalAmount || 0;
+                const balanceAmount = Math.max(0, totalAmount - totalReceived);
+                const status = getInvoiceStatus(totalReceived, totalAmount || 0);
+                await InvoiceNonGst.findByIdAndUpdate(
+                    nonGstPaymentIn.invoiceId,
+                    {
+                        // receivedAmount: totals.receivedAmount,
+                        balanceAmount: balanceAmount,
+                        status
+                    }
+                );
+            }
+
+            await PaymentInNonGst.findByIdAndDelete(id);
+
+            await InvoiceHistory.create({
+                invoiceId: nonGstPaymentIn.invoiceId.toString(),
+                gstType: 'NON-GST',
+                action: 'UPDATE',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'paymentReferences',
+                    oldValue: { paymentInId: id, amount: nonGstPaymentIn.receivedAmount || 0 },
+                    newValue: null
+                }],
+                notes: `Payment reference removed: ${nonGstPaymentIn.paymentInNumber}`,
+                metadata: { paymentInId: id }
+            });
+
+            return { success: true, message: "Payment In deleted successfully" };
+        }
 
         throw new Error("Payment In not found");
     } catch (error: any) {

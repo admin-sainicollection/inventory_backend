@@ -83,6 +83,17 @@ const quotationNonGstSchema = new Schema<IQuotation>({
         default: 'OPEN',
         required: true
     },
+    isConverted: {
+        type: Boolean,
+        default: false
+    },
+    convertedAt: {
+        type: Date
+    },
+    convertedToInvoiceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'InvoiceNonGst'
+    },
     isClosed: {
         type: Boolean,
         default: false

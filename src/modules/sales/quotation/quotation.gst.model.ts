@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import {IQuotation, additionalChargeSchema, discountSchema, productItemSchema, taxBreakdownSchema } from "../types";
+import { IQuotation, additionalChargeSchema, discountSchema, productItemSchema, taxBreakdownSchema } from "../types";
 
 // Main Invoice Schema
 const quotationGstSchema = new Schema<IQuotation>({
@@ -83,9 +83,20 @@ const quotationGstSchema = new Schema<IQuotation>({
         default: 'OPEN',
         required: true
     },
-    isClosed:{
-        type:Boolean,
-        default:false
+    isConverted: {
+        type: Boolean,
+        default: false
+    },
+    convertedAt: {
+        type: Date
+    },
+    convertedToInvoiceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'InvoiceGst'
+    },
+    isClosed: {
+        type: Boolean,
+        default: false
     },
     taxBreakdown: [taxBreakdownSchema]
 }, {

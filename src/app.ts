@@ -23,6 +23,8 @@ import quotationRoutes from "./modules/sales/quotation/quotation.routes";
 import creditNoteRoutes from "./modules/sales/creditNote/creditNote.routes";
 import salesReturnRoutes from "./modules/sales/salesReturn/salesReturn.routes";
 import paymentInRoutes from "./modules/sales/paymentIn/paymentIn.routes";
+import productReturnRoutes from "./modules/productReturn/productReturn.routes";
+import invoiceHistoryRoutes from "./modules/sales/invoiceHistory/invoiceHistory.routes";
 
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
@@ -74,6 +76,8 @@ app.use('/api/v1/inventory', quotationRoutes)
 app.use('/api/v1/inventory', creditNoteRoutes)
 app.use('/api/v1/inventory', salesReturnRoutes)
 app.use('/api/v1/inventory', paymentInRoutes)
+app.use('/api/v1/inventory', productReturnRoutes)
+app.use('/api/v1/inventory', invoiceHistoryRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));

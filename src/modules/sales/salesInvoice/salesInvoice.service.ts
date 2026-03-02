@@ -10,6 +10,11 @@ import SalesReturnNonGst from "../salesReturn/salesReturn.non_gst.model";
 import { getInvoiceStatus } from "../../../utils/invoiceStatus";
 import PaymentInNonGst from "../paymentIn/paymentIn.non_gst.model";
 import PaymentInGst from "../paymentIn/paymentIn.gst.model";
+import QuotationGst from "../quotation/quotation.gst.model";
+import QuotationNonGst from "../quotation/quotation.non_gst.model";
+import mongoose from "mongoose";
+import { InvoiceHistory } from "../invoiceHistory/invoiceHistory.model";
+import { detectInvoiceChanges } from "../../../utils/detectInvoiceChanges";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -107,15 +112,53 @@ const getDateRangeQuery = (dateRange: string) => {
     }
 };
 
+export const updateQuotationStatus = async (quotationId: string, status: string) => {
+    try {
+        let quotation = await QuotationGst.findById(quotationId);
+        let Model = QuotationGst;
+        if (!quotation) {
+            quotation = await QuotationNonGst.findById(quotationId);
+            Model = QuotationNonGst;
+        }
+        if (!quotation) {
+            throw new Error("Quotation not found")
+        }
+        return await Model.findByIdAndUpdate(
+            quotationId,
+            {
+                status,
+                isConverted: true,
+                convertedAt: new Date()
+            }, {
+            new: true
+        }
+        )
+    } catch (error) {
+        throw error
+    }
+}
+
 // ============================================================================SERVICES
 
 export const createSalesInvoice = async (data: Partial<IInvoice>) => {
     try {
+        // If receivedAmount is provided at creation, add it as a payment reference
+        // if (data.receivedAmount && data.receivedAmount > 0) {
+        //     const paymentReference = {
+        //         paymentInId: 'initial', // Mark as initial payment
+        //         amount: data.receivedAmount
+        //     };
+
+        //     data.paymentReferences = [paymentReference];
+        // }
+
         const status = getInvoiceStatus(data.receivedAmount, data.totalAmount)
 
         if (!data.gstType) {
             throw new Error("GST type is required")
         }
+
+        let invoice;
 
         if (data.gstType === 'GST') {
             if (!data.invoiceNumber) {
@@ -129,10 +172,9 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
             if (existingGst) {
                 throw new Error("Invoice number already exists")
             }
-            return await InvoiceGst.create({ ...data, status });
-        }
+            invoice = await InvoiceGst.create({ ...data, status });
 
-        if (data.gstType === 'NON-GST') {
+        } else if (data.gstType === 'NON-GST') {
             if (!data.invoiceNumber) {
                 data.invoiceNumber = await getNextInvoiceNumber(data.invoiceType || 'INVOICE');
             }
@@ -143,9 +185,53 @@ export const createSalesInvoice = async (data: Partial<IInvoice>) => {
             if (existingNonGst) {
                 throw new Error("Invoice number already exists")
             }
-            return await InvoiceNonGst.create({ ...data, status });
+
+            invoice = await InvoiceNonGst.create({ ...data, status });
+        } else {
+            throw new Error("Invalid GST Type")
         }
-        throw new Error("Invalid GST Type")
+
+        // Create history entry for invoice creation
+        if (invoice) {
+            await InvoiceHistory.create({
+                invoiceId: invoice._id.toString(),
+                gstType: data.gstType,
+                action: 'CREATE',
+                changedAt: new Date(),
+                changes: Object.keys(data).map(key => ({
+                    field: key,
+                    oldValue: null,
+                    newValue: data[key as keyof IInvoice]
+                })),
+                notes: `Invoice ${invoice.invoiceNumber} created`,
+                newStatus: status
+            });
+
+            // If there was an initial payment, add a payment history entry
+            if (data.receivedAmount && data.receivedAmount > 0) {
+                await InvoiceHistory.create({
+                    invoiceId: invoice._id.toString(),
+                    gstType: data.gstType,
+                    action: 'PAYMENT_RECEIVED',
+                    changedAt: new Date(),
+                    changes: [{
+                        field: 'paymentReferences',
+                        oldValue: null,
+                        newValue: { amount: data.receivedAmount }
+                    }],
+                    previousAmount: 0,
+                    newAmount: data.receivedAmount,
+                    notes: `Initial payment received: ₹${data.receivedAmount.toFixed(2)}`
+                });
+            }
+        }
+
+        // Handle quotation conversion if needed
+        if (data.convertedFromQuotationId) {
+            await updateQuotationStatus(data.convertedFromQuotationId, 'CONVERTED');
+        }
+
+        return invoice;
     } catch (error: any) {
         throw new Error(error.message)
     }
@@ -161,13 +247,20 @@ export const getAllSalesInvoice = async (filters: FilterOptions = {}) => {
             status,
             startDate,
             endDate,
-            dateRange
+            dateRange,
+            partyId // Add this
         } = filters;
 
         const query: any = {};
 
         if (status && status !== "all") {
             query.status = status;
+        }
+
+        // ADD PARTY FILTER HERE
+        if (partyId) {
+            // query.party = partyId;
+            query.party = new mongoose.Types.ObjectId(partyId)
         }
 
         if (dateRange && dateRange !== "all" && dateRange !== "custom") {
@@ -342,22 +435,153 @@ export const getSalesInvoiceById = async (id: string) => {
 };
 
 // Update invoice
+// export const updateSalesInvoice = async (id: string, data: Partial<IInvoice>) => {
+//     try {
+//         const status = data.status ?? getInvoiceStatus(data.receivedAmount, data.totalAmount)
+//         // Try to update in GST invoices
+//         const gstInvoice = await InvoiceGst.findById(id);
+//         if (gstInvoice) {
+//             return await InvoiceGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
+//         }
+
+//         // Try to update in NON-GST invoices
+//         const nonGstInvoice = await InvoiceNonGst.findById(id);
+//         if (nonGstInvoice) {
+//             return await InvoiceNonGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
+//         }
+
+//         throw new Error("Invoice not found");
+//     } catch (error: any) {
+//         throw new Error(error.message);
+//     }
+// };
+
 export const updateSalesInvoice = async (id: string, data: Partial<IInvoice>) => {
     try {
-        const status =data.status ?? getInvoiceStatus(data.receivedAmount, data.totalAmount)
-        // Try to update in GST invoices
+        const status = data.status ?? getInvoiceStatus(data.receivedAmount, data.totalAmount);
+
+        // Find existing invoice
+        let existingInvoice;
+        let gstType;
+        let Model;
+
         const gstInvoice = await InvoiceGst.findById(id);
         if (gstInvoice) {
-            return await InvoiceGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
+            existingInvoice = gstInvoice.toObject();
+            gstType = 'GST';
+            Model = InvoiceGst;
+        } else {
+            const nonGstInvoice = await InvoiceNonGst.findById(id);
+            if (nonGstInvoice) {
+                existingInvoice = nonGstInvoice.toObject();
+                gstType = 'NON-GST';
+                Model = InvoiceNonGst;
+            } else {
+                throw new Error("Invoice not found");
+            }
         }
 
-        // Try to update in NON-GST invoices
-        const nonGstInvoice = await InvoiceNonGst.findById(id);
-        if (nonGstInvoice) {
-            return await InvoiceNonGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
+        // Detect changes
+        const fieldsToTrack = [
+            'party', 'invoiceDate', 'dueDate', 'items', 'charges', 'discount',
+            'notes', 'terms', 'paymentTerms', 'totalAmount', 'receivedAmount',
+            'balanceAmount', 'taxBreakdown'
+        ];
+
+        const changes = detectInvoiceChanges(existingInvoice, data, fieldsToTrack);
+
+        // Check for status change
+        const oldStatus = existingInvoice.status;
+        const newStatus = status;
+        const isStatusChange = oldStatus !== newStatus;
+
+        // Check for amount change
+        const oldTotal = existingInvoice.totalAmount || 0;
+        const newTotal = data.totalAmount ?? oldTotal;
+        const isAmountChange = oldTotal !== newTotal;
+
+        // Check for payment received
+        const oldReceived = existingInvoice.receivedAmount || 0;
+        const newReceived = data.receivedAmount ?? oldReceived;
+        const isPaymentChange = oldReceived !== newReceived;
+
+        // Update the invoice
+        const updatedInvoice = await Model.findByIdAndUpdate(
+            id,
+            { ...data, status },
+            { new: true }
+        );
+
+        // Create history entries
+        if (changes.length > 0) {
+            // General changes history
+            await InvoiceHistory.create({
+                invoiceId: id,
+                gstType,
+                action: 'UPDATE',
+                changedAt: new Date(),
+                changes,
+                notes: `Invoice ${updatedInvoice?.invoiceNumber} updated`,
+                metadata: { fields: changes.map(c => c.field) }
+            });
         }
 
-        throw new Error("Invoice not found");
+        // Status change history
+        if (isStatusChange) {
+            await InvoiceHistory.create({
+                invoiceId: id,
+                gstType,
+                action: 'STATUS_CHANGE',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'status',
+                    oldValue: oldStatus,
+                    newValue: newStatus
+                }],
+                previousStatus: oldStatus,
+                newStatus: newStatus,
+                notes: `Status changed from ${oldStatus} to ${newStatus}`
+            });
+        }
+
+        // Payment received history
+        if (isPaymentChange && newReceived > oldReceived) {
+            const paymentAmount = newReceived - oldReceived;
+            await InvoiceHistory.create({
+                invoiceId: id,
+                gstType,
+                action: 'PAYMENT_RECEIVED',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'receivedAmount',
+                    oldValue: oldReceived,
+                    newValue: newReceived
+                }],
+                previousAmount: oldReceived,
+                newAmount: newReceived,
+                notes: `Payment received: ₹${paymentAmount.toFixed(2)}`
+            });
+        }
+
+        // Amount change history
+        if (isAmountChange && !isPaymentChange) {
+            await InvoiceHistory.create({
+                invoiceId: id,
+                gstType,
+                action: 'UPDATE',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'totalAmount',
+                    oldValue: oldTotal,
+                    newValue: newTotal
+                }],
+                previousAmount: oldTotal,
+                newAmount: newTotal,
+                notes: `Total amount changed from ₹${oldTotal.toFixed(2)} to ₹${newTotal.toFixed(2)}`
+            });
+        }
+
+        return updatedInvoice;
     } catch (error: any) {
         throw new Error(error.message);
     }

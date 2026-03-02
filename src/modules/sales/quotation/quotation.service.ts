@@ -3,6 +3,7 @@ import QuotationGst from "./quotation.gst.model";
 import QuotationNonGst from "./quotation.non_gst.model";
 import { useFinancialYear } from "../../../utils/useFinancialYear";
 import { getQuotationStatus } from "../../../utils/quotationStatus";
+import mongoose from "mongoose";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -32,6 +33,22 @@ const buildQuotationAggregation = (
         }
     });
 
+    pipeline.push({
+        $lookup: {
+            from: "vendors",
+            localField: "vendor",
+            foreignField: "_id",
+            as: "vendor"
+        }
+    });
+
+    pipeline.push({
+        $unwind: {
+            path: "$vendor",
+            preserveNullAndEmptyArrays: true
+        }
+    });
+
     if (search?.trim()) {
         const regex = new RegExp(search, "i");
 
@@ -41,7 +58,8 @@ const buildQuotationAggregation = (
                     { quotationNumber: regex },
                     { "party.partyName": regex },
                     { "party.nickName": regex },
-                    { "party.gstNumber": regex }
+                    { "party.gstNumber": regex },
+                    { "vendor.vendorName": regex },
                 ]
             }
         });
@@ -219,13 +237,25 @@ export const getAllQuotation = async (filters: FilterOptions = {}) => {
             status,
             startDate,
             endDate,
-            dateRange
+            dateRange,
+            partyId,
+            vendorId
         } = filters;
 
         const query: any = {};
 
         if (status && status !== "all") {
             query.status = status;
+        }
+
+        if (partyId) {
+            // query.party = partyId;
+            query.party = new mongoose.Types.ObjectId(partyId)
+        }
+
+        if (vendorId) {
+            // query.party = partyId;
+            query.vendor = new mongoose.Types.ObjectId(vendorId)
         }
 
         if (dateRange && dateRange !== "all" && dateRange !== "custom") {
@@ -371,7 +401,7 @@ export const setIsClosedStatus = async (
         // Calculate new status
         const status = getQuotationStatus(
             quotation.dueDate,
-            !!quotation.isConverted,
+            quotation.isConverted,
             isClosed
         );
 
