@@ -25,10 +25,12 @@ import salesReturnRoutes from "./modules/sales/salesReturn/salesReturn.routes";
 import paymentInRoutes from "./modules/sales/paymentIn/paymentIn.routes";
 import productReturnRoutes from "./modules/productReturn/productReturn.routes";
 import invoiceHistoryRoutes from "./modules/sales/invoiceHistory/invoiceHistory.routes";
+import whatsappRoutes from "./modules/whatsapp/whatsApp.routes";
 
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
 import path from "path";
+import { WHATSAPP_VERIFY_TOKEN } from "./utils";
 dotenv.config();
 
 
@@ -78,6 +80,7 @@ app.use('/api/v1/inventory', salesReturnRoutes)
 app.use('/api/v1/inventory', paymentInRoutes)
 app.use('/api/v1/inventory', productReturnRoutes)
 app.use('/api/v1/inventory', invoiceHistoryRoutes)
+app.use('/whatsapp', whatsappRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));
