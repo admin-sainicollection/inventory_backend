@@ -9,7 +9,7 @@ const env = process.env.APP_ENV ||  "development";
 dotenv.config();
 
 export const APP_ENV = env;
-export const PORT = process.env.PORT || "3000";
+export const PORT = process.env.PORT || "9999";
 export const BASE_URL_SERVER = process.env.BASE_URL_SERVER || "http://0.0.0.0:3000";
 export const FRONTEND_URL = process.env.FRONTEND_URL;
 
@@ -34,4 +34,8 @@ export const ADMIN_USER = process.env.ADMIN_USER;
 export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 export const ADMIN_NAME = process.env.ADMIN_NAME;
 
+export const WHATSAPP_VERIFY_TOKEN=process.env.WHATSAPP_VERIFY_TOKEN;
+export const WHATSAPP_PHONE_NUMBER_ID=process.env.WHATSAPP_PHONE_NUMBER_ID;
+export const WHATSAPP_ACCOUNT_ID=process.env.WHATSAPP_ACCOUNT_ID;
+export const WHATSAPP_ACCESS_TOKEN=process.env.WHATSAPP_ACCESS_TOKEN;
 
