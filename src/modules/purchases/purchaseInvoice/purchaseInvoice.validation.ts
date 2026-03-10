@@ -38,14 +38,15 @@ const TaxBreakdownItemSchema = z.object({
   igst: z.number().min(0).max(100).default(0)
 });
 
-const InvoiceBaseSchema = z.object({
-  invoiceType: z.enum(['INVOICE', 'QUOTATION', 'SALES_RETURN', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PURCHASE_ORDER']).default('INVOICE'),
+const PurchaseBaseSchema = z.object({
+  purchaseType: z.enum(['PURCHASE', 'PURCHASE_RETURN', 'DEBIT_NOTE', 'PAYMENT_OUT']).default('PURCHASE'),
   gstType: z.enum(['GST', 'NON-GST']).default('GST'),
   paymentType: z.enum(['CASH' , 'UPI' , 'CARD' , 'BANK_TRANSFER']).default('CASH'),
-  party: z.string().min(1,"Please select party first"),
-  invoiceNumber: z.string().optional(),
+  party: z.union([z.string(), z.null()]).optional().default(null),
+  vendor: z.union([z.string(), z.null()]).optional().default(null),
+  purchaseNumber: z.string().optional(),
   convertedFromQuotationId:z.string().optional(),
-  invoiceDate: z.union([z.string(), z.date()]).default(() => new Date().toISOString()),
+  purchaseDate: z.union([z.string(), z.date()]).default(() => new Date().toISOString()),
   date: z.union([z.string(), z.date()]).default(() => new Date().toISOString()),
   dueDate: z.union([z.string(), z.date()]).optional(),
   items: z.array(ProductItemSchema).min(1,"Please add atleast one item"),
@@ -63,7 +64,7 @@ const InvoiceBaseSchema = z.object({
   taxBreakdown: z.array(TaxBreakdownItemSchema).default([])
 })
 // Single schema with conditional validation
-export const InvoiceSchema = InvoiceBaseSchema
+export const PurchaseSchema = PurchaseBaseSchema
 .refine((data) => {
   // HSN validation based on GST type
   if (data.gstType === 'GST') {
@@ -71,7 +72,7 @@ export const InvoiceSchema = InvoiceBaseSchema
   }
   return true;
 }, {
-  message: "HSN code is required for all items in GST invoices",
+  message: "HSN code is required for all items in GST purchases",
   path: ["items"]
 })
 .refine((data) => {
@@ -81,7 +82,7 @@ export const InvoiceSchema = InvoiceBaseSchema
   }
   return true;
 }, {
-  message: "Tax should be 'none' with 0% rate for NON-GST invoices",
+  message: "Tax should be 'none' with 0% rate for NON-GST purchases",
   path: ["items"]
 })
 .refine((data) => {
@@ -92,17 +93,28 @@ export const InvoiceSchema = InvoiceBaseSchema
   }
   return true;
 }, {
-  message: "Tax breakdown should not contain tax values for NON-GST invoices",
+  message: "Tax breakdown should not contain tax values for NON-GST purchases",
   path: ["taxBreakdown"]
-});
+})
+.refine(
+    (data) => {
+      const hasParty = data.party && data.party.trim().length > 0;
+      const hasVendor = data.vendor && data.vendor.trim().length > 0;
+      return hasParty || hasVendor;
+    },
+    {
+      message: "Either Party or Vendor is required",
+      path: ["party"] // Error will show on party field
+    }
+  );;
 
-export type Invoice = z.infer<typeof InvoiceSchema>;
+export type Purchase = z.infer<typeof PurchaseSchema>;
 
-export const updateInvoiceSchema = InvoiceBaseSchema.partial();
+export const updatePurchaseSchema = PurchaseBaseSchema.partial();
 
 // Validation function with type guards
 // export const validateInvoice = (data: unknown): { success: boolean; data?: Invoice; error?: string } => {
-//   const result = InvoiceSchema.safeParse(data);
+//   const result = PurchaseSchema.safeParse(data);
   
 //   if (!result.success) {
 //     return {
