@@ -25,7 +25,9 @@ import salesReturnRoutes from "./modules/sales/salesReturn/salesReturn.routes";
 import paymentInRoutes from "./modules/sales/paymentIn/paymentIn.routes";
 import productReturnRoutes from "./modules/productReturn/productReturn.routes";
 import invoiceHistoryRoutes from "./modules/sales/invoiceHistory/invoiceHistory.routes";
+
 import purchaseRoutes from './modules/purchases/purchaseInvoice/purchase.routes';
+import purchaseReturnRoutes from './modules/purchases/purchaseReturn/purchaseReturn.routes';
 import whatsappRoutes from "./modules/whatsapp/whatsApp.routes";
 
 import dotenv from "dotenv";
@@ -81,7 +83,9 @@ app.use('/api/v1/inventory', salesReturnRoutes)
 app.use('/api/v1/inventory', paymentInRoutes)
 app.use('/api/v1/inventory', productReturnRoutes)
 app.use('/api/v1/inventory', invoiceHistoryRoutes)
+
 app.use('/api/v1/inventory', purchaseRoutes)
+app.use('/api/v1/inventory', purchaseReturnRoutes)
 app.use('/whatsapp', whatsappRoutes)
 
 // health
