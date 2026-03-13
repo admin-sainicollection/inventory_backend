@@ -1,18 +1,18 @@
 import mongoose, { Schema } from "mongoose";
-import { IPurchase, additionalChargeSchema, discountSchema, paymentReferenceSchema, productItemSchema, taxBreakdownSchema } from "../types";
+import { IDebitNote, additionalChargeSchema, discountSchema, productItemSchema, taxBreakdownSchema } from "../types";
 
 // Main Invoice Schema
-const purchaseGstSchema = new Schema<IPurchase>({
-    purchaseType: {
+const debitNoteNonGstSchema = new Schema<IDebitNote>({
+    debitNoteType: {
         type: String,
         enum: ['PURCHASE', 'PURCHASE_RETURN', 'DEBIT_NOTE', 'PAYMENT_OUT'],
-        default: 'PURCHASE',
+        default: 'DEBIT_NOTE',
         required: true
     },
     gstType: {
         type: String,
         enum: ['GST', 'NON-GST'],
-        default: 'GST',
+        default: 'NON-GST',
         required: true
     },
     paymentType: {
@@ -24,7 +24,7 @@ const purchaseGstSchema = new Schema<IPurchase>({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Party',
         required: false,
-        default: null, 
+        default: null,
         validate: {
             validator: function (v: any) {
                 // Allow null, undefined, or valid ObjectId
@@ -37,7 +37,7 @@ const purchaseGstSchema = new Schema<IPurchase>({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Vendor',
         required: false,
-        default: null, 
+        default: null,
         validate: {
             validator: function (v: any) {
                 // Allow null, undefined, or valid ObjectId
@@ -46,21 +46,29 @@ const purchaseGstSchema = new Schema<IPurchase>({
             message: 'Invalid vendor reference'
         }
     },
-    purchaseNumber: {
+    purchaseId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'InvoiceGst',
+        validate: {
+            validator: function (v) {
+                return v === null || mongoose.Types.ObjectId.isValid(v);
+            },
+            message: 'Invalid invoice reference'
+        },
+        required: false
+    },
+    debitNoteNumber: {
         type: String,
         unique: true,
         trim: true,
         sparse: true // Allows multiple null values but unique for non-null
     },
-    purchaseDate: {
+    debitNoteDate: {
         type: Date,
         default: Date.now
     },
     date: {
         type: Date,
-    },
-    dueDate: {
-        type: Date
     },
     items: [productItemSchema],
     charges: [additionalChargeSchema],
@@ -74,10 +82,6 @@ const purchaseGstSchema = new Schema<IPurchase>({
         type: String,
         trim: true,
         maxlength: 1000
-    },
-    paymentTerms: {
-        type: String,
-        trim: true
     },
     roundOff: {
         type: Boolean,
@@ -114,31 +118,30 @@ const purchaseGstSchema = new Schema<IPurchase>({
         default: 'UNPAID',
         required: true
     },
-    taxBreakdown: [taxBreakdownSchema],
-    paymentReferences: [paymentReferenceSchema],
+    taxBreakdown: [taxBreakdownSchema]
 }, {
     timestamps: true, // Automatically adds createdAt and updatedAt
     versionKey: false // Disable __v field
 });
 
 // Indexes for better query performance
-// purchaseGstSchema.index({ purchaseNumber: 1 });
-purchaseGstSchema.index({ party: 1 });
-purchaseGstSchema.index({ purchaseDate: 1 });
-purchaseGstSchema.index({ createdAt: 1 });
-purchaseGstSchema.index({ purchaseType: 1, gstType: 1 });
+// debitNoteNonGstSchema.index({ debitNoteNumber: 1 });
+debitNoteNonGstSchema.index({ party: 1 });
+debitNoteNonGstSchema.index({ debitNoteDate: 1 });
+debitNoteNonGstSchema.index({ createdAt: 1 });
+debitNoteNonGstSchema.index({ debitNoteType: 1, gstType: 1 });
 
 // Virtual for formatted dates (optional)
-purchaseGstSchema.virtual('formattedPurchaseDate').get(function () {
-    return this.purchaseDate ? new Date(this.purchaseDate).toLocaleDateString() : '';
+debitNoteNonGstSchema.virtual('formattedDebitNoteDate').get(function () {
+    return this.debitNoteDate ? new Date(this.debitNoteDate).toLocaleDateString() : '';
 });
 
-purchaseGstSchema.virtual('formattedDueDate').get(function () {
+debitNoteNonGstSchema.virtual('formattedDueDate').get(function () {
     return this.dueDate ? new Date(this.dueDate).toLocaleDateString() : '';
 });
 
 // Virtual for payment status
-purchaseGstSchema.virtual('paymentStatus').get(function () {
+debitNoteNonGstSchema.virtual('paymentStatus').get(function () {
     if (!this.receivedAmount) return 'PENDING';
     if (this.receivedAmount >= (this.totalAmount || 0)) return 'PAID';
     if (this.receivedAmount > 0) return 'PARTIAL';
@@ -146,13 +149,13 @@ purchaseGstSchema.virtual('paymentStatus').get(function () {
 });
 
 // Pre-save middleware to calculate balance
-purchaseGstSchema.pre('save', function (next) {
+debitNoteNonGstSchema.pre('save', function (next) {
     if (this.totalAmount !== undefined && this.receivedAmount !== undefined) {
         this.balanceAmount = Math.max(0, (this.totalAmount || 0) - (this.receivedAmount || 0));
     }
     next();
 });
 
-const PurchaseGst = mongoose.model<IPurchase>('PurchaseGst', purchaseGstSchema);
+const DebitNoteNonGst = mongoose.model<IDebitNote>('DebitNoteNonGst', debitNoteNonGstSchema);
 
-export default PurchaseGst;
+export default DebitNoteNonGst;
