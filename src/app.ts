@@ -29,6 +29,8 @@ import invoiceHistoryRoutes from "./modules/sales/invoiceHistory/invoiceHistory.
 import purchaseRoutes from './modules/purchases/purchaseInvoice/purchase.routes';
 import purchaseReturnRoutes from './modules/purchases/purchaseReturn/purchaseReturn.routes';
 import debitNoteRoutes from './modules/purchases/debitNote/debitNote.routes';
+import paymentOutRoutes from './modules/purchases/paymentOut/paymentOut.routes';
+
 import whatsappRoutes from "./modules/whatsapp/whatsApp.routes";
 
 import dotenv from "dotenv";
@@ -88,6 +90,7 @@ app.use('/api/v1/inventory', invoiceHistoryRoutes)
 app.use('/api/v1/inventory', purchaseRoutes)
 app.use('/api/v1/inventory', purchaseReturnRoutes)
 app.use('/api/v1/inventory', debitNoteRoutes)
+app.use('/api/v1/inventory', paymentOutRoutes)
 app.use('/whatsapp', whatsappRoutes)
 
 // health
