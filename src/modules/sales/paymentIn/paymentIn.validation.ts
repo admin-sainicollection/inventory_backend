@@ -23,7 +23,7 @@ export const paymentInSchema = z.object({
 })
 
 
-export type CreditNote = z.infer<typeof paymentInSchema>;
+export type PaymentIn = z.infer<typeof paymentInSchema>;
 
 export const updatePaymentIn = paymentInSchema.partial();
 
