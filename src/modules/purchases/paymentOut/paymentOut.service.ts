@@ -6,6 +6,7 @@ import PaymentOutGst from "./paymentOut.gst.model";
 import PurchaseGst from "../purchaseInvoice/purchaseInvoice.gst.model";
 import PaymentOutNonGst from "./paymentOut.non_gst.model";
 import PurchaseNonGst from "../purchaseInvoice/purchaseInvoice.non_gst.model";
+import { PurchaseHistory } from "../purchaseHistory/purchaseHistory.model";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -237,21 +238,21 @@ export const createPaymentOut = async (data: Partial<IPaymentOut>) => {
             );
 
             // Create history entry for payment
-            // await InvoiceHistory.create({
-            //     purchaseId: data.purchaseId as string,
-            //     gstType: 'GST',
-            //     action: 'PAYMENT_RECEIVED',
-            //     changedAt: new Date(),
-            //     changes: [{
-            //         field: 'paymentReferences',
-            //         oldValue: null,
-            //         newValue: paymentReference
-            //     }],
-            //     previousAmount: invoice.receivedAmount || 0,
-            //     newAmount: totalReceived,
-            //     notes: `Payment received: ₹${(data.receivedAmount || 0).toFixed(2)} via ${data.paymentType} (Ref: ${paymentOut.paymentOutNumber})`,
-            //     metadata: { paymentOutId: paymentOut._id }
-            // });
+            await PurchaseHistory.create({
+                purchaseId: data.purchaseId as string,
+                gstType: 'GST',
+                action: 'PAYMENT_PAID',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'paymentReferences',
+                    oldValue: null,
+                    newValue: paymentReference
+                }],
+                previousAmount: invoice.receivedAmount || 0,
+                newAmount: totalReceived,
+                notes: `Payment paid: ₹${(data.receivedAmount || 0).toFixed(2)} via ${data.paymentType} (Ref: ${paymentOut.paymentOutNumber})`,
+                metadata: { paymentOutId: paymentOut._id }
+            });
 
             return paymentOut;
         }
@@ -319,21 +320,21 @@ export const createPaymentOut = async (data: Partial<IPaymentOut>) => {
                 { settledAmount: totalReceived }
             );
 
-            // await InvoiceHistory.create({
-            //     purchaseId: data.purchaseId as string,
-            //     gstType: 'NON-GST',
-            //     action: 'PAYMENT_RECEIVED',
-            //     changedAt: new Date(),
-            //     changes: [{
-            //         field: 'paymentReferences',
-            //         oldValue: null,
-            //         newValue: paymentReference
-            //     }],
-            //     previousAmount: invoice.receivedAmount || 0,
-            //     newAmount: totalReceived,
-            //     notes: `Payment received: ₹${(data.receivedAmount || 0).toFixed(2)} via ${data.paymentType} (Ref: ${paymentOut.paymentOutNumber})`,
-            //     metadata: { paymentOutId: paymentOut._id }
-            // });
+            await PurchaseHistory.create({
+                purchaseId: data.purchaseId as string,
+                gstType: 'NON-GST',
+                action: 'PAYMENT_PAID',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'paymentReferences',
+                    oldValue: null,
+                    newValue: paymentReference
+                }],
+                previousAmount: invoice.receivedAmount || 0,
+                newAmount: totalReceived,
+                notes: `Payment paid: ₹${(data.receivedAmount || 0).toFixed(2)} via ${data.paymentType} (Ref: ${paymentOut.paymentOutNumber})`,
+                metadata: { paymentOutId: paymentOut._id }
+            });
 
             return paymentOut;
         }
@@ -612,23 +613,23 @@ export const updatePaymentOut = async (id: string, data: Partial<IPaymentOut>) =
             );
 
             // Create history entry if amount changed
-            // if (amountDiff !== 0) {
-            //     await InvoiceHistory.create({
-            //         purchaseId: gstPaymentOut.purchaseId.toString(),
-            //         gstType: 'GST',
-            //         action: 'PAYMENT_RECEIVED',
-            //         changedAt: new Date(),
-            //         changes: [{
-            //             field: 'paymentReferences',
-            //             oldValue: { amount: oldAmount },
-            //             newValue: { amount: newAmount }
-            //         }],
-            //         previousAmount: invoice.receivedAmount || 0,
-            //         newAmount: totalReceived,
-            //         notes: `Payment updated: ${amountDiff > 0 ? '+' : '-'}₹${Math.abs(amountDiff).toFixed(2)}`,
-            //         metadata: { paymentOutId: id }
-            //     });
-            // }
+            if (amountDiff !== 0) {
+                await PurchaseHistory.create({
+                    purchaseId: gstPaymentOut.purchaseId.toString(),
+                    gstType: 'GST',
+                    action: 'PAYMENT_PAID',
+                    changedAt: new Date(),
+                    changes: [{
+                        field: 'paymentReferences',
+                        oldValue: { amount: oldAmount },
+                        newValue: { amount: newAmount }
+                    }],
+                    previousAmount: invoice.receivedAmount || 0,
+                    newAmount: totalReceived,
+                    notes: `Payment updated: ${amountDiff > 0 ? '+' : '-'}₹${Math.abs(amountDiff).toFixed(2)}`,
+                    metadata: { paymentOutId: id }
+                });
+            }
 
             return updatedPaymentOut;
         }
@@ -696,23 +697,23 @@ export const updatePaymentOut = async (id: string, data: Partial<IPaymentOut>) =
                 { new: true }
             );
 
-            // if (amountDiff !== 0) {
-            //     await InvoiceHistory.create({
-            //         purchaseId: nonGstPaymentOut.purchaseId.toString(),
-            //         gstType: 'NON-GST',
-            //         action: 'PAYMENT_RECEIVED',
-            //         changedAt: new Date(),
-            //         changes: [{
-            //             field: 'paymentReferences',
-            //             oldValue: { amount: oldAmount },
-            //             newValue: { amount: newAmount }
-            //         }],
-            //         previousAmount: invoice.receivedAmount || 0,
-            //         newAmount: totalReceived,
-            //         notes: `Payment updated: ${amountDiff > 0 ? '+' : '-'}₹${Math.abs(amountDiff).toFixed(2)}`,
-            //         metadata: { paymentOutId: id }
-            //     });
-            // }
+            if (amountDiff !== 0) {
+                await PurchaseHistory.create({
+                    purchaseId: nonGstPaymentOut.purchaseId.toString(),
+                    gstType: 'NON-GST',
+                    action: 'PAYMENT_PAID',
+                    changedAt: new Date(),
+                    changes: [{
+                        field: 'paymentReferences',
+                        oldValue: { amount: oldAmount },
+                        newValue: { amount: newAmount }
+                    }],
+                    previousAmount: invoice.receivedAmount || 0,
+                    newAmount: totalReceived,
+                    notes: `Payment updated: ${amountDiff > 0 ? '+' : '-'}₹${Math.abs(amountDiff).toFixed(2)}`,
+                    metadata: { paymentOutId: id }
+                });
+            }
 
             return updatedPaymentOut;
         }
@@ -774,19 +775,19 @@ export const deletePaymentOut = async (id: string) => {
             await PaymentOutGst.findByIdAndDelete(id);
 
             // Create history entry
-            // await InvoiceHistory.create({
-            //     purchaseId: gstPaymentOut.purchaseId.toString(),
-            //     gstType: 'GST',
-            //     action: 'UPDATE',
-            //     changedAt: new Date(),
-            //     changes: [{
-            //         field: 'paymentReferences',
-            //         oldValue: { paymentOutId: id, amount: gstPaymentOut.receivedAmount || 0 },
-            //         newValue: null
-            //     }],
-            //     notes: `Payment reference removed: ${gstPaymentOut.paymentOutNumber}`,
-            //     metadata: { paymentOutId: id }
-            // });
+            await PurchaseHistory.create({
+                purchaseId: gstPaymentOut.purchaseId.toString(),
+                gstType: 'GST',
+                action: 'UPDATE',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'paymentReferences',
+                    oldValue: { paymentOutId: id, amount: gstPaymentOut.receivedAmount || 0 },
+                    newValue: null
+                }],
+                notes: `Payment reference removed: ${gstPaymentOut.paymentOutNumber}`,
+                metadata: { paymentOutId: id }
+            });
 
             return { success: true, message: "Payment Out deleted successfully" };
         }
@@ -834,19 +835,19 @@ export const deletePaymentOut = async (id: string) => {
 
             await PaymentOutNonGst.findByIdAndDelete(id);
 
-            // await InvoiceHistory.create({
-            //     purchaseId: nonGstPaymentOut.purchaseId.toString(),
-            //     gstType: 'NON-GST',
-            //     action: 'UPDATE',
-            //     changedAt: new Date(),
-            //     changes: [{
-            //         field: 'paymentReferences',
-            //         oldValue: { paymentOutId: id, amount: nonGstPaymentOut.receivedAmount || 0 },
-            //         newValue: null
-            //     }],
-            //     notes: `Payment reference removed: ${nonGstPaymentOut.paymentOutNumber}`,
-            //     metadata: { paymentOutId: id }
-            // });
+            await PurchaseHistory.create({
+                purchaseId: nonGstPaymentOut.purchaseId.toString(),
+                gstType: 'NON-GST',
+                action: 'UPDATE',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'paymentReferences',
+                    oldValue: { paymentOutId: id, amount: nonGstPaymentOut.receivedAmount || 0 },
+                    newValue: null
+                }],
+                notes: `Payment reference removed: ${nonGstPaymentOut.paymentOutNumber}`,
+                metadata: { paymentOutId: id }
+            });
 
             return { success: true, message: "Payment Out deleted successfully" };
         }

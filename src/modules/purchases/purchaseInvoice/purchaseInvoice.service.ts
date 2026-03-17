@@ -6,6 +6,13 @@ import mongoose from "mongoose";
 import { detectInvoiceChanges } from "../../../utils/detectInvoiceChanges";
 import PurchaseNonGst from "./purchaseInvoice.non_gst.model";
 import PurchaseGst from "./purchaseInvoice.gst.model";
+import { PurchaseHistory } from "../purchaseHistory/purchaseHistory.model";
+import DebitNoteGst from "../debitNote/debitNote.gst.model";
+import DebitNoteNonGst from "../debitNote/debitNote.non_gst.model";
+import PurchaseReturnGst from "../purchaseReturn/purchaseReturn.gst.model";
+import PurchaseReturnNonGst from "../purchaseReturn/purchaseReturn.non_gst.model";
+import PaymentOutGst from "../paymentOut/paymentOut.gst.model";
+import PaymentOutNonGst from "../paymentOut/paymentOut.non_gst.model";
 const financialYear = useFinancialYear();
 
 // ======================================================================HELPER FUNCTION
@@ -127,16 +134,6 @@ const getDateRangeQuery = (dateRange: string) => {
 
 export const createPurchaseInvoice = async (data: Partial<IPurchase>) => {
     try {
-        // If receivedAmount is provided at creation, add it as a payment reference
-        // if (data.receivedAmount && data.receivedAmount > 0) {
-        //     const paymentReference = {
-        //         paymentInId: 'initial', // Mark as initial payment
-        //         amount: data.receivedAmount
-        //     };
-
-        //     data.paymentReferences = [paymentReference];
-        // }
-
         const status = getInvoiceStatus(data.receivedAmount, data.totalAmount)
 
         if (!data.gstType) {
@@ -183,39 +180,39 @@ export const createPurchaseInvoice = async (data: Partial<IPurchase>) => {
         }
 
         // Create history entry for invoice creation
-        // if (invoice) {
-        //     await InvoiceHistory.create({
-        //         purchaseId: invoice._id.toString(),
-        //         gstType: data.gstType,
-        //         action: 'CREATE',
-        //         changedAt: new Date(),
-        //         changes: Object.keys(data).map(key => ({
-        //             field: key,
-        //             oldValue: null,
-        //             newValue: data[key as keyof IPurchase]
-        //         })),
-        //         notes: `Invoice ${invoice.purchaseNumber} created`,
-        //         newStatus: status
-        //     });
+        if (purchase) {
+            await PurchaseHistory.create({
+                purchaseId: purchase._id.toString(),
+                gstType: data.gstType,
+                action: 'CREATE',
+                changedAt: new Date(),
+                changes: Object.keys(data).map(key => ({
+                    field: key,
+                    oldValue: null,
+                    newValue: data[key as keyof IPurchase]
+                })),
+                notes: `Purchase ${purchase.purchaseNumber} created`,
+                newStatus: status
+            });
 
-        //     // If there was an initial payment, add a payment history entry
-        //     if (data.receivedAmount && data.receivedAmount > 0) {
-        //         await InvoiceHistory.create({
-        //             purchaseId: invoice._id.toString(),
-        //             gstType: data.gstType,
-        //             action: 'PAYMENT_RECEIVED',
-        //             changedAt: new Date(),
-        //             changes: [{
-        //                 field: 'paymentReferences',
-        //                 oldValue: null,
-        //                 newValue: { amount: data.receivedAmount }
-        //             }],
-        //             previousAmount: 0,
-        //             newAmount: data.receivedAmount,
-        //             notes: `Initial payment received: ₹${data.receivedAmount.toFixed(2)}`
-        //         });
-        //     }
-        // }
+            //     // If there was an initial payment, add a payment history entry
+            if (data.receivedAmount && data.receivedAmount > 0) {
+                await PurchaseHistory.create({
+                    purchaseId: purchase._id.toString(),
+                    gstType: data.gstType,
+                    action: 'PAYMENT_PAID',
+                    changedAt: new Date(),
+                    changes: [{
+                        field: 'paymentReferences',
+                        oldValue: null,
+                        newValue: { amount: data.receivedAmount }
+                    }],
+                    previousAmount: 0,
+                    newAmount: data.receivedAmount,
+                    notes: `Initial payment paid: ₹${data.receivedAmount.toFixed(2)}`
+                });
+            }
+        }
 
 
         return purchase;
@@ -423,28 +420,6 @@ export const getPurchaseInvoiceById = async (id: string) => {
     }
 };
 
-// Update invoice
-// export const updatePurchaseInvoice = async (id: string, data: Partial<IPurchase>) => {
-//     try {
-//         const status = data.status ?? getInvoiceStatus(data.receivedAmount, data.totalAmount)
-//         // Try to update in GST invoices
-//         const gstPurchase = await PurchaseGst.findById(id);
-//         if (gstPurchase) {
-//             return await PurchaseGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
-//         }
-
-//         // Try to update in NON-GST invoices
-//         const nonGstPurchase = await PurchaseNonGst.findById(id);
-//         if (nonGstPurchase) {
-//             return await PurchaseNonGst.findByIdAndUpdate(id, { ...data, status }, { new: true });
-//         }
-
-//         throw new Error("Invoice not found");
-//     } catch (error: any) {
-//         throw new Error(error.message);
-//     }
-// };
-
 export const updatePurchaseInvoice = async (id: string, data: Partial<IPurchase>) => {
     try {
         const status = data.status ?? getInvoiceStatus(data.receivedAmount, data.totalAmount);
@@ -482,17 +457,17 @@ export const updatePurchaseInvoice = async (id: string, data: Partial<IPurchase>
         // Check for status change
         const oldStatus = existingPurchase.status;
         const newStatus = status;
-        // const isStatusChange = oldStatus !== newStatus;
+        const isStatusChange = oldStatus !== newStatus;
 
         // Check for amount change
         const oldTotal = existingPurchase.totalAmount || 0;
         const newTotal = data.totalAmount ?? oldTotal;
-        // const isAmountChange = oldTotal !== newTotal;
+        const isAmountChange = oldTotal !== newTotal;
 
         // Check for payment received
         const oldReceived = existingPurchase.receivedAmount || 0;
         const newReceived = data.receivedAmount ?? oldReceived;
-        // const isPaymentChange = oldReceived !== newReceived;
+        const isPaymentChange = oldReceived !== newReceived;
 
         // Update the invoice
         const updatedPurchase = await Model.findByIdAndUpdate(
@@ -502,73 +477,73 @@ export const updatePurchaseInvoice = async (id: string, data: Partial<IPurchase>
         );
 
         // Create history entries
-        // if (changes.length > 0) {
-        //     // General changes history
-        //     await InvoiceHistory.create({
-        //         purchaseId: id,
-        //         gstType,
-        //         action: 'UPDATE',
-        //         changedAt: new Date(),
-        //         changes,
-        //         notes: `Invoice ${updatedPurchase?.purchaseNumber} updated`,
-        //         metadata: { fields: changes.map(c => c.field) }
-        //     });
-        // }
+        if (changes.length > 0) {
+            // General changes history
+            await PurchaseHistory.create({
+                purchaseId: id,
+                gstType,
+                action: 'UPDATE',
+                changedAt: new Date(),
+                changes,
+                notes: `Purchase ${updatedPurchase?.purchaseNumber} updated`,
+                metadata: { fields: changes.map(c => c.field) }
+            });
+        }
 
         // // Status change history
-        // if (isStatusChange) {
-        //     await InvoiceHistory.create({
-        //         purchaseId: id,
-        //         gstType,
-        //         action: 'STATUS_CHANGE',
-        //         changedAt: new Date(),
-        //         changes: [{
-        //             field: 'status',
-        //             oldValue: oldStatus,
-        //             newValue: newStatus
-        //         }],
-        //         previousStatus: oldStatus,
-        //         newStatus: newStatus,
-        //         notes: `Status changed from ${oldStatus} to ${newStatus}`
-        //     });
-        // }
+        if (isStatusChange) {
+            await PurchaseHistory.create({
+                purchaseId: id,
+                gstType,
+                action: 'STATUS_CHANGE',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'status',
+                    oldValue: oldStatus,
+                    newValue: newStatus
+                }],
+                previousStatus: oldStatus,
+                newStatus: newStatus,
+                notes: `Status changed from ${oldStatus} to ${newStatus}`
+            });
+        }
 
         // Payment received history
-        // if (isPaymentChange && newReceived > oldReceived) {
-        //     const paymentAmount = newReceived - oldReceived;
-        //     await InvoiceHistory.create({
-        //         purchaseId: id,
-        //         gstType,
-        //         action: 'PAYMENT_RECEIVED',
-        //         changedAt: new Date(),
-        //         changes: [{
-        //             field: 'receivedAmount',
-        //             oldValue: oldReceived,
-        //             newValue: newReceived
-        //         }],
-        //         previousAmount: oldReceived,
-        //         newAmount: newReceived,
-        //         notes: `Payment received: ₹${paymentAmount.toFixed(2)}`
-        //     });
-        // }
+        if (isPaymentChange && newReceived > oldReceived) {
+            const paymentAmount = newReceived - oldReceived;
+            await PurchaseHistory.create({
+                purchaseId: id,
+                gstType,
+                action: 'PAYMENT_PAID',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'receivedAmount',
+                    oldValue: oldReceived,
+                    newValue: newReceived
+                }],
+                previousAmount: oldReceived,
+                newAmount: newReceived,
+                notes: `Payment paid: ₹${paymentAmount.toFixed(2)}`
+            });
+        }
 
         // // Amount change history
-        // if (isAmountChange && !isPaymentChange) {
-        //     await InvoiceHistory.create({
-        //         purchaseId: id,
-        //         gstType,
-        //         action: 'UPDATE',
-        //         changedAt: new Date(),
-        //         changes: [{
-        //             field: 'totalAmount',
-        //             oldValue: oldTotal,
-        //             newValue: newTotal
-        //         }],
-        //         previousAmount: oldTotal,
-        //         newAmount: newTotal,
-        //         notes: `Total amount changed from ₹${oldTotal.toFixed(2)} to ₹${newTotal.toFixed(2)}`
-        //     });
-        // }
+        if (isAmountChange && !isPaymentChange) {
+            await PurchaseHistory.create({
+                purchaseId: id,
+                gstType,
+                action: 'UPDATE',
+                changedAt: new Date(),
+                changes: [{
+                    field: 'totalAmount',
+                    oldValue: oldTotal,
+                    newValue: newTotal
+                }],
+                previousAmount: oldTotal,
+                newAmount: newTotal,
+                notes: `Total amount changed from ₹${oldTotal.toFixed(2)} to ₹${newTotal.toFixed(2)}`
+            });
+        }
 
         return updatedPurchase;
     } catch (error: any) {
@@ -581,18 +556,18 @@ export const deletePurchaseInvoice = async (id: string) => {
     try {
         const invoice = await getPurchaseInvoiceById(id);
 
-        // const [existingGstCn, existingNonGstCn, existingGstSr, existingNonGstSr, existingGstPi, existingNonGstPi] = await Promise.all([
-        //     CreditNoteGst.findOne({ purchaseId: id }),
-        //     CreditNoteNonGst.findOne({ purchaseId: id }),
-        //     SalesReturnGst.findOne({ purchaseId: id }),
-        //     SalesReturnNonGst.findOne({ purchaseId: id }),
-        //     PaymentInGst.findOne({ purchaseId: id }),
-        //     PaymentInNonGst.findOne({ purchaseId: id }),
-        // ]);
+        const [existingGstCn, existingNonGstCn, existingGstSr, existingNonGstSr, existingGstPi, existingNonGstPi] = await Promise.all([
+            DebitNoteGst.findOne({ purchaseId: id }),
+            DebitNoteNonGst.findOne({ purchaseId: id }),
+            PurchaseReturnGst.findOne({ purchaseId: id }),
+            PurchaseReturnNonGst.findOne({ purchaseId: id }),
+            PaymentOutGst.findOne({ purchaseId: id }),
+            PaymentOutNonGst.findOne({ purchaseId: id }),
+        ]);
 
-        // if (existingGstCn || existingNonGstCn || existingGstSr || existingNonGstSr || existingGstPi || existingNonGstPi) {
-        //     throw new Error(`Invoice having number ${invoice.purchaseNumber} is linked with other document. first unlink to delete`)
-        // }
+        if (existingGstCn || existingNonGstCn || existingGstSr || existingNonGstSr || existingGstPi || existingNonGstPi) {
+            throw new Error(`Purchase Invoice having number ${invoice.purchaseNumber} is linked with other document. first unlink to delete`)
+        }
 
         // Try to delete from GST invoices
         const gstPurchase = await PurchaseGst.findByIdAndDelete(id);
