@@ -194,7 +194,7 @@ export const paymentReferenceSchema = new Schema<PaymentReference>({
 }, { _id: true });
 
 // ======================================================================================== invoice History
-export type HistoryAction = 'CREATE' | 'UPDATE' | 'STATUS_CHANGE' | 'PAYMENT_RECEIVED' | 'EMAIL_SENT' | 'PRINTED' | 'CANCELLED';
+export type HistoryAction = 'CREATE' | 'UPDATE' | 'STATUS_CHANGE' | 'PAYMENT_PAID' | 'EMAIL_SENT' | 'PRINTED' | 'CANCELLED';
 export type ChangedField = {
     field: string;
     oldValue: any;
