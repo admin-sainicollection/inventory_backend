@@ -7,15 +7,37 @@ export interface AuthRequest extends Request {
 }
 
 // protect: checks access token and attaches user with populated role
+// export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
+//   try {
+//     const header = req.headers.authorization as string;
+//     if (!header || !header.startsWith("Bearer ")) return res.status(401).json({ message: "Unauthorized" });
+//     const token = header.split(" ")[1] as string;
+//     const decoded: any = verifyAccessToken(token) ;
+//     if (!decoded?.id) return res.status(401).json({ message: "Invalid token" });
+//     const user = await findUserById(decoded.id);
+//     if (!user) return res.status(401).json({ message: "User not found" });
+//     if ((user as any).passwordChangedAt && new Date((user as any).passwordChangedAt) > new Date((decoded.iat || 0) * 1000)) {
+//       return res.status(401).json({ message: "Password changed. Please login again." });
+//     }
+//     req.user = user;
+//     next();
+//   } catch (err: any) {
+//     return res.status(401).json({ message: "Unauthorized: " + err.message });
+//   }
+// };
+
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const header = req.headers.authorization as string;
     if (!header || !header.startsWith("Bearer ")) return res.status(401).json({ message: "Unauthorized" });
     const token = header.split(" ")[1] as string;
-    const decoded: any = verifyAccessToken(token) ;
+    const decoded: any = verifyAccessToken(token);
     if (!decoded?.id) return res.status(401).json({ message: "Invalid token" });
-    const user = await findUserById(decoded.id);
+    
+    // Populate role when finding user
+    const user = await findUserById(decoded.id).populate('role');
     if (!user) return res.status(401).json({ message: "User not found" });
+    
     if ((user as any).passwordChangedAt && new Date((user as any).passwordChangedAt) > new Date((decoded.iat || 0) * 1000)) {
       return res.status(401).json({ message: "Password changed. Please login again." });
     }

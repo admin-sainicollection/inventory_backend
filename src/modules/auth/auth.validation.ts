@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 // -----------------------------------------------------------------LOGIN SCHEMA
 export const loginSchema = z.object({
     identifier: z.string().min(3, "Email or Username is required"),
-    password: z.string().min(8, "Password is required"),
+    password: z.string().min(6, "Must contain at least 6 characters with letters and numbers"),
 })
 
 // -----------------------------------------------------------------FORGOT PASSWORD SCHEMA
@@ -18,7 +18,7 @@ export const resetPasswordSchema = z.object({
     token: z.string().min(1, "Reset token is required"),
     newPassword: z
         .string()
-        .min(8, "Password must be at least 8 characters long")
+        .min(6, "Password must be at least 6 characters long")
 })
 
 // -----------------------------------------------------------------INVITE USER SCHEMA
