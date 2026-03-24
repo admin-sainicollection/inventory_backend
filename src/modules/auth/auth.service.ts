@@ -2,10 +2,15 @@ import * as Repo from "./auth.repository";
 import { hashPassword, comparePassword } from "../../utils/password";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../../utils/jwt";
 import { createRandomToken, saveToken, findTokenDoc, deleteUserTokensByType } from "../../utils/token";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { sendMail } from "../../utils/email";
 import Audit from "../audit/audit.model";
-import { BASE_URL_SERVER } from "../../utils";
+import { BASE_URL_SERVER, FRONTEND_URL } from "../../utils";
+import { IRole } from "./role.model";
+import Role from "./role.model";
+import { IUser } from "../users/user.model";
+import { ServiceResponse } from "../employee/employee.service";
+import User from "../users/user.model";
 
 /** TTLs (seconds) */
 const EMAIL_VERIFY_TTL = 60 * 60 * 24; // 1 day
@@ -19,38 +24,148 @@ export const registerUser = async (payload: {
     password: string;
     phoneNumber?: string;
     address?: any;
-    roleName: string; // role name to lookup
+    roleId: string;
 }) => {
-    const { name, userName, email, password, phoneNumber, address, roleName } = payload;
+    const { name, userName, email, password, phoneNumber, address, roleId } = payload;
 
-    const existing = await Repo.findUserByEmail(email) || await Repo.findUserByUserName(userName);
+    const existing = await User.findOne({
+        $or: [{ email }, { userName }]
+    });
+
     if (existing) throw new Error("Email or username already in use");
 
-    const role = await Repo.findRoleByName(roleName);
+    const role = await Role.findById(roleId);
     if (!role) throw new Error("Role not found");
 
     const hashed = await hashPassword(password);
-    const user = await Repo.createUser({
-        name, userName, email, password: hashed, phoneNumber, address, role: role._id, status: "pending", isEmailVerified: false
+    const user = await User.create({
+        name,
+        userName,
+        email,
+        password: hashed,
+        phoneNumber,
+        address,
+        role: role._id,
+        status: "pending",
+        isEmailVerified: false
     });
 
-    // send verification token
+    // Send verification token
     const token = createRandomToken();
-    await saveToken(user._id as Types.ObjectId, token, "emailVerify", EMAIL_VERIFY_TTL);
-    const verifyUrl = `${BASE_URL_SERVER}/api/auth/verify-email?token=${token}&id=${user._id}`;
-    await sendMail(user.email, "Verify your account", `Click to verify: <a href="${verifyUrl}">${verifyUrl}</a>`);
+    await saveToken(user._id as Types.ObjectId, token, "emailVerify", 24 * 60 * 60); // 24 hours
+    const verifyUrl = `${BASE_URL_SERVER}/api/v1/inventory/auth/verify-email?token=${token}&id=${user._id}`;
+
+    await sendMail(user.email, "Verify your account", `
+        <h2>Welcome to JD-SI!</h2>
+        <p>Please verify your email address by clicking the link below:</p>
+        <a href="${verifyUrl}">${verifyUrl}</a>
+        <p>This link will expire in 24 hours.</p>
+    `);
 
     await Audit.create({ actorId: user._id, action: "user:registered", targetId: user._id });
 
     return user;
 };
 
+export const sendCredentialsEmail = async (user: any) => {
+    try {
+        // Generate password reset token for setting up password
+        const resetToken = createRandomToken();
+        await saveToken(user._id, resetToken, "passwordReset", 24 * 60 * 60); // 24 hours
+
+        // const resetUrl = `${BASE_URL_SERVER}/api/v1/inventory/auth/reset-password?token=${resetToken}&id=${user._id}`;
+        const resetUrl = `${FRONTEND_URL}/reset-password?token=${resetToken}&id=${user._id}`;
+
+
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Welcome to JD-SI - Your Account Credentials</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+                    .content { padding: 30px; }
+                    .credentials-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+                    .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                    .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Welcome to JD-SI!</h1>
+                        <p>Your account has been successfully verified</p>
+                    </div>
+                    <div class="content">
+                        <h2>Hello ${user.name}!</h2>
+                        <p>Your account has been successfully created and verified. Here are your login credentials:</p>
+                        
+                        <div class="credentials-box">
+                            <strong>Username:</strong> ${user.userName}<br>
+                            <strong>Email:</strong> ${user.email}<br>
+                            <strong>Role:</strong> ${user.role?.name || 'User'}
+                        </div>
+                        
+                        <p>For security reasons, we do not display your password. Please click the button below to set up your password:</p>
+                        
+                        <div style="text-align: center;">
+                            <a href="${resetUrl}" class="button">Set Your Password</a>
+                        </div>
+                        
+                        <div class="warning">
+                            <strong>⚠️ Security Note:</strong>
+                            <ul style="margin: 10px 0 0 20px;">
+                                <li>This link will expire in 24 hours</li>
+                                <li>For security, please set your password immediately</li>
+                                <li>Never share your password with anyone</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="footer">
+                        <p>&copy; ${new Date().getFullYear()} JD-SI. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        await sendMail(user.email, "Welcome to JD-SI - Your Account Credentials", emailHtml);
+
+        await Audit.create({
+            actorId: user._id,
+            action: "user:credentials_sent",
+            targetId: user._id,
+            metadata: { email: user.email }
+        });
+
+    } catch (error: any) {
+        console.error("Error sending credentials email:", error);
+        // Don't throw error - email sending failure shouldn't break the flow
+    }
+};
+
 export const verifyEmail = async (userId: string, token: string) => {
     const doc = await findTokenDoc(token, "emailVerify");
     if (!doc || doc.userId.toString() !== userId) throw new Error("Invalid or expired token");
-    await Repo.updateUser(userId, { isEmailVerified: true, status: "active" });
+
+    const user = await User.findByIdAndUpdate(
+        userId,
+        { isEmailVerified: true, status: "active" },
+        { new: true }
+    ).populate('role', 'name');
+
+    if (!user) throw new Error("User not found");
+
     await deleteUserTokensByType(doc.userId as unknown as Types.ObjectId, "emailVerify");
     await Audit.create({ actorId: doc.userId, action: "user:email_verified", targetId: doc.userId });
+
+    // After successful verification, send credentials email
+    await sendCredentialsEmail(user);
+
     return true;
 };
 
@@ -74,11 +189,11 @@ export const login = async (emailOrUserName: string, password: string) => {
     await Audit.create({ actorId: user._id, action: "user:login", targetId: user._id });
 
     return {
-        status: "success", 
-        message:"User Logined in Successfully!",
-        access, 
+        status: "success",
+        message: "User Logined in Successfully!",
+        access,
         refresh,
-         user: {
+        user: {
             _id: user._id,
             name: user.name,
             userName: user.userName,
@@ -110,24 +225,130 @@ export const refreshToken = async (token: string) => {
 };
 
 export const forgotPassword = async (email: string) => {
-    const user = await Repo.findUserByEmail(email);
-    if (!user) return; // don't reveal
+    const user = await User.findOne({ email });
+    if (!user) return; // don't reveal if user exists
+
+    // Delete any existing password reset tokens for this user
+    await deleteUserTokensByType(user._id as Types.ObjectId, "passwordReset");
+
     const token = createRandomToken();
     await saveToken(user._id as Types.ObjectId, token, "passwordReset", RESET_TTL);
-    const url = `${BASE_URL_SERVER}/api/auth/reset-password?token=${token}&id=${user._id}`;
-    await sendMail(user.email, "Password reset", `Reset here: <a href="${url}">${url}</a>`);
+
+    // const resetUrl = `${BASE_URL_SERVER}/api/v1/inventory/auth/reset-password?token=${token}&id=${user._id}`;
+    const resetUrl = `${FRONTEND_URL}/reset-password?token=${token}&id=${user._id}`;
+
+    await sendMail(user.email, "Password Reset Request", `
+        <h2>Password Reset Request</h2>
+        <p>You requested to reset your password. Click the link below to set a new password:</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+        <p>This link will expire in ${RESET_TTL / 3600} hours.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+    `);
+
     await Audit.create({ actorId: user._id, action: "user:forgot_password", targetId: user._id });
 };
 
 export const resetPassword = async (userId: string, token: string, newPassword: string) => {
+    // Validate password strength
+    if (newPassword.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+    }
+
     const doc = await findTokenDoc(token, "passwordReset");
-    if (!doc || doc.userId.toString() !== userId) throw new Error("Invalid or expired token");
+    if (!doc || doc.userId.toString() !== userId) {
+        throw new Error("Invalid or expired token");
+    }
+
     const hashed = await hashPassword(newPassword);
-    await Repo.updateUser(userId, { password: hashed, passwordChangedAt: new Date() });
+
+    await User.findByIdAndUpdate(userId, {
+        password: hashed,
+        passwordChangedAt: new Date()
+    });
+
+    // Delete all password reset tokens for this user
     await deleteUserTokensByType(doc.userId as unknown as Types.ObjectId, "passwordReset");
-    await deleteUserTokensByType(doc.userId as unknown as Types.ObjectId, "refresh"); // force logout
-    await Audit.create({ actorId: doc.userId, action: "user:password_reset", targetId: doc.userId });
+
+    // Also delete refresh tokens to force logout from all devices
+    await deleteUserTokensByType(doc.userId as unknown as Types.ObjectId, "refresh");
+
+    await Audit.create({
+        actorId: doc.userId,
+        action: "user:password_reset",
+        targetId: doc.userId
+    });
+
     return true;
+};
+
+
+export const changePasswordService = async (
+    userId: string,
+    payload: {
+        currentPassword: string;
+        newPassword: string;
+    }
+): Promise<{ success: boolean; message: string }> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { currentPassword, newPassword } = payload;
+
+        // Validate user exists
+        const user = await User.findById(userId).session(session);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Verify current password
+        const isPasswordValid = await comparePassword(currentPassword, user.password);
+        if (!isPasswordValid) {
+            throw new Error("Current password is incorrect");
+        }
+
+        // Check if new password is same as current
+        const isSamePassword = await comparePassword(newPassword, user.password);
+        if (isSamePassword) {
+            throw new Error("New password cannot be the same as current password");
+        }
+
+        // Validate new password strength
+        if (newPassword.length < 6) {
+            throw new Error("Password must be at least 6 characters");
+        }
+
+        // Hash new password
+        const hashedPassword = await hashPassword(newPassword);
+
+        // Update user password
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            {
+                $set: {
+                    password: hashedPassword,
+                    passwordChangedAt: new Date(),
+                },
+            },
+            { new: true, session }
+        );
+
+        if (!updatedUser) {
+            throw new Error("Failed to update password");
+        }
+
+        await session.commitTransaction();
+
+        return {
+            success: true,
+            message: "Password changed successfully",
+        };
+    } catch (error: any) {
+        await session.abortTransaction();
+        throw new Error(error.message);
+    } finally {
+        session.endSession();
+    }
 };
 
 // Admin-only helper to create employees (invite)
@@ -157,4 +378,291 @@ export const adminCreateUser = async (actorId: string, payload: {
     await sendMail(user.email, "You are invited", `Temporary password: ${temp}. Verify: <a href="${inviteUrl}">${inviteUrl}</a>`);
     await Audit.create({ actorId: actorId ? new Types.ObjectId(actorId) : undefined, action: "admin:invite_user", targetId: user._id, meta: { tempPasswordProvided: true } });
     return user;
+};
+
+export const getAllUsersService = async (
+    page: number = 1,
+    limit: number = 10,
+    search: string = "",
+    status?: string,
+    role?: string
+): Promise<ServiceResponse<{ users: IUser[]; total: number; page: number; pages: number }>> => {
+    try {
+        const skip = (page - 1) * limit;
+
+        // Build query
+        const query: any = {};
+
+        // Search by name, email, or username
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: "i" } },
+                { userName: { $regex: search, $options: "i" } },
+                { email: { $regex: search, $options: "i" } },
+            ];
+        }
+
+        // Filter by status
+        if (status) {
+            query.status = status;
+        }
+
+        // Filter by role
+        if (role) {
+            query.role = role;
+        }
+
+        // Execute queries in parallel
+        const [users, total] = await Promise.all([
+            User.find(query)
+                .populate('role', 'name permissions')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            User.countDocuments(query),
+        ]);
+
+        const pages = Math.ceil(total / limit);
+
+        return {
+            status: "success",
+            message: "Users fetched successfully",
+            data: {
+                users,
+                total,
+                page,
+                pages,
+            },
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to fetch users: ${error.message}`);
+    }
+};
+
+export const getUserByIdService = async (id: string): Promise<ServiceResponse<IUser>> => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw new Error("Invalid user ID format");
+        }
+
+        const user = await User.findById(id)
+            .populate('role', 'name permissions description')
+            .lean();
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Remove sensitive information
+        // const {password,  ...userWithoutPassword } = user;
+
+        const { ...userWithoutPassword } = user;
+
+        return {
+            status: "success",
+            message: "User fetched successfully",
+            data: userWithoutPassword as IUser,
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to fetch user: ${error.message}`);
+    }
+};
+
+export const updateUserService = async (
+    id: string,
+    updateData: Partial<IUser>
+): Promise<ServiceResponse<IUser>> => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw new Error("Invalid user ID format");
+        }
+
+        // Check if user exists
+        const existingUser = await User.findById(id);
+        if (!existingUser) {
+            throw new Error("User not found");
+        }
+
+        // Check for unique fields if they're being updated
+        if (updateData.email && updateData.email !== existingUser.email) {
+            const emailExists = await User.findOne({ email: updateData.email, _id: { $ne: id } });
+            if (emailExists) {
+                throw new Error("Email already in use by another user");
+            }
+        }
+
+        if (updateData.userName && updateData.userName !== existingUser.userName) {
+            const usernameExists = await User.findOne({ userName: updateData.userName, _id: { $ne: id } });
+            if (usernameExists) {
+                throw new Error("Username already in use by another user");
+            }
+        }
+
+        // Hash password if it's being updated
+        if (updateData.password) {
+            updateData.password = await hashPassword(updateData.password);
+            updateData.passwordChangedAt = new Date();
+        }
+
+        // Remove fields that shouldn't be updated directly
+        delete updateData._id;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        ).populate('role', 'name permissions').lean();
+
+        if (!updatedUser) {
+            throw new Error("Failed to update user");
+        }
+
+        // Remove sensitive information
+        const { ...userWithoutPassword } = updatedUser;
+
+        return {
+            status: "success",
+            message: "User updated successfully",
+            data: userWithoutPassword as IUser,
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to update user: ${error.message}`);
+    }
+};
+
+export const deleteUserService = async (id: string): Promise<ServiceResponse> => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw new Error("Invalid user ID format");
+        }
+
+        const user = await User.findByIdAndDelete(id);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        return {
+            status: "success",
+            message: "User permanently deleted successfully",
+        };
+    } catch (error: any) {
+        throw new Error(`Failed to permanently delete user: ${error.message}`);
+    }
+};
+
+// -------------------------------------------------------------Roles
+export const getAllRoles = async (): Promise<IRole[]> => {
+    try {
+        const roles = await Role.find().sort({ createdAt: -1 }).lean();
+        return roles;
+    } catch (error: any) {
+        throw new Error(`Error fetching roles: ${error.message}`);
+    }
+};
+
+export const getRoleById = async (id: string): Promise<IRole | null> => {
+    try {
+        const role = await Role.findById(id).lean();
+        return role;
+    } catch (error: any) {
+        throw new Error(`Error fetching role by ID: ${error.message}`);
+    }
+};
+
+export const getRoleByName = async (name: string): Promise<IRole | null> => {
+    try {
+        const role = await Role.findOne({ name }).lean();
+        return role;
+    } catch (error: any) {
+        throw new Error(`Error fetching role by name: ${error.message}`);
+    }
+};
+
+export const createRole = async (roleData: Partial<IRole>): Promise<IRole> => {
+    try {
+        // Check if role with same name already exists
+        const existingRole = await Role.findOne({ name: roleData.name });
+        if (existingRole) {
+            throw new Error(`Role with name '${roleData.name}' already exists`);
+        }
+
+        const role = new Role(roleData);
+        await role.save();
+        return role.toObject();
+    } catch (error: any) {
+        throw new Error(`Error creating role: ${error.message}`);
+    }
+};
+
+export const updateRole = async (
+    id: string,
+    roleData: Partial<IRole>
+): Promise<IRole | null> => {
+    try {
+        // Check if updating name and if it conflicts with existing role
+        if (roleData.name) {
+            const existingRole = await Role.findOne({
+                name: roleData.name,
+                _id: { $ne: id },
+            });
+            if (existingRole) {
+                throw new Error(`Role with name '${roleData.name}' already exists`);
+            }
+        }
+
+        const role = await Role.findByIdAndUpdate(
+            id,
+            { $set: roleData },
+            { new: true, runValidators: true }
+        ).lean();
+
+        return role;
+    } catch (error: any) {
+        throw new Error(`Error updating role: ${error.message}`);
+    }
+};
+
+export const deleteRole = async (id: string): Promise<{ success: boolean; message?: string }> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        // Check if role exists
+        const role = await Role.findById(id).session(session);
+        if (!role) {
+            throw new Error("Role not found");
+        }
+
+        // Check if role is assigned to any user
+        const usersWithRole = await User.find({ role: id }).session(session);
+
+        if (usersWithRole.length > 0) {
+            // Role is assigned to users, prevent deletion
+            const userNames = usersWithRole.map(user => user.userName).join(', ');
+            return {
+                success: false,
+                message: `Cannot delete role "${role.name}" as it is assigned to ${usersWithRole.length} user(s): ${userNames}. Please reassign or remove these users first.`
+            };
+        }
+
+        // No users assigned, proceed with deletion
+        const deletedRole = await Role.findByIdAndDelete(id).session(session);
+
+        if (!deletedRole) {
+            throw new Error("Failed to delete role");
+        }
+
+        await session.commitTransaction();
+
+        return {
+            success: true,
+            message: "Role deleted successfully"
+        };
+    } catch (error: any) {
+        await session.abortTransaction();
+        throw new Error(`Error deleting role: ${error.message}`);
+    } finally {
+        session.endSession();
+    }
 };

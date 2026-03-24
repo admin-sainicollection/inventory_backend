@@ -1,6 +1,9 @@
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import Employee, { IEmployee } from './employee.model';
 import { uploadBuffer } from '../../config/cloudinary/cloudinary';
+import User from '../users/user.model';
+import Audit from '../audit/audit.model';
+import { registerUser, updateUserService } from '../auth/auth.service';
 
 // Types for file handling
 interface UploadedFile {
@@ -16,7 +19,7 @@ export interface UploadedFiles {
     pan_file?: UploadedFile[];
 }
 
-interface PaginationResult<T> {
+export interface PaginationResult<T> {
     status: string;
     data: T[];
     pagination: {
@@ -37,7 +40,7 @@ interface EmployeeStats {
     typeDistribution: Array<{ type: string; count: number }>;
 }
 
-interface ServiceResponse<T = any> {
+export interface ServiceResponse<T = any> {
     status: string;
     message: string;
     data?: T;
@@ -112,61 +115,134 @@ const uploadEmployeeFiles = async (files: any) => {
 
 
 export const addEmployeeService = async (
-    data: Partial<IEmployee>,
+    data: any, // This will include username, email, password, role along with employee data
     files: UploadedFiles
 ): Promise<ServiceResponse<IEmployee>> => {
-    try {
-        const employeeData = parseFormData(data);
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
+    try {
+        // Parse the form data
+        const employeeData = typeof data === 'string' ? JSON.parse(data) : data;
+
+        // 1. CREATE USER FIRST
+        // Check if user with same email or username exists
+        const existingUser = await User.findOne({
+            $or: [
+                { email: employeeData.email },
+                { userName: employeeData.username }
+            ]
+        }).session(session);
+
+        if (existingUser) {
+            throw new Error("User with this email or username already exists");
+        }
+
+
+        // Create full name from first and last name
+        const fullName = `${employeeData.first_name} ${employeeData.last_name || ''}`.trim();
+
+        const user = await registerUser({
+            name: fullName,
+            userName: employeeData.username,
+            email: employeeData.contact?.email?.[0],
+            password: employeeData.password,
+            // phoneNumber: employeeData.contact?.phone?.[0]?.phone_no, // Take first phone number
+            // address: employeeData.address,
+            roleId: employeeData.role,
+        })
+
+        // 2. PREPARE EMPLOYEE DATA (exclude user-specific fields)
+        const employeeCreateData: Partial<IEmployee> = {
+            first_name: employeeData.first_name,
+            last_name: employeeData.last_name,
+            dob: employeeData.dob,
+            gender: employeeData.gender,
+            contact: employeeData.contact,
+            address: employeeData.address,
+            job: employeeData.job,
+            document: employeeData.document,
+            finance: employeeData.finance,
+            userId: user?._id, // Link to the created user
+        };
+
+        // Upload files and attach URLs (keeping your existing file upload logic)
         const uploadedFiles = await uploadEmployeeFiles(files);
 
-        // ✅ Attach uploaded URLs
+        // ✅ Attach uploaded URLs (your existing code)
         if (uploadedFiles.photo) {
-            employeeData.photo = uploadedFiles.photo;
+            employeeCreateData.photo = uploadedFiles.photo;
         }
 
         if (uploadedFiles.aadhaar_photo_front || uploadedFiles.aadhaar_photo_back) {
-            employeeData.document ??= {};
-            employeeData.document.aadhaar ??= {};
+            employeeCreateData.document ??= {};
+            employeeCreateData.document.aadhaar ??= {};
 
             if (uploadedFiles.aadhaar_photo_front) {
-                employeeData.document.aadhaar.aadhaar_photo_front =
+                employeeCreateData.document.aadhaar.aadhaar_photo_front =
                     uploadedFiles.aadhaar_photo_front;
             }
 
             if (uploadedFiles.aadhaar_photo_back) {
-                employeeData.document.aadhaar.aadhaar_photo_back =
+                employeeCreateData.document.aadhaar.aadhaar_photo_back =
                     uploadedFiles.aadhaar_photo_back;
             }
         }
 
         if (uploadedFiles.pan_photo) {
-            employeeData.document ??= {};
-            employeeData.document.pan ??= {};
-            employeeData.document.pan.pan_photo = uploadedFiles.pan_photo;
+            employeeCreateData.document ??= {};
+            employeeCreateData.document.pan ??= {};
+            employeeCreateData.document.pan.pan_photo = uploadedFiles.pan_photo;
         }
 
-        // ✅ Convert dates
-        if (employeeData.dob)
-            employeeData.dob = new Date(employeeData.dob);
+        // ✅ Convert dates (your existing code)
+        if (employeeCreateData.dob) {
+            employeeCreateData.dob = new Date(employeeCreateData.dob);
+        }
 
-        if (employeeData.job?.joining_date)
-            employeeData.job.joining_date = new Date(
-                employeeData.job.joining_date
+        if (employeeCreateData.job?.joining_date) {
+            employeeCreateData.job.joining_date = new Date(
+                employeeCreateData.job.joining_date
             );
+        }
 
-        const employee = await Employee.create(employeeData);
+        // Convert base_salary to number if it's a string
+        if (employeeCreateData.job?.base_salary && typeof employeeCreateData.job.base_salary === 'string') {
+            employeeCreateData.job.base_salary = Number(employeeCreateData.job.base_salary);
+        }
+
+        // Convert aadhaar number to number if it's a string
+        if (employeeCreateData.document?.aadhaar?.aadhaar_no &&
+            typeof employeeCreateData.document.aadhaar.aadhaar_no === 'string') {
+            employeeCreateData.document.aadhaar.aadhaar_no =
+                Number(employeeCreateData.document.aadhaar.aadhaar_no);
+        }
+
+        // Create employee
+        const [employee] = await Employee.create([employeeCreateData], { session });
+
+        // Commit transaction
+        await session.commitTransaction();
+
+        // Return the created employee with populated user data
+        const populatedEmployee = await Employee.findById(employee?._id)
+            .populate('userId', 'name userName email role status')
+            .lean();
 
         return {
             status: "success",
-            message: "Employee created successfully",
-            data: employee,
+            message: "Employee and user account created successfully",
+            data: populatedEmployee as IEmployee,
         };
+
     } catch (error: any) {
+        // Rollback transaction on error
+        await session.abortTransaction();
         throw new Error(error.message);
+    } finally {
+        session.endSession();
     }
 };
-
 
 
 export const updateEmployeeService = async (
@@ -174,13 +250,36 @@ export const updateEmployeeService = async (
     data: Partial<IEmployee>,
     files: UploadedFiles
 ): Promise<ServiceResponse<IEmployee>> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-        const existingEmployee = await Employee.findById(id);
+        const existingEmployee = await Employee.findById(id).session(session);
         if (!existingEmployee) {
             throw new Error("Employee not found");
         }
 
         const updateData = parseFormData(data);
+
+        // Extract user-related fields
+        const userUpdateData: any = {};
+
+        if (updateData.username) {
+            userUpdateData.userName = updateData.username;
+            delete updateData.username;
+        }
+
+        if (updateData.password) {
+            userUpdateData.password = updateData.password;
+            delete updateData.password;
+        }
+
+        if (updateData.role) {
+            userUpdateData.role = updateData.role;
+            delete updateData.role;
+        }
+
+        // Handle file uploads for employee
         const uploadedFiles = await uploadEmployeeFiles(files);
 
         // ✅ PHOTO
@@ -211,7 +310,7 @@ export const updateEmployeeService = async (
             updateData.document.pan.pan_photo = uploadedFiles.pan_photo;
         }
 
-        // ✅ Type conversions
+        // ✅ Type conversions for employee data
         if (typeof updateData.dob === "string") {
             updateData.dob = new Date(updateData.dob);
         }
@@ -232,22 +331,52 @@ export const updateEmployeeService = async (
             );
         }
 
+        // Update employee
         const updatedEmployee = await Employee.findByIdAndUpdate(
             id,
             updateData,
-            { new: true, runValidators: true }
+            { new: true, runValidators: true, session }
         );
+
+        if (!updatedEmployee) {
+            throw new Error("Failed to update employee");
+        }
+
+        // Update associated user if userId exists and there are user fields to update
+        if (existingEmployee.userId && Object.keys(userUpdateData).length > 0) {
+            try {
+                await updateUserService(
+                    existingEmployee.userId.toString(),
+                    userUpdateData
+                );
+                // Note: updateUserService doesn't accept session, so it runs in its own transaction
+                // If you need atomicity, you'd need to modify updateUserService to accept session
+            } catch (userError: any) {
+                console.error("Error updating associated user:", userError);
+                // Don't throw here - we still want to return success for employee update
+                // You can decide whether to throw or just log based on your requirements
+            }
+        }
+
+        await session.commitTransaction();
+
+        // Fetch the updated employee with populated user data
+        const populatedEmployee = await Employee.findById(id)
+            .populate('userId', 'name userName email role status')
+            .lean();
 
         return {
             status: "success",
             message: "Employee updated successfully",
-            data: updatedEmployee!,
+            data: populatedEmployee as IEmployee,
         };
     } catch (error: any) {
+        await session.abortTransaction();
         throw new Error(error.message);
+    } finally {
+        session.endSession();
     }
 };
-
 
 export const getEmployeesService = async (
     filters: Record<string, any> = {},
@@ -350,7 +479,14 @@ export const getEmployeesService = async (
 
 export const getEmployeeByIdService = async (id: string): Promise<ServiceResponse<IEmployee>> => {
     try {
-        const employee = await Employee.findById(id).select('-__v');
+        const employee = await Employee.findById(id).select('-__v').populate({
+            path: "userId",
+            select: "name userName email status role",
+            populate: {
+                path: "role",
+                select: "name"
+            }
+        }).lean();
         if (!employee) {
             throw new Error('Employee not found');
         }
@@ -364,18 +500,81 @@ export const getEmployeeByIdService = async (id: string): Promise<ServiceRespons
     }
 };
 
+// export const deleteEmployeeService = async (id: string): Promise<ServiceResponse> => {
+//     try {
+//         const employee = await Employee.findByIdAndDelete(id);
+//         if (!employee) {
+//             throw new Error('Employee not found');
+//         }
+//         return {
+//             status: 'success',
+//             message: 'Employee deleted successfully'
+//         };
+//     } catch (error: any) {
+//         throw new Error(`Failed to delete employee: ${error.message}`);
+//     }
+// };
+
 export const deleteEmployeeService = async (id: string): Promise<ServiceResponse> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-        const employee = await Employee.findByIdAndDelete(id);
+        // Find the employee first to get the userId
+        const employee = await Employee.findById(id).session(session);
+
         if (!employee) {
             throw new Error('Employee not found');
         }
+
+        // Store the userId before deleting the employee
+        const userId = employee.userId;
+
+        // Delete the employee
+        const deletedEmployee = await Employee.findByIdAndDelete(id).session(session);
+
+        if (!deletedEmployee) {
+            throw new Error('Failed to delete employee');
+        }
+
+        // Delete the associated user if it exists
+        if (userId) {
+            const deletedUser = await User.findByIdAndDelete(userId).session(session);
+
+            if (!deletedUser) {
+                // Log this warning but don't fail the transaction since employee is already deleted
+                console.warn(`Warning: User with ID ${userId} not found for deletion. Employee ${id} was deleted successfully.`);
+            } else {
+                console.log(`Associated user ${userId} deleted successfully`);
+            }
+        }
+
+        // Commit the transaction
+        await session.commitTransaction();
+
+        // Create audit log for the deletion
+        await Audit.create({
+            actorId: userId, // or some system user ID if you have one
+            action: "employee:deleted",
+            targetId: id,
+            metadata: {
+                employeeId: id,
+                userId: userId,
+                employeeName: `${employee.first_name} ${employee.last_name || ''}`.trim()
+            }
+        });
+
         return {
             status: 'success',
-            message: 'Employee deleted successfully'
+            message: 'Employee and associated user account deleted successfully'
         };
     } catch (error: any) {
+        // Rollback the transaction if anything fails
+        await session.abortTransaction();
+        console.error('Error deleting employee and user:', error);
         throw new Error(`Failed to delete employee: ${error.message}`);
+    } finally {
+        session.endSession();
     }
 };
 
