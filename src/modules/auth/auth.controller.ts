@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import * as Service from "./auth.service";
 import Token from "./token.model";
-import {findTokenDoc} from '../../utils/token'
+import { findTokenDoc } from '../../utils/token'
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -77,460 +77,78 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
 export const validateResetToken = async (req: Request, res: Response) => {
   try {
-      const { token, id } = req.query;
-      
-      if (!token || !id) {
-          return res.status(400).json({
-              status: "error",
-              message: "Token and user ID are required"
-          });
-      }
-      
-      const tokenDoc = await findTokenDoc(token as string, "passwordReset");
-      
-      if (!tokenDoc || tokenDoc.userId.toString() !== id) {
-          return res.status(400).json({
-              status: "error",
-              message: "Invalid or expired token"
-          });
-      }
-      
-      res.json({
-          status: "success",
-          message: "Token is valid"
+    const { token, id } = req.query;
+
+    if (!token || !id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Token and user ID are required"
       });
+    }
+
+    const tokenDoc = await findTokenDoc(token as string, "passwordReset");
+
+    if (!tokenDoc || tokenDoc.userId.toString() !== id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid or expired token"
+      });
+    }
+
+    res.json({
+      status: "success",
+      message: "Token is valid"
+    });
   } catch (err: any) {
-      res.status(500).json({
-          status: "error",
-          message: err.message
-      });
+    res.status(500).json({
+      status: "error",
+      message: err.message
+    });
   }
 };
 
-export const getResetPasswordPage = async (req: Request, res: Response) => {
+export const adminResetUserPassword = async (req: Request, res: Response): Promise<void> => {
   try {
-      const { token, id } = req.query;
-      
-      // Validate token and id
-      if (!token || !id) {
-          return res.status(400).send(`
-              <!DOCTYPE html>
-              <html>
-              <head>
-                  <title>Invalid Reset Link - JD-SI</title>
-                  <style>
-                      body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-                      .container { text-align: center; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-width: 500px; }
-                      h1 { color: #f44336; margin-bottom: 20px; }
-                      p { color: #666; margin-bottom: 30px; }
-                      .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; }
-                  </style>
-              </head>
-              <body>
-                  <div class="container">
-                      <h1>❌ Invalid Reset Link</h1>
-                      <p>Missing token or user ID. Please request a new password reset link.</p>
-                      <a href="${process.env.FRONTEND_URL || 'http://localhost:4444'}/forgot-password" class="button">Request New Link</a>
-                  </div>
-              </body>
-              </html>
-          `);
+    const { userId } = req.params;
+
+    // Get admin from request (set by protect middleware)
+    const admin = (req as any).user;
+
+    if (!admin) {
+      res.status(401).json({
+        status: "error",
+        message: "Unauthorized: Admin authentication required"
+      });
+      return;
+    }
+
+    // Check if user has admin role
+    const roleName = admin.role?.name?.toLowerCase();
+    if (roleName !== 'admin') {
+      res.status(403).json({
+        status: "error",
+        message: "Forbidden: Only administrators can reset user passwords"
+      });
+      return;
+    }
+
+    const result = await Service.adminResetUserPassword(admin._id.toString(), userId as string);
+
+    res.json({
+      status: "success",
+      message: result.message,
+      data: {
+        temporaryPassword: result.temporaryPassword // Remove in production
       }
-      
-      // Check if token is valid
-      const tokenDoc = await findTokenDoc(token as string, "passwordReset");
-      
-      if (!tokenDoc) {
-          return res.status(400).send(`
-              <!DOCTYPE html>
-              <html>
-              <head>
-                  <title>Invalid or Expired Link - JD-SI</title>
-                  <style>
-                      body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-                      .container { text-align: center; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-width: 500px; }
-                      h1 { color: #f44336; margin-bottom: 20px; }
-                      p { color: #666; margin-bottom: 30px; }
-                      .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; }
-                  </style>
-              </head>
-              <body>
-                  <div class="container">
-                      <h1>❌ Invalid or Expired Link</h1>
-                      <p>This password reset link has expired or is invalid. Please request a new one.</p>
-                      <a href="${process.env.FRONTEND_URL || 'http://localhost:4444'}/forgot-password" class="button">Request New Link</a>
-                  </div>
-              </body>
-              </html>
-          `);
-      }
-      
-      // Verify that the token belongs to the correct user
-      if (tokenDoc.userId.toString() !== id) {
-          return res.status(400).send(`
-              <!DOCTYPE html>
-              <html>
-              <head>
-                  <title>Invalid Reset Link - JD-SI</title>
-                  <style>
-                      body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-                      .container { text-align: center; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-width: 500px; }
-                      h1 { color: #f44336; margin-bottom: 20px; }
-                      p { color: #666; margin-bottom: 30px; }
-                      .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; }
-                  </style>
-              </head>
-              <body>
-                  <div class="container">
-                      <h1>❌ Invalid Reset Link</h1>
-                      <p>This reset link is not valid for this user. Please request a new one.</p>
-                      <a href="${process.env.FRONTEND_URL || 'http://localhost:4444'}/forgot-password" class="button">Request New Link</a>
-                  </div>
-              </body>
-              </html>
-          `);
-      }
-      
-      // Return HTML form for password reset
-      res.send(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <title>Reset Password - JD-SI</title>
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <style>
-                  * {
-                      margin: 0;
-                      padding: 0;
-                      box-sizing: border-box;
-                  }
-                  
-                  body {
-                      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                      min-height: 100vh;
-                      display: flex;
-                      justify-content: center;
-                      align-items: center;
-                      padding: 20px;
-                  }
-                  
-                  .container {
-                      background: white;
-                      border-radius: 8px;
-                      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-                      max-width: 450px;
-                      width: 100%;
-                      padding: 40px;
-                  }
-                  
-                  h1 {
-                      color: #333;
-                      margin-bottom: 10px;
-                      font-size: 24px;
-                  }
-                  
-                  .subtitle {
-                      color: #666;
-                      margin-bottom: 30px;
-                      font-size: 14px;
-                  }
-                  
-                  .form-group {
-                      margin-bottom: 20px;
-                  }
-                  
-                  label {
-                      display: block;
-                      margin-bottom: 8px;
-                      color: #555;
-                      font-weight: 500;
-                      font-size: 14px;
-                  }
-                  
-                  input {
-                      width: 100%;
-                      padding: 12px;
-                      border: 1px solid #ddd;
-                      border-radius: 4px;
-                      font-size: 14px;
-                      transition: border-color 0.3s;
-                  }
-                  
-                  input:focus {
-                      outline: none;
-                      border-color: #667eea;
-                  }
-                  
-                  .password-strength {
-                      margin-top: 5px;
-                      font-size: 12px;
-                      color: #666;
-                  }
-                  
-                  button {
-                      width: 100%;
-                      padding: 12px;
-                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                      color: white;
-                      border: none;
-                      border-radius: 4px;
-                      font-size: 16px;
-                      font-weight: bold;
-                      cursor: pointer;
-                      transition: transform 0.2s;
-                  }
-                  
-                  button:hover {
-                      transform: translateY(-1px);
-                  }
-                  
-                  button:active {
-                      transform: translateY(0);
-                  }
-                  
-                  button:disabled {
-                      opacity: 0.6;
-                      cursor: not-allowed;
-                  }
-                  
-                  .error-message {
-                      background: #ffebee;
-                      color: #c62828;
-                      padding: 12px;
-                      border-radius: 4px;
-                      margin-bottom: 20px;
-                      font-size: 14px;
-                      display: none;
-                  }
-                  
-                  .success-message {
-                      background: #e8f5e9;
-                      color: #2e7d32;
-                      padding: 12px;
-                      border-radius: 4px;
-                      margin-bottom: 20px;
-                      font-size: 14px;
-                      display: none;
-                  }
-                  
-                  .loading {
-                      display: none;
-                      text-align: center;
-                      margin-top: 15px;
-                  }
-                  
-                  .spinner {
-                      border: 2px solid #f3f3f3;
-                      border-top: 2px solid #667eea;
-                      border-radius: 50%;
-                      width: 20px;
-                      height: 20px;
-                      animation: spin 1s linear infinite;
-                      display: inline-block;
-                      margin-right: 8px;
-                      vertical-align: middle;
-                  }
-                  
-                  @keyframes spin {
-                      0% { transform: rotate(0deg); }
-                      100% { transform: rotate(360deg); }
-                  }
-              </style>
-          </head>
-          <body>
-              <div class="container">
-                  <h1>Set New Password</h1>
-                  <p class="subtitle">Please enter your new password below</p>
-                  
-                  <div id="errorMessage" class="error-message"></div>
-                  <div id="successMessage" class="success-message"></div>
-                  
-                  <div>
-                      <div class="form-group">
-                          <label for="newPassword">New Password</label>
-                          <input type="password" id="newPassword" required>
-                          <div class="password-strength" id="passwordStrength"></div>
-                      </div>
-                      
-                      <div class="form-group">
-                          <label for="confirmPassword">Confirm Password</label>
-                          <input type="password" id="confirmPassword" required>
-                      </div>
-                      
-                      <button id="resetBtn">Reset Password</button>
-                      <div id="loading" class="loading">
-                          <div class="spinner"></div> Processing...
-                      </div>
-                  </div>
-              </div>
-              
-              <script>
-                  // Wait for DOM to load
-                  document.addEventListener('DOMContentLoaded', function() {
-                      const newPassword = document.getElementById('newPassword');
-                      const confirmPassword = document.getElementById('confirmPassword');
-                      const errorMessage = document.getElementById('errorMessage');
-                      const successMessage = document.getElementById('successMessage');
-                      const loading = document.getElementById('loading');
-                      const resetBtn = document.getElementById('resetBtn');
-                      const passwordStrength = document.getElementById('passwordStrength');
-                      
-                      const userId = '${id}';
-                      const resetToken = '${token}';
-                      
-                      console.log('Page loaded with userId:', userId);
-                      console.log('Reset token:', resetToken);
-                      
-                      // Password strength indicator
-                      newPassword.addEventListener('input', function() {
-                          const password = this.value;
-                          let strength = '';
-                          let color = '#666';
-                          
-                          if (password.length === 0) {
-                              strength = '';
-                          } else if (password.length < 6) {
-                              strength = 'Weak - Minimum 6 characters';
-                              color = '#f44336';
-                          } else if (password.length < 8) {
-                              strength = 'Medium';
-                              color = '#ff9800';
-                          } else {
-                              strength = 'Strong';
-                              color = '#4caf50';
-                          }
-                          
-                          passwordStrength.textContent = strength;
-                          passwordStrength.style.color = color;
-                      });
-                      
-                      // Reset password function
-                      async function resetPassword() {
-                          // Clear previous messages
-                          errorMessage.style.display = 'none';
-                          successMessage.style.display = 'none';
-                          
-                          const password = newPassword.value;
-                          const confirm = confirmPassword.value;
-                          
-                          // Validate
-                          if (!password) {
-                              errorMessage.textContent = 'Please enter a new password';
-                              errorMessage.style.display = 'block';
-                              newPassword.focus();
-                              return;
-                          }
-                          
-                          if (password.length < 6) {
-                              errorMessage.textContent = 'Password must be at least 6 characters';
-                              errorMessage.style.display = 'block';
-                              newPassword.focus();
-                              return;
-                          }
-                          
-                          if (password !== confirm) {
-                              errorMessage.textContent = 'Passwords do not match';
-                              errorMessage.style.display = 'block';
-                              confirmPassword.focus();
-                              return;
-                          }
-                          
-                          // Show loading
-                          loading.style.display = 'block';
-                          resetBtn.disabled = true;
-                          
-                          try {
-                              console.log('Sending reset request...');
-                              
-                              const response = await fetch('/api/v1/inventory/auth/reset-password', {
-                                  method: 'POST',
-                                  headers: {
-                                      'Content-Type': 'application/json',
-                                  },
-                                  body: JSON.stringify({
-                                      id: userId,
-                                      token: resetToken,
-                                      newPassword: password
-                                  })
-                              });
-                              
-                              const data = await response.json();
-                              console.log('Response:', data);
-                              
-                              if (response.ok && data.status === 'success') {
-                                  successMessage.textContent = data.message || 'Password reset successful! Redirecting to login...';
-                                  successMessage.style.display = 'block';
-                                  newPassword.value = '';
-                                  confirmPassword.value = '';
-                                  
-                                  // Redirect to login after 3 seconds
-                                  setTimeout(() => {
-                                      window.location.href = '${process.env.FRONTEND_URL || 'http://localhost:4444'}/login';
-                                  }, 3000);
-                              } else {
-                                  errorMessage.textContent = data.message || 'Failed to reset password';
-                                  errorMessage.style.display = 'block';
-                              }
-                          } catch (error) {
-                              console.error('Reset password error:', error);
-                              errorMessage.textContent = error.message || 'Network error. Please try again.';
-                              errorMessage.style.display = 'block';
-                          } finally {
-                              loading.style.display = 'none';
-                              resetBtn.disabled = false;
-                          }
-                      }
-                      
-                      // Add click event listener to button
-                      resetBtn.addEventListener('click', resetPassword);
-                      
-                      // Add enter key support
-                      newPassword.addEventListener('keypress', function(e) {
-                          if (e.key === 'Enter') {
-                              e.preventDefault();
-                              resetPassword();
-                          }
-                      });
-                      
-                      confirmPassword.addEventListener('keypress', function(e) {
-                          if (e.key === 'Enter') {
-                              e.preventDefault();
-                              resetPassword();
-                          }
-                      });
-                  });
-              </script>
-          </body>
-          </html>
-      `);
-  } catch (err: any) {
-      console.error('Error in getResetPasswordPage:', err);
-      res.status(500).send(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <title>Error - JD-SI</title>
-              <style>
-                  body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-                  .container { text-align: center; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-width: 500px; }
-                  h1 { color: #f44336; margin-bottom: 20px; }
-                  p { color: #666; margin-bottom: 30px; }
-                  .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; }
-              </style>
-          </head>
-          <body>
-              <div class="container">
-                  <h1>❌ Error</h1>
-                  <p>${err.message || 'An error occurred'}</p>
-                  <a href="${process.env.FRONTEND_URL || 'http://localhost:4444'}/forgot-password" class="button">Request New Link</a>
-              </div>
-          </body>
-          </html>
-      `);
+    });
+  } catch (error: any) {
+    console.error("Admin reset password error:", error);
+    res.status(400).json({
+      status: "error",
+      message: error.message || "Failed to reset password"
+    });
   }
 };
-
 
 export const login = async (req: Request, res: Response) => {
   try {

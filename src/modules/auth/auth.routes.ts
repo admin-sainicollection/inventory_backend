@@ -9,14 +9,15 @@ const router = Router();
 
 // Public
 router.post("/auth/register", validate(registerUserSchema), Controller.register);
-router.get("/auth/reset-password", Controller.getResetPasswordPage);
 router.get("/auth/verify-email", Controller.verifyEmail);
 router.post("/auth/login", validate(loginSchema), Controller.login);
 router.post("/auth/refresh", validate(refreshTokenSchema), Controller.refresh);
 router.post("/auth/forgot-password", validate(forgotPasswordSchema), Controller.forgotPassword);
 router.post("/auth/reset-password", validate(resetPasswordSchema), Controller.resetPassword);
-router.put("/auth/change-password/:id",  Controller.changePasswordController);
+router.put("/auth/change-password/:id", Controller.changePasswordController);
 router.get("/auth/validate-reset-token", Controller.validateResetToken);
+
+router.post("/admin/reset-password/:userId", protect, restrictToRoles('admin'), Controller.adminResetUserPassword);
 
 // Protected admin invite (requires "user:create" permission)
 router.post("/invite", protect, authorizePermission("user:create"), validate(inviteUserSchema), Controller.inviteUser);

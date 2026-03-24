@@ -171,8 +171,8 @@ export const verifyEmail = async (userId: string, token: string) => {
 
 export const login = async (emailOrUserName: string, password: string) => {
     // allow login by email or username
-    let user = await Repo.findUserByEmail(emailOrUserName);
-    if (!user) user = await Repo.findUserByUserName(emailOrUserName);
+    let user = await Repo.findUserByEmail(emailOrUserName).populate('role','name permissions');
+    if (!user) user = await Repo.findUserByUserName(emailOrUserName).populate('role','name permissions');
     if (!user) throw new Error("Invalid credentials");
     if (user.status !== "active") throw new Error(`User status ${user.status}`);
 
@@ -281,7 +281,6 @@ export const resetPassword = async (userId: string, token: string, newPassword: 
     return true;
 };
 
-
 export const changePasswordService = async (
     userId: string,
     payload: {
@@ -349,6 +348,160 @@ export const changePasswordService = async (
     } finally {
         session.endSession();
     }
+};
+
+export const adminResetUserPassword = async (
+    adminId: string,
+    userId: string
+): Promise<{ success: boolean; message: string; temporaryPassword?: string }> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        // Check if admin exists and has permission
+        const admin = await User.findById(adminId).populate('role');
+        if (!admin) {
+            throw new Error("Admin not found");
+        }
+
+        // Verify admin has permission (role name is 'admin')
+        const roleName = (admin.role as any)?.name?.toLowerCase();
+        if (roleName !== 'admin') {
+            throw new Error("Only administrators can reset user passwords");
+        }
+
+        // Find the user
+        const user = await User.findById(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Generate a secure temporary password
+        const temporaryPassword = generateRandomPassword();
+
+        // Hash the temporary password
+        const hashedPassword = await hashPassword(temporaryPassword);
+
+        // Update user password
+        await User.findByIdAndUpdate(
+            userId,
+            {
+                password: hashedPassword,
+                passwordChangedAt: new Date(),
+                status: "active" // Ensure user is active
+            },
+            { session }
+        );
+
+        // Delete all existing tokens for this user (force logout)
+        await deleteUserTokensByType(user._id as Types.ObjectId, "refresh");
+        await deleteUserTokensByType(user._id as Types.ObjectId, "passwordReset");
+
+        // Generate password reset token for email link
+        const resetToken = createRandomToken();
+        await saveToken(user._id as Types.ObjectId, resetToken, "passwordReset", 24 * 60 * 60);
+
+        // Send email with new password
+        await sendPasswordResetEmail(user, temporaryPassword, resetToken, true);
+
+        // Log the action
+        await Audit.create({
+            actorId: adminId,
+            action: "user:password_reset_by_admin",
+            targetId: userId,
+            metadata: {
+                adminName: admin.name,
+                adminEmail: admin.email,
+                userName: user.name,
+                userEmail: user.email
+            }
+        });
+
+        await session.commitTransaction();
+
+        return {
+            success: true,
+            message: `Password reset successfully. A new temporary password has been sent to ${user.email}`,
+            temporaryPassword: temporaryPassword
+        };
+    } catch (error: any) {
+        await session.abortTransaction();
+        throw new Error(`Failed to reset password: ${error.message}`);
+    } finally {
+        session.endSession();
+    }
+};
+
+const generateRandomPassword = (): string => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < 10; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+};
+
+const sendPasswordResetEmail = async (user: any, temporaryPassword: string, resetToken: string, isAdminReset: boolean = false) => {
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&id=${user._id}`;
+
+    const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Password Reset - JD-SI</title>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+                .content { padding: 30px; }
+                .password-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px; font-family: monospace; font-size: 18px; text-align: center; }
+                .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+                .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Password Reset</h1>
+                </div>
+                <div class="content">
+                    <h2>Hello ${user.name}!</h2>
+                    <p>Your password has been reset by an administrator.</p>
+                    
+                    ${temporaryPassword ? `
+                        <p>Your temporary password is:</p>
+                        <div class="password-box">
+                            <strong>${temporaryPassword}</strong>
+                        </div>
+                        <p>Please use this password to log in. You will be prompted to change it on first login.</p>
+                    ` : ''}
+                    
+                    <p>You can also click the button below to set a new password:</p>
+                    
+                    <div style="text-align: center;">
+                        <a href="${resetUrl}" class="button">Set New Password</a>
+                    </div>
+                    
+                    <div class="warning">
+                        <strong>⚠️ Security Note:</strong>
+                        <ul style="margin: 10px 0 0 20px;">
+                            <li>This link will expire in 24 hours</li>
+                            <li>If you didn't request this, please contact your system administrator immediately</li>
+                            <li>Never share your password with anyone</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="footer">
+                    <p>&copy; ${new Date().getFullYear()} JD-SI. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+
+    await sendMail(user.email, "Password Reset - JD-SI", emailHtml);
 };
 
 // Admin-only helper to create employees (invite)
