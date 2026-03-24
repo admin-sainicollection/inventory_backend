@@ -33,6 +33,7 @@ import paymentOutRoutes from './modules/purchases/paymentOut/paymentOut.routes';
 import purchaseHistoryRoutes from './modules/purchases/purchaseHistory/purchaseHistory.routes';
 
 import whatsappRoutes from "./modules/whatsapp/whatsApp.routes";
+import settingsRoutes from "./modules/settings/settings.routes";
 
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
@@ -93,6 +94,7 @@ app.use('/api/v1/inventory', purchaseReturnRoutes)
 app.use('/api/v1/inventory', debitNoteRoutes)
 app.use('/api/v1/inventory', paymentOutRoutes)
 app.use('/api/v1/inventory', purchaseHistoryRoutes)
+app.use("/api/v1/inventory/settings", settingsRoutes);
 
 app.use('/whatsapp', whatsappRoutes)
 
