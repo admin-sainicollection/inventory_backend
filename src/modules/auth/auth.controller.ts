@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import * as Service from "./auth.service";
-import Token from "./token.model";
 import { findTokenDoc } from '../../utils/token'
 
 export const register = async (req: Request, res: Response) => {

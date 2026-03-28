@@ -1,5 +1,5 @@
-import { Enquiry, IEnquiry, StatusType, Priority, Source, IStatusHistory, IStatusNote } from './enquiry.model';
-import { FilterQuery, Types } from 'mongoose';
+import { Enquiry, IEnquiry, StatusType, Priority, IStatusHistory, IStatusNote } from './enquiry.model';
+import {  Types } from 'mongoose';
 import { CreateEnquiryData, FilterOptions, PaginatedResult, UpdateEnquiryData } from './types';
 
 // Generate next enquiry number

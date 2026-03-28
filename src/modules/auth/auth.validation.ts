@@ -1,5 +1,4 @@
-import { email, z } from 'zod';
-import mongoose from 'mongoose';
+import { z } from 'zod';
 
 // -----------------------------------------------------------------LOGIN SCHEMA
 export const loginSchema = z.object({

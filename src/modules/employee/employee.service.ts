@@ -1,4 +1,4 @@
-import mongoose, { Types } from 'mongoose';
+import mongoose from 'mongoose';
 import Employee, { IEmployee } from './employee.model';
 import { uploadBuffer } from '../../config/cloudinary/cloudinary';
 import User from '../users/user.model';
