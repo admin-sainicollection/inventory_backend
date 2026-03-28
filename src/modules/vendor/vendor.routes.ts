@@ -1,15 +1,12 @@
 import { Router } from "express";
 import * as VendorController from './vendor.controller';
-import { protect, restrictToRoles } from "../../middlewares/auth.middleware";
+import { authorizePermission, protect, restrictToRoles } from "../../middlewares/auth.middleware";
 import { validate } from "../../middlewares/validate.middleware";
 import { 
-    vendorIdValidation, 
     vendorUpdateValidationSchema, 
     vendorValidationSchema,
     addPhoneValidationSchema,
     addEmailValidationSchema,
-    phoneIndexValidation,
-    emailIndexValidation
 } from "./vendor.validation";
 
 const router = Router();
@@ -18,26 +15,26 @@ const router = Router();
 router.post("/vendor/add-vendor", 
     protect, 
     validate(vendorValidationSchema), 
-    restrictToRoles("admin"), 
+    authorizePermission('vendor:create'),
     VendorController.addVendor
 );
 
 router.put("/vendor/update-vendor/:id", 
     protect, 
     validate(vendorUpdateValidationSchema), 
-    restrictToRoles("admin"), 
+    authorizePermission('vendor:update'),
     VendorController.updateVendor
 );
 
 router.get("/vendor/get-all-vendors", 
     protect,  
-    restrictToRoles('admin'), 
+    authorizePermission('vendor:list'),
     VendorController.getAllVendors
 );
 
 router.get('/vendor/get-vendor/:id', 
     protect, 
-    restrictToRoles("admin"), 
+    authorizePermission('vendor:read'),
     VendorController.getVendorById
 );
 
