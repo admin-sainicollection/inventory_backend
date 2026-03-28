@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import CarModel from "./compatibility.model";
 import Product from "../product/product.model";
-import { addCarModelSchema, updateCarModelSchema } from "./compatibility.validation";
 import { uploadBuffer } from "../../../config/cloudinary/cloudinary";
 
 /**

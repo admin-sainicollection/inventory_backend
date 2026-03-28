@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { addDailyLedgerValidation, updateDailyLedgerValidation } from './dailyLedger.validation';
 import { addLedger, editLedger, deleteLedger, getLedgerByPartyIdController, getAllLedgersController, getLedgerByIdController, getPartyLedgerSummary } from "./dailyLedger.controller";
-import { protect, restrictToRoles } from "../../middlewares/auth.middleware";
+import { authorizePermission, protect, restrictToRoles } from "../../middlewares/auth.middleware";
 import { validate } from "../../middlewares/validate.middleware";
 
 const router = Router();
@@ -9,14 +9,14 @@ const router = Router();
 router.post("/dailyLedger/add-ledger",
     protect,
     validate(addDailyLedgerValidation),
-    restrictToRoles("admin"),
+    authorizePermission('ledger:create'),
     addLedger
 );
 
 router.put("/dailyLedger/update-ledger/:id",
     protect,
     validate(updateDailyLedgerValidation),
-    restrictToRoles("admin"),
+    authorizePermission('ledger:update'),
     editLedger
 );
 
@@ -28,25 +28,25 @@ router.delete("/dailyLedger/delete-ledger/:id",
 
 router.get("/dailyLedger/get-party-ledger/:partyId",
     protect,
-    restrictToRoles("admin"),
+    authorizePermission('ledger:read'),
     getLedgerByPartyIdController
 );
 
 router.get("/dailyLedger/get-single-ledger/:id",
     protect,
-    restrictToRoles("admin"),
+    authorizePermission('ledger:read'),
     getLedgerByIdController
 );
 
 router.get("/dailyLedger/get-all-ledger",
     protect,
-    restrictToRoles("admin"),
+    authorizePermission('ledger:read'),
     getAllLedgersController
 );
 
 router.get("/dailyLedger/get-party-ledger-summary/:partyId",
     protect,
-    restrictToRoles("admin"),
+    authorizePermission('ledger:read'),
     getPartyLedgerSummary
 );
 

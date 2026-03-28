@@ -1,15 +1,12 @@
 import { Router } from "express";
 import * as PartyController from './party.controller';
-import { protect, restrictToRoles } from "../../middlewares/auth.middleware";
+import { authorizePermission, protect, restrictToRoles } from "../../middlewares/auth.middleware";
 import { validate } from "../../middlewares/validate.middleware";
 import { 
-    partyIdValidation, 
     partyUpdateValidationSchema, 
     partyValidationSchema,
     addPhoneValidationSchema,
     addEmailValidationSchema,
-    phoneIndexValidation,
-    emailIndexValidation
 } from "./party.validation";
 
 const router = Router();
@@ -18,26 +15,26 @@ const router = Router();
 router.post("/party/add-party", 
     protect, 
     validate(partyValidationSchema), 
-    restrictToRoles("admin"), 
+    authorizePermission('party:create'),
     PartyController.addParty
 );
 
 router.put("/party/update-party/:id", 
     protect, 
     validate(partyUpdateValidationSchema), 
-    restrictToRoles("admin"), 
+    authorizePermission('party:update'),
     PartyController.updateParty
 );
 
 router.get("/party/get-all-parties", 
     protect,  
-    restrictToRoles('admin'), 
+    authorizePermission('party:list'),
     PartyController.getAllParties
 );
 
 router.get('/party/get-party/:id', 
     protect, 
-    restrictToRoles("admin"), 
+    authorizePermission('party:read'),
     PartyController.getPartyById
 );
 
@@ -51,13 +48,11 @@ router.delete('/party/delete-party/:id',
 router.post('/party/:partyId/phones', 
     protect, 
     validate(addPhoneValidationSchema), 
-    restrictToRoles('admin'), 
     PartyController.addPhoneToParty
 );
 
 router.delete('/party/:partyId/phones/:phoneIndex', 
     protect, 
-    restrictToRoles('admin'), 
     PartyController.removePhoneFromParty
 );
 
@@ -65,13 +60,11 @@ router.delete('/party/:partyId/phones/:phoneIndex',
 router.post('/party/:partyId/emails', 
     protect, 
     validate(addEmailValidationSchema), 
-    restrictToRoles('admin'), 
     PartyController.addEmailToParty
 );
 
 router.delete('/party/:partyId/emails/:emailIndex', 
     protect, 
-    restrictToRoles('admin'), 
     PartyController.removeEmailFromParty
 );
 

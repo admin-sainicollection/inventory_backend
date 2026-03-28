@@ -23,7 +23,7 @@ interface Documents {
 
 export interface IEmployee extends Document {
     username:string;
-    password:string;
+    password?:string;
     role:string;
     
     first_name: string;
