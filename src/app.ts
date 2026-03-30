@@ -44,8 +44,17 @@ dotenv.config();
 
 const app = express();
 
-app.use(helmet());
+// app.use(helmet());
+app.use(
+    helmet({
+        crossOriginResourcePolicy: { policy: "cross-origin" }
+    })
+);
 app.use(cors());
+app.use(cors({
+    origin: "http://localhost:4444",
+    credentials: true
+}));
 // app.use(cors({ origin: process.env.FRONTEND_URL || true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());

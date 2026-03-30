@@ -4,7 +4,7 @@
 .github\instructions\codacy.instructions.md
 # Node.js dependencies
 /node_modules
-
+uploads
 # Environment variables (API keys, DB connection strings, secrets)
 .env
 .env.development
