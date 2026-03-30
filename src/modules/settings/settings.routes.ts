@@ -1,5 +1,5 @@
 import express from "express";
-import { saveSettings, fetchSettings, updateSettingsController } from "./settings.controller";
+import { saveSettings, fetchSettings, updateSettingsController, clearUploads } from "./settings.controller";
 import { upload } from "../../middlewares/upload";
 
 const router = express.Router();
@@ -27,5 +27,6 @@ router.put(
   ]),
   updateSettingsController
 );
+router.post("/clear-uploads", clearUploads);
 
 export default router;

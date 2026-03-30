@@ -128,6 +128,12 @@ export const updateSettingsController = async (req: any, res: Response) => {
       businessType: parseJSON(req.body.businessType, []),
     };
 
+    // 🔥 DELETE OLD FILES
+    if (files?.businessLogo && existing.businessLogo) deleteFile(existing.businessLogo);
+    if (files?.signature && existing.owner?.signature) deleteFile(existing.owner.signature);
+    if (files?.aadharPhoto && existing.documents?.aadhar?.aadharPhoto) deleteFile(existing.documents.aadhar.aadharPhoto);
+    if (files?.panPhoto && existing.documents?.pan?.panPhoto) deleteFile(existing.documents.pan.panPhoto);
+
     const data = {
       ...parsedBody,
 
@@ -158,11 +164,6 @@ export const updateSettingsController = async (req: any, res: Response) => {
       }
     };
 
-    // 🔥 DELETE OLD FILES
-    if (files?.businessLogo && existing.businessLogo) deleteFile(existing.businessLogo);
-    if (files?.signature && existing.owner?.signature) deleteFile(existing.owner.signature);
-    if (files?.aadharPhoto && existing.documents?.aadhar?.aadharPhoto) deleteFile(existing.documents.aadhar.aadharPhoto);
-    if (files?.panPhoto && existing.documents?.pan?.panPhoto) deleteFile(existing.documents.pan.panPhoto);
 
     const updated = await Settings.findByIdAndUpdate(existing._id, data, { new: true });
 
@@ -170,6 +171,45 @@ export const updateSettingsController = async (req: any, res: Response) => {
       status: "success",
       message: "updated",
       data: updated
+    });
+
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+import fs from "fs";
+import path from "path";
+
+// 🔥 SIMPLE CLEANUP API
+export const clearUploads = (req: any, res: any) => {
+  try {
+    const folder = req.body?.folder; // optional
+
+    const basePath = path.join(process.cwd(), "uploads");
+    const targetPath = folder
+      ? path.join(basePath, folder)
+      : basePath;
+
+    if (!fs.existsSync(targetPath)) {
+      return res.status(404).json({ message: "Folder not found" });
+    }
+
+    fs.readdirSync(targetPath).forEach((file) => {
+      const filePath = path.join(targetPath, file);
+
+      if (fs.lstatSync(filePath).isDirectory()) {
+        fs.rmSync(filePath, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(filePath);
+      }
+    });
+
+    res.json({
+      status: "success",
+      message: folder
+        ? `All files deleted from ${folder}`
+        : "All uploads cleared"
     });
 
   } catch (err: any) {
