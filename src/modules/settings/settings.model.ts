@@ -58,7 +58,8 @@ export interface ISettings extends Document {
   documents: {
     aadhar: {
       aadharNumber: string;
-      aadharPhoto?: string;
+      front?: string;
+      back?: string;
     };
     pan: {
       panNumber: string;
@@ -132,7 +133,8 @@ const SettingsSchema = new Schema<ISettings>(
     documents: {
       aadhar: {
         aadharNumber: String,
-        aadharPhoto: String,
+        front: String,
+        back: String
       },
       pan: {
         panNumber: String,

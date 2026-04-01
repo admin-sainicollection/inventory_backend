@@ -11,7 +11,8 @@ router.post(
   upload.fields([
     { name: "businessLogo", maxCount: 1 },
     { name: "signature", maxCount: 1 },
-    { name: "aadharPhoto", maxCount: 1 },
+    { name: "aadharFront", maxCount: 1 },
+    { name: "aadharBack", maxCount: 1 },
     { name: "panPhoto", maxCount: 1 }
   ]),
   saveSettings
@@ -22,7 +23,8 @@ router.put(
   upload.fields([
     { name: "businessLogo", maxCount: 1 },
     { name: "signature", maxCount: 1 },
-    { name: "aadharPhoto", maxCount: 1 },
+    { name: "aadharFront", maxCount: 1 },
+    { name: "aadharBack", maxCount: 1 },
     { name: "panPhoto", maxCount: 1 }
   ]),
   updateSettingsController

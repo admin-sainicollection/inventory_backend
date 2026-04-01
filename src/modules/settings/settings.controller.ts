@@ -74,9 +74,16 @@ export const saveSettings = async (req: any, res: Response) => {
       documents: {
         aadhar: {
           ...parsedBody.documents?.aadhar,
-          aadharPhoto: files?.aadharPhoto?.[0]?.path
-            ? getRelativePath(files.aadharPhoto[0].path)
-            : existing?.documents?.aadhar?.aadharPhoto
+          // aadharPhoto: files?.aadharPhoto?.[0]?.path
+          //   ? getRelativePath(files.aadharPhoto[0].path)
+          //   : existing?.documents?.aadhar?.aadharPhoto
+          front: files?.aadharFront?.[0]?.path
+            ? getRelativePath(files.aadharFront[0].path)
+            : existing?.documents?.aadhar?.front,
+
+          back: files?.aadharBack?.[0]?.path
+            ? getRelativePath(files.aadharBack[0].path)
+            : existing?.documents?.aadhar?.back
         },
         pan: {
           ...parsedBody.documents?.pan,
@@ -131,7 +138,12 @@ export const updateSettingsController = async (req: any, res: Response) => {
     // 🔥 DELETE OLD FILES
     if (files?.businessLogo && existing.businessLogo) deleteFile(existing.businessLogo);
     if (files?.signature && existing.owner?.signature) deleteFile(existing.owner.signature);
-    if (files?.aadharPhoto && existing.documents?.aadhar?.aadharPhoto) deleteFile(existing.documents.aadhar.aadharPhoto);
+    // if (files?.aadharPhoto && existing.documents?.aadhar?.aadharPhoto) deleteFile(existing.documents.aadhar.aadharPhoto);
+    if (files?.aadharFront && existing.documents?.aadhar?.front)
+      deleteFile(existing.documents.aadhar.front);
+
+    if (files?.aadharBack && existing.documents?.aadhar?.back)
+      deleteFile(existing.documents.aadhar.back);
     if (files?.panPhoto && existing.documents?.pan?.panPhoto) deleteFile(existing.documents.pan.panPhoto);
 
     const data = {
@@ -151,9 +163,13 @@ export const updateSettingsController = async (req: any, res: Response) => {
       documents: {
         aadhar: {
           ...parsedBody.documents?.aadhar,
-          aadharPhoto: files?.aadharPhoto?.[0]?.path
-            ? getRelativePath(files.aadharPhoto[0].path)
-            : existing.documents?.aadhar?.aadharPhoto
+          front: files?.aadharFront?.[0]?.path
+            ? getRelativePath(files.aadharFront[0].path)
+            : existing.documents?.aadhar?.front,
+
+          back: files?.aadharBack?.[0]?.path
+            ? getRelativePath(files.aadharBack[0].path)
+            : existing.documents?.aadhar?.back
         },
         pan: {
           ...parsedBody.documents?.pan,
