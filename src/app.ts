@@ -17,6 +17,7 @@ import dailyLedgerRoutes from "./modules/dailyLedger/dailyLedger.routes"
 import vendorDailyLedgerRoutes from "./modules/vendorDailyLedger/vendorDailyLedger.routes"
 import employeeRoutes from "./modules/employee/employee.routes";
 import attendanceRoutes from "./modules/attendance/attendance.routes";
+import reminderRoutes from "./modules/reminder/reminder.routes";
 import enquiryRoutes from "./modules/enquiry/enquiry.routes";
 import invoiceRoutes from "./modules/sales/salesInvoice/salesInvoice.routes";
 import quotationRoutes from "./modules/sales/quotation/quotation.routes";
@@ -79,6 +80,7 @@ app.use('/api/v1/inventory', dailyLedgerRoutes)
 app.use('/api/v1/inventory', employeeRoutes)
 app.use('/api/v1/inventory', attendanceRoutes)
 app.use('/api/v1/inventory', vendorDailyLedgerRoutes)
+app.use('/api/v1/inventory', reminderRoutes)
 app.use('/api/v1/inventory', enquiryRoutes)
 app.use('/api/v1/inventory', invoiceRoutes)
 app.use('/api/v1/inventory', quotationRoutes)
