@@ -52,7 +52,8 @@ app.use(
 );
 app.use(cors());
 app.use(cors({
-    origin: "http://localhost:4444",
+    // origin: "http://localhost:4444",
+    origin: true,
     credentials: true
 }));
 // app.use(cors({ origin: process.env.FRONTEND_URL || true, credentials: true }));
