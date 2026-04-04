@@ -1,11 +1,11 @@
 import { Router } from "express";
 import * as BrandController from "./brand.controller";
-import { protect, restrictToRoles } from "../../middlewares/auth.middleware";
+import { authorizePermission, protect, restrictToRoles } from "../../middlewares/auth.middleware";
 import { validate } from "../../middlewares/validate.middleware";
-import { 
-    brandValidationSchema, 
-    brandUpdateValidationSchema, 
-    brandIdParamSchema 
+import {
+    brandValidationSchema,
+    brandUpdateValidationSchema,
+    brandIdParamSchema
 } from "./brand.validation";
 import { upload } from "../../middlewares/upload.middleware";
 
@@ -15,7 +15,7 @@ const router = Router();
 router.post(
     "/brand/add-brand",
     protect,
-    restrictToRoles("admin"),
+    authorizePermission('brand:create'),
     upload.single("brandLogo"),
     validate(brandValidationSchema),
     BrandController.addBrand
@@ -25,7 +25,7 @@ router.post(
 router.put(
     "/brand/update-brand/:id",
     protect,
-    restrictToRoles("admin"),
+    authorizePermission('brand:update'),
     upload.single("brandLogo"),
     validate(brandIdParamSchema, "params"), // Validate params
     validate(brandUpdateValidationSchema), // Validate body
@@ -43,9 +43,9 @@ router.delete(
 
 // GET - Get all brands
 router.get(
-    "/brand/get-all-brands", 
-    protect, 
-    restrictToRoles("admin"), 
+    "/brand/get-all-brands",
+    protect,
+    authorizePermission('brand:list'),
     BrandController.getAllBrands
 );
 
@@ -53,7 +53,7 @@ router.get(
 router.get(
     "/brand/get-brand/:id",
     protect,
-    restrictToRoles("admin"),
+    authorizePermission('brand:read'),
     validate(brandIdParamSchema, "params"),
     BrandController.getBrandById
 );
@@ -62,7 +62,7 @@ router.get(
 router.get(
     "/brand/get-by-manufacture-type/:manufactureType",
     protect,
-    restrictToRoles("admin"),
+    authorizePermission('brand:list'),
     BrandController.getBrandsByManufactureType
 );
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as EmployeeController from './employee.controller';
-import { protect, restrictToRoles } from "../../middlewares/auth.middleware";
+import { authorizePermission, protect, restrictToRoles } from "../../middlewares/auth.middleware";
 import { upload } from "../../middlewares/upload.middleware";
 
 const router = Router();
@@ -12,13 +12,13 @@ const uploadFields = upload.fields([
     { name: "pan_file", maxCount: 1 },
 ]);
 
-router.post('/employee/add-employee', uploadFields, protect, restrictToRoles('admin'), EmployeeController.addEmployee);
+router.post('/employee/add-employee', uploadFields, protect,  authorizePermission('employee:create'), EmployeeController.addEmployee);
 
-router.put('/employee/update-employee/:id',uploadFields,  protect, restrictToRoles('admin'), EmployeeController.updateEmployee);
+router.put('/employee/update-employee/:id',uploadFields,  protect, authorizePermission('employee:update'), EmployeeController.updateEmployee);
 
-router.get('/employee/get-all-employees', protect, restrictToRoles('admin'), EmployeeController.getEmployees);
+router.get('/employee/get-all-employees', protect, authorizePermission('employee:list'), EmployeeController.getEmployees);
 
-router.get('/employee/get-single-employee/:id', protect, restrictToRoles('admin'), EmployeeController.getEmployeeById);
+router.get('/employee/get-single-employee/:id', protect,authorizePermission('employee:read'), EmployeeController.getEmployeeById);
 
 
 router.delete('/employee/delete-employee/:id', protect, restrictToRoles('admin'), EmployeeController.deleteEmployee);

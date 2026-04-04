@@ -52,9 +52,9 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 export const authorizePermission = (permission: string) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     const role = req.user?.role;
-    if (!role) return res.status(403).json({ message: "Forbidden" });
+    if (!role) return res.status(403).json({ message: "Forbidden Access" });
     const permissions = (role as any).permissions || [];
-    if (!permissions.includes(permission)) return res.status(403).json({ message: "Forbidden" });
+    if (!permissions.includes(permission)) return res.status(403).json({ message: "Forbidden Permission" });
     next();
   };
 };
@@ -63,7 +63,7 @@ export const authorizePermission = (permission: string) => {
 export const restrictToRoles = (...roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     const roleName = (req.user?.role as any)?.name;
-    if (!roleName || !roles.includes(roleName)) return res.status(403).json({ message: "Forbidden" });
+    if (!roleName || !roles.includes(roleName)) return res.status(403).json({ message: "Forbidden Access" });
     next();
   };
 };
