@@ -17,6 +17,7 @@ import dailyLedgerRoutes from "./modules/dailyLedger/dailyLedger.routes"
 import vendorDailyLedgerRoutes from "./modules/vendorDailyLedger/vendorDailyLedger.routes"
 import employeeRoutes from "./modules/employee/employee.routes";
 import attendanceRoutes from "./modules/attendance/attendance.routes";
+import reminderRoutes from "./modules/reminder/reminder.routes";
 import enquiryRoutes from "./modules/enquiry/enquiry.routes";
 import invoiceRoutes from "./modules/sales/salesInvoice/salesInvoice.routes";
 import quotationRoutes from "./modules/sales/quotation/quotation.routes";
@@ -26,9 +27,18 @@ import paymentInRoutes from "./modules/sales/paymentIn/paymentIn.routes";
 import productReturnRoutes from "./modules/productReturn/productReturn.routes";
 import invoiceHistoryRoutes from "./modules/sales/invoiceHistory/invoiceHistory.routes";
 
+import purchaseRoutes from './modules/purchases/purchaseInvoice/purchase.routes';
+import purchaseReturnRoutes from './modules/purchases/purchaseReturn/purchaseReturn.routes';
+import debitNoteRoutes from './modules/purchases/debitNote/debitNote.routes';
+import paymentOutRoutes from './modules/purchases/paymentOut/paymentOut.routes';
+import purchaseHistoryRoutes from './modules/purchases/purchaseHistory/purchaseHistory.routes';
+
+import whatsappRoutes from "./modules/whatsapp/whatsApp.routes";
+
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
 import path from "path";
+import { WHATSAPP_VERIFY_TOKEN } from "./utils";
 dotenv.config();
 
 
@@ -70,6 +80,7 @@ app.use('/api/v1/inventory', dailyLedgerRoutes)
 app.use('/api/v1/inventory', employeeRoutes)
 app.use('/api/v1/inventory', attendanceRoutes)
 app.use('/api/v1/inventory', vendorDailyLedgerRoutes)
+app.use('/api/v1/inventory', reminderRoutes)
 app.use('/api/v1/inventory', enquiryRoutes)
 app.use('/api/v1/inventory', invoiceRoutes)
 app.use('/api/v1/inventory', quotationRoutes)
@@ -78,6 +89,14 @@ app.use('/api/v1/inventory', salesReturnRoutes)
 app.use('/api/v1/inventory', paymentInRoutes)
 app.use('/api/v1/inventory', productReturnRoutes)
 app.use('/api/v1/inventory', invoiceHistoryRoutes)
+
+app.use('/api/v1/inventory', purchaseRoutes)
+app.use('/api/v1/inventory', purchaseReturnRoutes)
+app.use('/api/v1/inventory', debitNoteRoutes)
+app.use('/api/v1/inventory', paymentOutRoutes)
+app.use('/api/v1/inventory', purchaseHistoryRoutes)
+
+app.use('/whatsapp', whatsappRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));

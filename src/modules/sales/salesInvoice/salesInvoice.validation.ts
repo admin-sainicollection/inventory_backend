@@ -1,5 +1,4 @@
 import z from "zod";
-import { partial } from "zod/v4/core/util.cjs";
 
 // Common schemas
 const ProductItemSchema = z.object({

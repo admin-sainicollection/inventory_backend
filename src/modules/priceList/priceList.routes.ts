@@ -3,15 +3,15 @@ import { Router } from 'express';
 import { priceListController } from './priceList.controller';
 import { validate } from '../../middlewares/validate.middleware';
 import { bulkCreatePriceListSchemaValidation, createPriceListSchemaValidation, updatePriceListSchemaValidation } from './priceList.validation';
-import { protect, restrictToRoles } from '../../middlewares/auth.middleware';
+import { authorizePermission, protect, restrictToRoles } from '../../middlewares/auth.middleware';
 
 const router = Router();
 
 // Create new price list entry
-router.post('/priceList/create-priceList', protect, restrictToRoles("admin"), validate(createPriceListSchemaValidation), priceListController.createPriceList);
+router.post('/priceList/create-priceList', protect, authorizePermission('price-list:create'), validate(createPriceListSchemaValidation), priceListController.createPriceList);
 
 // Bulk create price list entries
-router.post('/priceList/create-priceList-bulk', protect, restrictToRoles("admin"), validate(bulkCreatePriceListSchemaValidation), priceListController.bulkCreatePriceList);
+router.post('/priceList/create-priceList-bulk', protect,authorizePermission('price-list:upload'), validate(bulkCreatePriceListSchemaValidation), priceListController.bulkCreatePriceList);
 
 // Get all price lists with search, pagination and filters
 // Supports: 
@@ -22,13 +22,13 @@ router.post('/priceList/create-priceList-bulk', protect, restrictToRoles("admin"
 // - productBrand: filter by product brand
 // - page: pagination page
 // - limit: items per page
-router.get('/priceList/get-all-pricelist', protect, restrictToRoles("admin"),  priceListController.getAllPriceLists);
+router.get('/priceList/get-all-pricelist', protect, authorizePermission('price-list:list'),  priceListController.getAllPriceLists);
 
 // Get price list by ID
-router.get('/priceList/get-one-pricelist/:id',  protect, restrictToRoles("admin"),priceListController.getPriceListById);
+router.get('/priceList/get-one-pricelist/:id',  protect, authorizePermission('price-list:read'),priceListController.getPriceListById);
 
 // Update price list
-router.put('/priceList/update-pricelist/:id',  protect, restrictToRoles("admin"),validate(updatePriceListSchemaValidation), priceListController.updatePriceList);
+router.put('/priceList/update-pricelist/:id',  protect, authorizePermission('price-list:update'),validate(updatePriceListSchemaValidation), priceListController.updatePriceList);
 
 // Delete price list
 router.delete('/priceList/delete-pricelist/:id', protect, restrictToRoles("admin"), priceListController.deletePriceList);

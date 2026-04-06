@@ -22,6 +22,10 @@ interface Documents {
 }
 
 export interface IEmployee extends Document {
+    username:string;
+    password?:string;
+    role:string;
+    
     first_name: string;
     last_name?: string;
     dob?: Date | string;
@@ -48,6 +52,7 @@ export interface IEmployee extends Document {
         bank_ac_no?: string;
         ifsc_code?: string;
     }
+    userId: mongoose.Types.ObjectId | undefined;
     status: "active" | "inactive";
     createdAt: Date;
     updatedAt: Date;
@@ -116,7 +121,8 @@ const EmployeeSchema = new Schema<IEmployee>({
         type: String,
         enum: ["active", "inactive"],
         default: "active"
-    }
+    },
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true }
 }, {
     timestamps: true
 });

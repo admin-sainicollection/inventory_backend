@@ -7,7 +7,7 @@ import {
     getCharacterForDigitController,
     getDigitForCharacterController
 } from "./priceCode.controller";
-import { protect, restrictToRoles } from "../../middlewares/auth.middleware";
+import {  authorizePermission, protect, restrictToRoles } from "../../middlewares/auth.middleware";
 import { validate } from "../../middlewares/validate.middleware";
 import { updatePriceCodeSchema } from "./priceCode.validation";
 
@@ -15,6 +15,7 @@ const router = Router();
 
 router.get("/priceCode/get-all-priceCode", 
     protect, 
+    authorizePermission('price-code:read'),
     restrictToRoles("admin"), 
     getAllMappingsController
 );
@@ -22,6 +23,7 @@ router.get("/priceCode/get-all-priceCode",
 router.put("/priceCode/update-priceCode", 
     protect, 
     validate(updatePriceCodeSchema), 
+    authorizePermission('price-code:update'),
     restrictToRoles("admin"), 
     updateCharacterController
 );

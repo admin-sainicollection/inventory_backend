@@ -2,10 +2,8 @@ import { FilterOptions, GstType, IPaymentIn } from "../types";
 import { useFinancialYear } from "../../../utils/useFinancialYear";
 import PaymentInNonGst from "./paymentIn.non_gst.model";
 import PaymentInGst from "./paymentIn.gst.model";
-import { getSalesInvoiceById, updateSalesInvoice } from "../salesInvoice/salesInvoice.service";
 import { getInvoiceStatus } from "../../../utils/invoiceStatus";
 import InvoiceGst from "../salesInvoice/salesInvoice.gst.model";
-import { calculateInvoiceTotals } from "../../../utils/invoiceCalculations";
 import { InvoiceHistory } from "../invoiceHistory/invoiceHistory.model";
 import InvoiceNonGst from "../salesInvoice/salesInvoice.non_gst.model";
 import mongoose from "mongoose";
@@ -163,98 +161,6 @@ const getDateRangeQuery = (dateRange: string) => {
     }
 };
 
-// ============================================================================SERVICES
-
-// export const createPaymentIn = async (data: Partial<IPaymentIn>) => {
-//     try {
-//         if (!data.gstType) {
-//             throw new Error("GST type is required")
-//         }
-
-//         if (data.gstType === 'GST') {
-//             if (!data.paymentInNumber) {
-//                 data.paymentInNumber = await getNextPaymentInNumber(data.paymentInType || 'PAYMENT_IN', data.gstType || 'GST');
-//             }
-
-//             const [existingGst] = await Promise.all([
-//                 PaymentInGst.findOne({ paymentInNumber: data.paymentInNumber })
-//             ]);
-
-//             if (existingGst) {
-//                 throw new Error("Payment In number already exists")
-//             }
-
-//             const invoice = await getSalesInvoiceById(data.invoiceId as string);
-//             if (!invoice) {
-//                 throw new Error("Invoice not found");
-//             }
-
-//             const newReceivedAmount = (invoice.receivedAmount || 0) + (data.receivedAmount || 0);
-//             const newBalanceAmount = (invoice.totalAmount || 0) - newReceivedAmount;
-//             const status = getInvoiceStatus(newReceivedAmount, invoice.totalAmount || 0);
-//             console.log('status->', status)
-
-//             const updatedInvoice = await updateSalesInvoice(
-//                 data.invoiceId as string,
-//                 {
-//                     receivedAmount: newReceivedAmount,
-//                     balanceAmount: newBalanceAmount,
-//                     status
-//                 }
-//             );
-
-//             if (!updatedInvoice) {
-//                 throw new Error("Failed to update invoice amount");
-//             }
-
-//             const settledAmount = newReceivedAmount;
-
-//             return await PaymentInGst.create({ ...data, settledAmount });
-//         }
-
-//         if (data.gstType === 'NON-GST') {
-//             if (!data.paymentInNumber) {
-//                 data.paymentInNumber = await getNextPaymentInNumber(data.paymentInType || 'PAYMENT_IN', data.gstType || 'NON-GST');
-//             }
-//             const [existingNonGst] = await Promise.all([
-//                 PaymentInNonGst.findOne({ paymentInNumber: data.paymentInNumber })
-//             ]);
-
-//             if (existingNonGst) {
-//                 throw new Error("Payment In number already exists")
-//             }
-
-//             const invoice = await getSalesInvoiceById(data.invoiceId as string);
-//             if (!invoice) {
-//                 throw new Error("Invoice not found");
-//             }
-
-//             const newReceivedAmount = (invoice.receivedAmount || 0) + (data.receivedAmount || 0);
-//             const newBalanceAmount = (invoice.totalAmount || 0) - newReceivedAmount;
-//             const status = getInvoiceStatus(newReceivedAmount, invoice.totalAmount || 0);
-
-//             const updatedInvoice = await updateSalesInvoice(
-//                 data.invoiceId as string,
-//                 {
-//                     receivedAmount: newReceivedAmount,
-//                     balanceAmount: newBalanceAmount,
-//                     status
-//                 }
-//             );
-
-//             if (!updatedInvoice) {
-//                 throw new Error("Failed to update invoice amount");
-//             }
-
-//             const settledAmount = newReceivedAmount;
-
-//             return await PaymentInNonGst.create({ ...data, settledAmount });
-//         }
-//         throw new Error("Invalid GST Type")
-//     } catch (error: any) {
-//         throw new Error(error.message)
-//     }
-// }
 
 export const createPaymentIn = async (data: Partial<IPaymentIn>) => {
     try {
@@ -636,85 +542,6 @@ export const getPaymentInById = async (id: string) => {
     }
 };
 
-// Update payment in
-// export const updatePaymentIn = async (id: string, data: Partial<IPaymentIn>) => {
-//     try {
-//         // Try to update in GST payment ins
-//         const gstPaymentIn = await PaymentInGst.findById(id);
-//         if (gstPaymentIn) {
-//             const oldReceivedAmount = gstPaymentIn.receivedAmount || 0;
-//             const invoice = await getSalesInvoiceById(
-//                 data.invoiceId as string || gstPaymentIn.invoiceId as string
-//             );
-//             if (!invoice) {
-//                 throw new Error("Invoice not found");
-//             }
-
-//             const newReceivedAmount = data.receivedAmount ?? oldReceivedAmount;
-
-//             const updatedInvoiceReceived = (invoice.receivedAmount || 0) - oldReceivedAmount + newReceivedAmount;
-
-//             const newBalanceAmount = (invoice.totalAmount || 0) - updatedInvoiceReceived;
-//             const status = getInvoiceStatus(updatedInvoiceReceived, invoice.totalAmount || 0);
-
-//             const updatedInvoice = await updateSalesInvoice(
-//                 data.invoiceId as string || gstPaymentIn.invoiceId as string,
-//                 {
-//                     receivedAmount: updatedInvoiceReceived,
-//                     balanceAmount: newBalanceAmount,
-//                     status
-//                 }
-//             );
-
-//             if (!updatedInvoice) {
-//                 throw new Error("Failed to update invoice amount");
-//             }
-
-//             const settledAmount = updatedInvoiceReceived;
-//             return await PaymentInGst.findByIdAndUpdate(id, { ...data, settledAmount }, { new: true });
-//         }
-
-//         // Try to update in NON-GST payment ins
-//         const nonGstPaymentIn = await PaymentInNonGst.findById(id);
-//         if (nonGstPaymentIn) {
-//             const oldReceivedAmount = nonGstPaymentIn.receivedAmount || 0;
-//             const invoice = await getSalesInvoiceById(
-//                 data.invoiceId as string || nonGstPaymentIn.invoiceId as string
-//             );
-//             if (!invoice) {
-//                 throw new Error("Invoice not found");
-//             }
-
-//             const newReceivedAmount = data.receivedAmount ?? oldReceivedAmount;
-
-//             const updatedInvoiceReceived = (invoice.receivedAmount || 0) - oldReceivedAmount + newReceivedAmount;
-
-//             const newBalanceAmount = (invoice.totalAmount || 0) - updatedInvoiceReceived;
-//             const status = getInvoiceStatus(updatedInvoiceReceived, invoice.totalAmount || 0);
-
-//             const updatedInvoice = await updateSalesInvoice(
-//                 data.invoiceId as string || nonGstPaymentIn.invoiceId as string,
-//                 {
-//                     receivedAmount: updatedInvoiceReceived,
-//                     balanceAmount: newBalanceAmount,
-//                     status
-//                 }
-//             );
-
-//             if (!updatedInvoice) {
-//                 throw new Error("Failed to update invoice amount");
-//             }
-
-//             const settledAmount = updatedInvoiceReceived;
-//             return await PaymentInNonGst.findByIdAndUpdate(id, { ...data, settledAmount }, { new: true });
-//         }
-
-//         throw new Error("Payment In not found");
-//     } catch (error: any) {
-//         throw new Error(error.message);
-//     }
-// };
-
 export const updatePaymentIn = async (id: string, data: Partial<IPaymentIn>) => {
     try {
         // Try to update in GST payment ins
@@ -896,23 +723,6 @@ export const updatePaymentIn = async (id: string, data: Partial<IPaymentIn>) => 
         throw new Error(error.message);
     }
 };
-
-// Delete payment in
-// export const deletePaymentIn = async (id: string) => {
-//     try {
-//         // Try to delete from GST payment ins
-//         const gstPaymentIn = await PaymentInGst.findByIdAndDelete(id);
-//         if (gstPaymentIn) return gstPaymentIn;
-
-//         // Try to delete from NON-GST payment ins
-//         const nonGstPaymentIn = await PaymentInNonGst.findByIdAndDelete(id);
-//         if (nonGstPaymentIn) return nonGstPaymentIn;
-
-//         throw new Error("Payment In not found");
-//     } catch (error: any) {
-//         throw new Error(error.message);
-//     }
-// };
 
 export const deletePaymentIn = async (id: string) => {
     try {

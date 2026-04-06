@@ -118,7 +118,7 @@ export const getLedgerSummary = async (partyId: string): Promise<{
 //   const totalTdsByParty = ledgers.reduce((sum, ledger) => sum + (ledger.tdsDeductByParty || 0), 0);
 //   const totalTdsBySelf = ledgers.reduce((sum, ledger) => sum + (ledger.tdsDeductBySelf || 0), 0);
   
-  const balance = totalCredit - totalDebit;
+  const balance = totalDebit - totalCredit;
 
   return {
     totalCredit,
