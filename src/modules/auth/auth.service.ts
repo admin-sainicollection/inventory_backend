@@ -581,6 +581,7 @@ export const getAllUsersService = async (
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
+                .lean()
             ,
             User.countDocuments(query),
         ]);
