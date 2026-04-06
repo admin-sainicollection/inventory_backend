@@ -539,7 +539,16 @@ export const getAllUsersService = async (
     search: string = "",
     status?: string,
     role?: string
-) => {
+): Promise<{
+    status: string;
+    message: string;
+    data: {
+        users: any[]; // Or better: define a proper interface
+        total: number;
+        page: number;
+        pages: number;
+    };
+}> => {
     try {
         const skip = (page - 1) * limit;
 
@@ -625,7 +634,7 @@ export const getUserByIdService = async (id: string) => {
 export const updateUserService = async (
     id: string,
     updateData: Partial<IUser>
-): Promise<ServiceResponse<IUser>> => {
+)=> {
     try {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             throw new Error("Invalid user ID format");

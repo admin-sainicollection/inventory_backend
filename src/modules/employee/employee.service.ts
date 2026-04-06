@@ -383,7 +383,7 @@ export const getEmployeesService = async (
     searchQuery: string = '',
     page: number = 1,
     limit: number = 10
-): Promise<PaginationResult<IEmployee>> => {
+)=> {
     try {
         const skip = (page - 1) * limit;
         let query = Employee.find();
