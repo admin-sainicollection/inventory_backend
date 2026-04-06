@@ -249,7 +249,7 @@ export const updateEmployeeService = async (
     id: string,
     data: Partial<IEmployee>,
     files: UploadedFiles
-): Promise<ServiceResponse<IEmployee>> => {
+) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
