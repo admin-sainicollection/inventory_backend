@@ -368,7 +368,7 @@ export const updateEmployeeService = async (
         return {
             status: "success",
             message: "Employee updated successfully",
-            data: populatedEmployee as IEmployee,
+            data: populatedEmployee ,
         };
     } catch (error: any) {
         await session.abortTransaction();
