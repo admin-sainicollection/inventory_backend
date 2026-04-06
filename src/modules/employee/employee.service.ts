@@ -117,7 +117,7 @@ const uploadEmployeeFiles = async (files: any) => {
 export const addEmployeeService = async (
     data: any, // This will include username, email, password, role along with employee data
     files: UploadedFiles
-): Promise<ServiceResponse<IEmployee>> => {
+) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -232,7 +232,7 @@ export const addEmployeeService = async (
         return {
             status: "success",
             message: "Employee and user account created successfully",
-            data: populatedEmployee as IEmployee,
+            data: populatedEmployee ,
         };
 
     } catch (error: any) {
@@ -477,7 +477,7 @@ export const getEmployeesService = async (
     }
 };
 
-export const getEmployeeByIdService = async (id: string): Promise<ServiceResponse<IEmployee>> => {
+export const getEmployeeByIdService = async (id: string) => {
     try {
         const employee = await Employee.findById(id).populate({
             path: "userId",

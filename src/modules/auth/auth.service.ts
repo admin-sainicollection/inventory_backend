@@ -615,7 +615,7 @@ export const getUserByIdService = async (id: string): Promise<ServiceResponse<IU
         return {
             status: "success",
             message: "User fetched successfully",
-            data: userWithoutPassword as IUser,
+            data: userWithoutPassword ,
         };
     } catch (error: any) {
         throw new Error(`Failed to fetch user: ${error.message}`);
@@ -677,7 +677,7 @@ export const updateUserService = async (
         return {
             status: "success",
             message: "User updated successfully",
-            data: userWithoutPassword as IUser,
+            data: userWithoutPassword ,
         };
     } catch (error: any) {
         throw new Error(`Failed to update user: ${error.message}`);
@@ -705,7 +705,7 @@ export const deleteUserService = async (id: string): Promise<ServiceResponse> =>
 };
 
 // -------------------------------------------------------------Roles
-export const getAllRoles = async (): Promise<IRole[]> => {
+export const getAllRoles = async () => {
     try {
         const roles = await Role.find().sort({ createdAt: -1 }).lean();
         return roles;
@@ -714,7 +714,7 @@ export const getAllRoles = async (): Promise<IRole[]> => {
     }
 };
 
-export const getRoleById = async (id: string): Promise<IRole | null> => {
+export const getRoleById = async (id: string) => {
     try {
         const role = await Role.findById(id).lean();
         return role;
@@ -723,7 +723,7 @@ export const getRoleById = async (id: string): Promise<IRole | null> => {
     }
 };
 
-export const getRoleByName = async (name: string): Promise<IRole | null> => {
+export const getRoleByName = async (name: string) => {
     try {
         const role = await Role.findOne({ name }).lean();
         return role;
@@ -751,7 +751,7 @@ export const createRole = async (roleData: Partial<IRole>): Promise<IRole> => {
 export const updateRole = async (
     id: string,
     roleData: Partial<IRole>
-): Promise<IRole | null> => {
+) => {
     try {
         // Check if updating name and if it conflicts with existing role
         if (roleData.name) {

@@ -430,7 +430,7 @@ export const getRoleByIdController = async (req: Request, res: Response): Promis
       return;
     }
 
-    const role = await Service.getRoleById(id);
+    const role = await Service.getRoleById(id as string);
 
     if (!role) {
       res.status(404).json({
@@ -532,7 +532,7 @@ export const updateRoleController = async (req: Request, res: Response): Promise
     //   return;
     // }
 
-    const role = await Service.updateRole(id, {
+    const role = await Service.updateRole(id as string, {
       name,
       permissions,
       description,
@@ -583,7 +583,7 @@ export const deleteRoleController = async (req: Request, res: Response): Promise
       return;
     }
 
-    const result = await Service.deleteRole(id);
+    const result = await Service.deleteRole(id as string);
 
     if (!result.success) {
       res.status(400).json({

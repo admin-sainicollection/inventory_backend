@@ -104,7 +104,7 @@ export const getReminderByIdController = async (req: Request, res: Response) => 
             return;
         }
 
-        const result = await getReminderById(id);
+        const result = await getReminderById(id as string);
 
         if (!result) {
             res.status(404).json({
