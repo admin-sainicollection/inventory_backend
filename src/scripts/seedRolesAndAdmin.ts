@@ -74,6 +74,7 @@ export const seedRolesAndAdmin = async () => {
         'quotation:create', 'quotation:list', 'quotation:read', 'quotation:print',
         'payment-in:create', 'payment-in:list',
         'sales-return:create', 'sales-return:list',
+        'purchase-invoice:list', 'purchase-invoice:read',
         'profile:read', 'profile:update',
         'brand:list', 'brand:read',
         'category:list', 'category:read',
