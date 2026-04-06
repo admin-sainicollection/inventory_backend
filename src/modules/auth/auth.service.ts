@@ -539,7 +539,7 @@ export const getAllUsersService = async (
     search: string = "",
     status?: string,
     role?: string
-): Promise<ServiceResponse<{ users: IUser[]; total: number; page: number; pages: number }>> => {
+) => {
     try {
         const skip = (page - 1) * limit;
 
