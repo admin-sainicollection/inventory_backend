@@ -171,8 +171,8 @@ export const verifyEmail = async (userId: string, token: string) => {
 
 export const login = async (emailOrUserName: string, password: string) => {
     // allow login by email or username
-    let user = await Repo.findUserByEmail(emailOrUserName).populate('role','name permissions');
-    if (!user) user = await Repo.findUserByUserName(emailOrUserName).populate('role','name permissions');
+    let user = await Repo.findUserByEmail(emailOrUserName).populate('role', 'name permissions');
+    if (!user) user = await Repo.findUserByUserName(emailOrUserName).populate('role', 'name permissions');
     if (!user) throw new Error("Invalid credentials");
     if (user.status !== "active") throw new Error(`User status ${user.status}`);
 
@@ -353,7 +353,7 @@ export const changePasswordService = async (
 export const adminResetUserPassword = async (
     adminId: string,
     userId: string
-)=> {
+) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -581,7 +581,7 @@ export const getAllUsersService = async (
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
-                ,
+            ,
             User.countDocuments(query),
         ]);
 
@@ -628,7 +628,7 @@ export const getUserByIdService = async (id: string): Promise<{
         return {
             status: "success",
             message: "User fetched successfully",
-            data: userWithoutPassword ,
+            data: userWithoutPassword,
         };
     } catch (error: any) {
         throw new Error(`Failed to fetch user: ${error.message}`);
@@ -638,7 +638,11 @@ export const getUserByIdService = async (id: string): Promise<{
 export const updateUserService = async (
     id: string,
     updateData: Partial<IUser>
-)=> {
+): Promise<{
+    status: string;
+    message: string;
+    data: any;
+}> => {
     try {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             throw new Error("Invalid user ID format");
@@ -690,7 +694,7 @@ export const updateUserService = async (
         return {
             status: "success",
             message: "User updated successfully",
-            data: userWithoutPassword ,
+            data: userWithoutPassword,
         };
     } catch (error: any) {
         throw new Error(`Failed to update user: ${error.message}`);
