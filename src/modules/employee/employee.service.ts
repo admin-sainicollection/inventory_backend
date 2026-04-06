@@ -458,7 +458,7 @@ export const getEmployeesService = async (
         const employees = await query
             .skip(skip)
             .limit(limit)
-            .sort({ createdAt: -1 })
+            .sort({ createdAt: -1 }).lean()
             ; // Exclude version key
 
         return {
