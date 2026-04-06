@@ -613,7 +613,7 @@ export const getUserByIdService = async (id: string): Promise<{
         }
 
         const user = await User.findById(id)
-            .populate('role', 'name permissions description')
+            .populate('role', 'name permissions description').lean()
             ;
 
         if (!user) {
