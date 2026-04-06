@@ -353,7 +353,7 @@ export const changePasswordService = async (
 export const adminResetUserPassword = async (
     adminId: string,
     userId: string
-): Promise<{ success: boolean; message: string; temporaryPassword?: string }> => {
+)=> {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -593,7 +593,7 @@ export const getAllUsersService = async (
     }
 };
 
-export const getUserByIdService = async (id: string): Promise<ServiceResponse<IUser>> => {
+export const getUserByIdService = async (id: string) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             throw new Error("Invalid user ID format");
@@ -776,7 +776,7 @@ export const updateRole = async (
     }
 };
 
-export const deleteRole = async (id: string): Promise<{ success: boolean; message?: string }> => {
+export const deleteRole = async (id: string) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
