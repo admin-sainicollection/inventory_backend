@@ -581,7 +581,7 @@ export const getAllUsersService = async (
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
-                .lean(),
+                ,
             User.countDocuments(query),
         ]);
 
@@ -610,7 +610,7 @@ export const getUserByIdService = async (id: string) => {
 
         const user = await User.findById(id)
             .populate('role', 'name permissions description')
-            .lean();
+            ;
 
         if (!user) {
             throw new Error("User not found");
@@ -674,7 +674,7 @@ export const updateUserService = async (
             id,
             { $set: updateData },
             { new: true, runValidators: true }
-        ).populate('role', 'name permissions').lean();
+        ).populate('role', 'name permissions');
 
         if (!updatedUser) {
             throw new Error("Failed to update user");
@@ -716,7 +716,7 @@ export const deleteUserService = async (id: string): Promise<ServiceResponse> =>
 // -------------------------------------------------------------Roles
 export const getAllRoles = async () => {
     try {
-        const roles = await Role.find().sort({ createdAt: -1 }).lean();
+        const roles = await Role.find().sort({ createdAt: -1 });
         return roles;
     } catch (error: any) {
         throw new Error(`Error fetching roles: ${error.message}`);
@@ -725,7 +725,7 @@ export const getAllRoles = async () => {
 
 export const getRoleById = async (id: string) => {
     try {
-        const role = await Role.findById(id).lean();
+        const role = await Role.findById(id);
         return role;
     } catch (error: any) {
         throw new Error(`Error fetching role by ID: ${error.message}`);
@@ -734,7 +734,7 @@ export const getRoleById = async (id: string) => {
 
 export const getRoleByName = async (name: string) => {
     try {
-        const role = await Role.findOne({ name }).lean();
+        const role = await Role.findOne({ name });
         return role;
     } catch (error: any) {
         throw new Error(`Error fetching role by name: ${error.message}`);
@@ -777,7 +777,7 @@ export const updateRole = async (
             id,
             { $set: roleData },
             { new: true, runValidators: true }
-        ).lean();
+        );
 
         return role;
     } catch (error: any) {
