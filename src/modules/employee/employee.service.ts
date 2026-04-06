@@ -117,7 +117,7 @@ const uploadEmployeeFiles = async (files: any) => {
 export const addEmployeeService = async (
     data: any, // This will include username, email, password, role along with employee data
     files: UploadedFiles
-): Promise<ServiceResponse<IEmployee>> => {
+) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -232,7 +232,7 @@ export const addEmployeeService = async (
         return {
             status: "success",
             message: "Employee and user account created successfully",
-            data: populatedEmployee as IEmployee,
+            data: populatedEmployee ,
         };
 
     } catch (error: any) {
@@ -249,7 +249,7 @@ export const updateEmployeeService = async (
     id: string,
     data: Partial<IEmployee>,
     files: UploadedFiles
-): Promise<ServiceResponse<IEmployee>> => {
+) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -368,7 +368,7 @@ export const updateEmployeeService = async (
         return {
             status: "success",
             message: "Employee updated successfully",
-            data: populatedEmployee as IEmployee,
+            data: populatedEmployee ,
         };
     } catch (error: any) {
         await session.abortTransaction();
@@ -383,7 +383,7 @@ export const getEmployeesService = async (
     searchQuery: string = '',
     page: number = 1,
     limit: number = 10
-): Promise<PaginationResult<IEmployee>> => {
+)=> {
     try {
         const skip = (page - 1) * limit;
         let query = Employee.find();
@@ -458,8 +458,8 @@ export const getEmployeesService = async (
         const employees = await query
             .skip(skip)
             .limit(limit)
-            .sort({ createdAt: -1 })
-            .select('-__v'); // Exclude version key
+            .sort({ createdAt: -1 }).lean()
+            ; // Exclude version key
 
         return {
             status: 'success',
@@ -477,9 +477,9 @@ export const getEmployeesService = async (
     }
 };
 
-export const getEmployeeByIdService = async (id: string): Promise<ServiceResponse<IEmployee>> => {
+export const getEmployeeByIdService = async (id: string) => {
     try {
-        const employee = await Employee.findById(id).select('-__v').populate({
+        const employee = await Employee.findById(id).populate({
             path: "userId",
             select: "name userName email status role",
             populate: {
