@@ -18,7 +18,6 @@ const getRelativePath = (filePath: string) => {
   const index = filePath.indexOf("uploads");
   return "/" + filePath.substring(index).replace(/\\/g, "/");
 };
-
 const parseJSON = (val: any, def: any) => {
   try {
     return val ? JSON.parse(val) : def;
