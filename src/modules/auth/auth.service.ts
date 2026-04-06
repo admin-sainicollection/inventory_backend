@@ -602,7 +602,11 @@ export const getAllUsersService = async (
     }
 };
 
-export const getUserByIdService = async (id: string) => {
+export const getUserByIdService = async (id: string): Promise<{
+    status: string;
+    message: string;
+    data: any; // Or create a proper interface for the user without password
+}> => {
     try {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             throw new Error("Invalid user ID format");
