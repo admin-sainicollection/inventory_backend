@@ -459,7 +459,7 @@ export const getEmployeesService = async (
             .skip(skip)
             .limit(limit)
             .sort({ createdAt: -1 })
-            .select('-__v'); // Exclude version key
+            ; // Exclude version key
 
         return {
             status: 'success',
@@ -479,7 +479,7 @@ export const getEmployeesService = async (
 
 export const getEmployeeByIdService = async (id: string): Promise<ServiceResponse<IEmployee>> => {
     try {
-        const employee = await Employee.findById(id).select('-__v').populate({
+        const employee = await Employee.findById(id).populate({
             path: "userId",
             select: "name userName email status role",
             populate: {

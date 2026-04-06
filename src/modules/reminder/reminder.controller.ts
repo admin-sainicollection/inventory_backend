@@ -60,7 +60,7 @@ export const getAllReminderController = async (req: Request, res: Response) => {
         } = req.query;
 
         const filters = {
-            search: search as string,
+            search: search as any,
             status: status as string,
             priority: priority as string,
             startDate: startDate as string,
