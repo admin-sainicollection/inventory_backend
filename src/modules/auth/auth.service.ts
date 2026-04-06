@@ -171,8 +171,8 @@ export const verifyEmail = async (userId: string, token: string) => {
 
 export const login = async (emailOrUserName: string, password: string) => {
     // allow login by email or username
-    let user = await Repo.findUserByEmail(emailOrUserName).populate('role','name permissions');
-    if (!user) user = await Repo.findUserByUserName(emailOrUserName).populate('role','name permissions');
+    let user = await Repo.findUserByEmail(emailOrUserName).populate('role', 'name permissions');
+    if (!user) user = await Repo.findUserByUserName(emailOrUserName).populate('role', 'name permissions');
     if (!user) throw new Error("Invalid credentials");
     if (user.status !== "active") throw new Error(`User status ${user.status}`);
 
@@ -353,7 +353,7 @@ export const changePasswordService = async (
 export const adminResetUserPassword = async (
     adminId: string,
     userId: string
-): Promise<{ success: boolean; message: string; temporaryPassword?: string }> => {
+) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -539,7 +539,16 @@ export const getAllUsersService = async (
     search: string = "",
     status?: string,
     role?: string
-): Promise<ServiceResponse<{ users: IUser[]; total: number; page: number; pages: number }>> => {
+): Promise<{
+    status: string;
+    message: string;
+    data: {
+        users: any[]; // Or better: define a proper interface
+        total: number;
+        page: number;
+        pages: number;
+    };
+}> => {
     try {
         const skip = (page - 1) * limit;
 
@@ -572,7 +581,8 @@ export const getAllUsersService = async (
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
-                .lean(),
+                .lean()
+            ,
             User.countDocuments(query),
         ]);
 
@@ -593,15 +603,19 @@ export const getAllUsersService = async (
     }
 };
 
-export const getUserByIdService = async (id: string): Promise<ServiceResponse<IUser>> => {
+export const getUserByIdService = async (id: string): Promise<{
+    status: string;
+    message: string;
+    data: any; // Or create a proper interface for the user without password
+}> => {
     try {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             throw new Error("Invalid user ID format");
         }
 
         const user = await User.findById(id)
-            .populate('role', 'name permissions description')
-            .lean();
+            .populate('role', 'name permissions description').lean()
+            ;
 
         if (!user) {
             throw new Error("User not found");
@@ -615,7 +629,7 @@ export const getUserByIdService = async (id: string): Promise<ServiceResponse<IU
         return {
             status: "success",
             message: "User fetched successfully",
-            data: userWithoutPassword as IUser,
+            data: userWithoutPassword,
         };
     } catch (error: any) {
         throw new Error(`Failed to fetch user: ${error.message}`);
@@ -625,7 +639,11 @@ export const getUserByIdService = async (id: string): Promise<ServiceResponse<IU
 export const updateUserService = async (
     id: string,
     updateData: Partial<IUser>
-): Promise<ServiceResponse<IUser>> => {
+): Promise<{
+    status: string;
+    message: string;
+    data: any;
+}> => {
     try {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             throw new Error("Invalid user ID format");
@@ -665,7 +683,7 @@ export const updateUserService = async (
             id,
             { $set: updateData },
             { new: true, runValidators: true }
-        ).populate('role', 'name permissions').lean();
+        ).populate('role', 'name permissions');
 
         if (!updatedUser) {
             throw new Error("Failed to update user");
@@ -677,7 +695,7 @@ export const updateUserService = async (
         return {
             status: "success",
             message: "User updated successfully",
-            data: userWithoutPassword as IUser,
+            data: userWithoutPassword,
         };
     } catch (error: any) {
         throw new Error(`Failed to update user: ${error.message}`);
@@ -705,27 +723,27 @@ export const deleteUserService = async (id: string): Promise<ServiceResponse> =>
 };
 
 // -------------------------------------------------------------Roles
-export const getAllRoles = async (): Promise<IRole[]> => {
+export const getAllRoles = async () => {
     try {
-        const roles = await Role.find().sort({ createdAt: -1 }).lean();
+        const roles = await Role.find().sort({ createdAt: -1 });
         return roles;
     } catch (error: any) {
         throw new Error(`Error fetching roles: ${error.message}`);
     }
 };
 
-export const getRoleById = async (id: string): Promise<IRole | null> => {
+export const getRoleById = async (id: string) => {
     try {
-        const role = await Role.findById(id).lean();
+        const role = await Role.findById(id);
         return role;
     } catch (error: any) {
         throw new Error(`Error fetching role by ID: ${error.message}`);
     }
 };
 
-export const getRoleByName = async (name: string): Promise<IRole | null> => {
+export const getRoleByName = async (name: string) => {
     try {
-        const role = await Role.findOne({ name }).lean();
+        const role = await Role.findOne({ name });
         return role;
     } catch (error: any) {
         throw new Error(`Error fetching role by name: ${error.message}`);
@@ -751,7 +769,7 @@ export const createRole = async (roleData: Partial<IRole>): Promise<IRole> => {
 export const updateRole = async (
     id: string,
     roleData: Partial<IRole>
-): Promise<IRole | null> => {
+) => {
     try {
         // Check if updating name and if it conflicts with existing role
         if (roleData.name) {
@@ -768,7 +786,7 @@ export const updateRole = async (
             id,
             { $set: roleData },
             { new: true, runValidators: true }
-        ).lean();
+        );
 
         return role;
     } catch (error: any) {
@@ -776,7 +794,7 @@ export const updateRole = async (
     }
 };
 
-export const deleteRole = async (id: string): Promise<{ success: boolean; message?: string }> => {
+export const deleteRole = async (id: string) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
