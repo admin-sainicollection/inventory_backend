@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createOrUpdateSettings, getSettings, updateSettings } from "./settings.service";
+import {  getBankInfo, getBusinessInfo, getSettings, getSignature, getTaxInfo } from "./settings.service";
 import { deleteFile } from "../../utils/deleteFile";
 import Settings from "./settings.model";
 
@@ -7,10 +7,45 @@ import Settings from "./settings.model";
 export const fetchSettings = async (req: Request, res: Response) => {
   try {
     const result = await getSettings();
-
     res.status(200).json(result);
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const fetchBusinessInfo = async (req: Request, res: Response) => {
+  try {
+    const result = await getBusinessInfo();
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const fetchTaxInfo = async (req: Request, res: Response) => {
+  try {
+    const result = await getTaxInfo();
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const fetchBankInfo = async (req: Request, res: Response) => {
+  try {
+    const result = await getBankInfo();
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const fetchSignature = async (req: Request, res: Response) => {
+  try {
+    const result = await getSignature();
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -38,6 +73,7 @@ export const saveSettings = async (req: any, res: Response) => {
       contact: parseJSON(req.body.contact, {}),
       address: parseJSON(req.body.address, []),
       bankDetails: parseJSON(req.body.bankDetails, []),
+      taxDetails: parseJSON(req.body.taxDetails, []),
       owner: parseJSON(req.body.owner, {}),
       documents: parseJSON(req.body.documents, {}),
       businessType: parseJSON(req.body.businessType, []),
@@ -91,13 +127,13 @@ export const saveSettings = async (req: any, res: Response) => {
     }
 
     res.status(200).json({
-      status: "success",
+      success: true,
       message: existing ? "updated" : "created",
       data: result
     });
 
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -118,6 +154,7 @@ export const updateSettingsController = async (req: any, res: Response) => {
       contact: parseJSON(req.body.contact, {}),
       address: parseJSON(req.body.address, []),
       bankDetails: parseJSON(req.body.bankDetails, []),
+      taxDetails: parseJSON(req.body.taxDetails, []),
       owner: parseJSON(req.body.owner, {}),
       documents: parseJSON(req.body.documents, {}),
       businessType: parseJSON(req.body.businessType, []),
@@ -172,13 +209,13 @@ export const updateSettingsController = async (req: any, res: Response) => {
     const updated = await Settings.findByIdAndUpdate(existing._id, data, { new: true });
 
     res.status(200).json({
-      status: "success",
-      message: "updated",
+      success: true,
+      message: "setting updated successfully",
       data: updated
     });
 
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -210,7 +247,7 @@ export const clearUploads = (req: any, res: any) => {
     });
 
     res.json({
-      status: "success",
+      success: true,
       message: folder
         ? `All files deleted from ${folder}`
         : "All uploads cleared"

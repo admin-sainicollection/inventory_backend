@@ -106,7 +106,7 @@ app.use('/api/v1/inventory', purchaseReturnRoutes)
 app.use('/api/v1/inventory', debitNoteRoutes)
 app.use('/api/v1/inventory', paymentOutRoutes)
 app.use('/api/v1/inventory', purchaseHistoryRoutes)
-app.use("/api/v1/inventory/settings", settingsRoutes);
+app.use("/api/v1/inventory", settingsRoutes);
 
 app.use('/whatsapp', whatsappRoutes)
 

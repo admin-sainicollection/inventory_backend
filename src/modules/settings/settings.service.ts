@@ -5,10 +5,64 @@ export const getSettings = async () => {
   const settings = await Settings.findOne();
 
   return {
-    status: "success",
+    success: true,
+    message: "Setting details fetch successfully",
     data: settings,
   };
 };
+
+export const getBusinessInfo = async () => {
+  const settings = await Settings.findOne().select({
+    businessName: 1,
+    businessLogo: 1,
+    businessType: 1,
+    description: 1,
+    contact:1,
+    address:1
+  });
+
+  return {
+    success: true,
+    message: "Business info fetched successfully",
+    data: settings,
+  };
+}
+
+export const getTaxInfo = async () => {
+  const settings = await Settings.findOne().select({
+    taxDetails: 1,
+  });
+
+  return {
+    success: true,
+    message: "Tax details fetched successfully",
+    data: settings || [],
+  };
+}
+
+export const getBankInfo = async () => {
+  const settings = await Settings.findOne().select({
+    bankDetails: 1,
+  });
+
+  return {
+    success: true,
+    message: "Bank details fetched successfully",
+    data: settings?.bankDetails || [],
+  };
+}
+
+export const getSignature = async () => {
+  const settings = await Settings.findOne().select({
+    'owner.signature': 1,
+  });
+
+  return {
+    success: true,
+    message: "Signature fetched successfully",
+    data: settings?.owner || null,
+  };
+}
 
 export const createOrUpdateSettings = async (data: any) => {
   try {
@@ -22,7 +76,7 @@ export const createOrUpdateSettings = async (data: any) => {
       );
 
       return {
-        status: "success",
+        success: true,
         message: "Settings updated",
         data: updated,
       };
@@ -31,7 +85,7 @@ export const createOrUpdateSettings = async (data: any) => {
     const created = await Settings.create(data);
 
     return {
-      status: "success",
+      success: true,
       message: "Settings created",
       data: created,
     };
@@ -51,7 +105,7 @@ export const createOrUpdateSettings = async (data: any) => {
 //     { new: true, runValidators: true }
 //   );
 //   return {
-//     status: "success",
+//     success:true,
 //     message: "Settings updated",
 //     data: updated,
 //   };
@@ -69,7 +123,7 @@ export const updateSettings = async (data: any) => {
   }
 
   return {
-    status: "success",
+    success: true,
     message: "Settings updated",
     data: updated,
   };
@@ -84,7 +138,7 @@ export const deleteSettings = async () => {
   }
   await Settings.findByIdAndDelete(existing._id);
   return {
-    status: "success",
+    success: true,
     message: "Settings deleted",
   };
 };
