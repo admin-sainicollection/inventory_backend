@@ -458,7 +458,14 @@ export const getEmployeesService = async (
         const employees = await query
             .skip(skip)
             .limit(limit)
-            .sort({ createdAt: -1 }).lean()
+            .sort({ createdAt: -1 }).populate({
+                path: "userId",
+                select: "name userName email status role",
+                populate: {
+                    path: "role",
+                    select: "name"
+                }
+            }).lean()
             ; // Exclude version key
 
         return {
