@@ -1,7 +1,6 @@
 import express from "express";
 import { saveSettings, fetchSettings, updateSettingsController, clearUploads, fetchBusinessInfo, fetchTaxInfo, fetchBankInfo, fetchSignature } from "./settings.controller";
 import { upload } from "../../middlewares/upload";
-import { authorizePermission } from "../../middlewares/auth.middleware";
 
 const router = express.Router();
 

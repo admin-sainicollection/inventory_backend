@@ -14,7 +14,6 @@ export const deleteFile = (filePath?: string | null) => {
 
   if (fs.existsSync(absolutePath)) {
     fs.unlinkSync(absolutePath);
-    console.log("🗑️ Deleted:", absolutePath);
   } else {
     console.log("❌ Not found:", absolutePath);
   }
