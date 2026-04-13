@@ -1,4 +1,6 @@
 import { uploadBuffer } from "../../../config/cloudinary/cloudinary";
+import { deleteLocalImage, deleteMultipleImages } from "../../../utils/fileDeleteHelper";
+import { saveImageLocally } from "../../../utils/fileUploadHelper";
 import Category from "../category/category.model";
 import Product, { IProduct } from "./product.model";
 
@@ -7,7 +9,6 @@ export const ProductService = {
         data: Partial<IProduct>,
         files?: Express.Multer.File[]
     ): Promise<IProduct> {
-
         // Parse compatibility if it's a string
         if (typeof data.compatibility === 'string') {
             try {
@@ -26,16 +27,14 @@ export const ProductService = {
             }
         }
 
-        // Parse importBatchId if it's a string (from JSON)
+        // Parse importBatchId if it's a string
         if (data.importBatchId && typeof data.importBatchId === 'string') {
             try {
-                // Check if it's a JSON string that needs parsing
                 if (data.importBatchId.startsWith('"') || data.importBatchId.startsWith('[') || data.importBatchId.startsWith('{')) {
                     const parsed = JSON.parse(data.importBatchId);
                     data.importBatchId = parsed;
                 }
             } catch (error) {
-                // If parsing fails, keep as is
                 console.warn('Failed to parse importBatchId, keeping as string');
             }
         }
@@ -49,7 +48,7 @@ export const ProductService = {
             }
         }
 
-        // 🔍 Check for duplicate partNo or Name
+        // Check for duplicate partNo or Name
         const existingProduct = await Product.findOne({
             $or: [{ partNo: data.partNo }, { name: data.name }],
         });
@@ -57,13 +56,13 @@ export const ProductService = {
             throw new Error("Product with the same name or partNo already exists");
         }
 
-        // 🧩 Ensure category exists
+        // Ensure category exists
         const category = await Category.findOne({ name: data.category });
         if (!category) {
             throw new Error("Category not found");
         }
 
-        // 🧠 Validate attributes against category template
+        // Validate attributes against category template
         const validAttributes: Record<string, any> = {};
         if (category.attributesTemplate && data.attributes) {
             category.attributesTemplate.forEach((field) => {
@@ -73,11 +72,13 @@ export const ProductService = {
             });
         }
 
-        // 📸 Upload images to Cloudinary (if provided)
+        // Upload images to local storage
         let uploadedImages: string[] = [];
         if (files && files.length > 0) {
             uploadedImages = await Promise.all(
-                files.map(async (file) => await uploadBuffer(file.buffer, "inventory/products"))
+                files.map(async (file) =>
+                    await saveImageLocally(file.buffer, "inventory/products", file.originalname)
+                )
             );
         }
 
@@ -90,25 +91,23 @@ export const ProductService = {
             metadata: {}
         };
 
-        // Ensure source.date is a Date object
         if (finalSource.date && !(finalSource.date instanceof Date)) {
             finalSource.date = new Date(finalSource.date);
         }
 
-        // 🛠️ Create product
+        // Create product
         const product = await Product.create({
             ...processedData,
             productImages: uploadedImages,
             attributes: validAttributes,
             source: finalSource,
             importBatchId: data.importBatchId,
-            // ✅ aliasNames will now be properly stored as array of strings
         });
 
         return product;
     },
 
-    // ✅ UPDATE PRODUCT
+    // ✅ UPDATE PRODUCT WITH LOCAL IMAGE DELETION
     async update(
         id: string,
         data: Partial<IProduct>,
@@ -116,8 +115,11 @@ export const ProductService = {
     ): Promise<IProduct> {
         const product = await Product.findById(id);
         if (!product) {
-            throw new Error("Product product not found");
+            throw new Error("Product not found");
         }
+
+        // Store old images for deletion
+        const oldImages = product.productImages || [];
 
         // Parse compatibility if it's a string
         if (typeof data.compatibility === 'string') {
@@ -137,38 +139,36 @@ export const ProductService = {
             }
         }
 
-        // Parse importBatchId if it's a string (from JSON)
+        // Parse importBatchId if it's a string
         if (data.importBatchId && typeof data.importBatchId === 'string') {
             try {
-                // Check if it's a JSON string that needs parsing
                 if (data.importBatchId.startsWith('"') || data.importBatchId.startsWith('[') || data.importBatchId.startsWith('{')) {
                     const parsed = JSON.parse(data.importBatchId);
                     data.importBatchId = parsed;
                 }
             } catch (error) {
-                // If parsing fails, keep as is
                 console.warn('Failed to parse importBatchId, keeping as string');
             }
         }
 
-        // Parse source if it's a string (usually source shouldn't be updated, but handle it)
+        // Parse source if it's a string
         if (data.source && typeof data.source === 'string') {
             try {
                 data.source = JSON.parse(data.source);
             } catch (error) {
                 console.warn('Failed to parse source in update, keeping existing source');
-                delete data.source; // Don't update source if invalid
+                delete data.source;
             }
         }
 
-        // 🧩 Validate or find category
+        // Validate or find category
         const categoryName = data.category || product.category;
         const category = await Category.findOne({ name: categoryName });
         if (!category) {
             throw new Error("Category not found");
         }
 
-        // 🧠 Revalidate attributes if provided
+        // Revalidate attributes if provided
         const validAttributes: Record<string, any> = {};
         if (category.attributesTemplate && data.attributes) {
             category.attributesTemplate.forEach((field) => {
@@ -178,38 +178,49 @@ export const ProductService = {
             });
         }
 
-        // 🆕 CRITICAL FIX: Start with EMPTY array and only add what frontend sends
+        // Handle images: delete old ones that are not kept, upload new ones
         let finalImages: string[] = [];
 
-        // 📸 First, add NEW uploaded images
-        if (files && files.length > 0) {
-            const newImages = await Promise.all(
-                files.map(async (file) => await uploadBuffer(file.buffer, "inventory/products"))
-            );
-            finalImages = [...finalImages, ...newImages];
-        }
-
-        // 🆕 Then, add REMAINING existing images sent from frontend
+        // 1. Get the list of images to keep from frontend
+        let imagesToKeep: string[] = [];
         if (data.productImages) {
-            let remainingImages: string[] = [];
-
             if (Array.isArray(data.productImages)) {
-                remainingImages = data.productImages;
+                imagesToKeep = data.productImages;
             } else if (typeof data.productImages === 'string') {
                 try {
-                    remainingImages = JSON.parse(data.productImages);
+                    imagesToKeep = JSON.parse(data.productImages);
                 } catch (error) {
                     console.warn('Failed to parse productImages, using empty array');
-                    remainingImages = [];
+                    imagesToKeep = [];
                 }
             }
-
-            finalImages = [...finalImages, ...remainingImages];
         }
+
+        // 2. Upload new images from files
+        let newImages: string[] = [];
+        if (files && files.length > 0) {
+            newImages = await Promise.all(
+                files.map(async (file) =>
+                    await saveImageLocally(file.buffer, "inventory/products", file.originalname)
+                )
+            );
+        }
+
+        // 3. Find images that need to be deleted (exist in old but not in keep list)
+        const imagesToDelete = oldImages.filter(oldImg => !imagesToKeep.includes(oldImg));
+
+        // 4. Delete old images that are no longer needed
+        if (imagesToDelete.length > 0) {
+            console.log("🗑️ Deleting old product images:", imagesToDelete);
+            deleteMultipleImages(imagesToDelete);
+        }
+
+        // 5. Final images = kept existing images + newly uploaded images
+        finalImages = [...imagesToKeep, ...newImages];
 
         const processedData = processDescriptionData(data);
 
-        // 🧾 Update product data - preserve existing source unless explicitly updated
+        // Update product data
         const updatePayload: any = {
             ...processedData,
             attributes: Object.keys(validAttributes).length
@@ -218,9 +229,8 @@ export const ProductService = {
             productImages: finalImages,
         };
 
-        // Only update source if explicitly provided (usually source shouldn't change)
+        // Only update source if explicitly provided
         if (data.source) {
-            // Ensure source.date is a Date object
             if (data.source.date && !(data.source.date instanceof Date)) {
                 data.source.date = new Date(data.source.date);
             }
@@ -233,13 +243,24 @@ export const ProductService = {
         }
 
         Object.assign(product, updatePayload);
-
         await product.save();
+
         return product;
     },
 
-    // ✅ DELETE PRODUCT
+    // ✅ DELETE PRODUCT WITH LOCAL IMAGE CLEANUP
     async delete(id: string): Promise<void> {
+        const product = await Product.findById(id);
+        if (!product) {
+            throw new Error('Product not found');
+        }
+
+        // Delete all product images from local storage
+        if (product.productImages && product.productImages.length > 0) {
+            console.log("🗑️ Deleting all product images for product:", product.productImages);
+            deleteMultipleImages(product.productImages);
+        }
+
         const deleted = await Product.findByIdAndDelete(id);
         if (!deleted) {
             throw new Error("Product not found");
@@ -263,7 +284,6 @@ export const ProductService = {
 
             const searchConditions: any[] = [];
 
-            // TEXT FIELDS
             searchConditions.push(
                 { name: regex },
                 { aliasNames: regex },
@@ -281,7 +301,6 @@ export const ProductService = {
                 { "source.type": regex },
             );
 
-            // NUMERIC CHECK
             const numericValue = Number(searchTerm);
             const isNumeric = !isNaN(numericValue);
 
@@ -296,7 +315,6 @@ export const ProductService = {
                 );
             }
 
-            // ADVANCED OPERATORS
             if (searchTerm.startsWith(">")) {
                 const num = Number(searchTerm.slice(1));
                 if (!isNaN(num)) {
@@ -315,7 +333,6 @@ export const ProductService = {
 
             searchQuery = { $or: searchConditions };
         }
-
 
         try {
             const [products, total] = await Promise.all([

@@ -1,28 +1,18 @@
 import { Request, Response } from "express";
 import { ProductService } from "./product.service";
-import { uploadBuffer } from "../../../config/cloudinary/cloudinary";
+import { saveImageLocally } from "../../../utils/fileUploadHelper";
+import { deleteMultipleImages } from "../../../utils/fileDeleteHelper";
 
 // ✅ CREATE PRODUCT
 export const createProduct = async (req: Request, res: Response) => {
     try {
-        let uploadedImages: string[] = [];
-
-        // Handle multiple image uploads
-        if (req.files && Array.isArray(req.files)) {
-            uploadedImages = await Promise.all(
-                req.files.map(async (file: Express.Multer.File) =>
-                    await uploadBuffer(file.buffer, "inventory/products")
-                )
-            );
-        }
-
         const productDataBody = req.body;
 
         let description = {
             text: '',
             jsonFields: {}
         };
-        
+
         if (productDataBody.description) {
             if (typeof productDataBody.description === 'string') {
                 try {
@@ -38,11 +28,11 @@ export const createProduct = async (req: Request, res: Response) => {
         // Parse source if it's a string
         let source = {
             type: 'manual' as 'manual' | 'price-list' | 'import' | 'api',
-            id:"",
+            id: "",
             date: new Date(),
             metadata: {}
         };
-        
+
         if (productDataBody.source) {
             if (typeof productDataBody.source === 'string') {
                 try {
@@ -62,12 +52,10 @@ export const createProduct = async (req: Request, res: Response) => {
 
         const productData = {
             ...productDataBody,
-            productImages: uploadedImages,
             description: {
                 text: description.text || '',
                 jsonFields: description.jsonFields || {}
             },
-            // Add source data
             source: {
                 type: source.type,
                 id: source.id,
@@ -76,7 +64,9 @@ export const createProduct = async (req: Request, res: Response) => {
             }
         };
 
+        // Let service handle image uploads
         const product = await ProductService.create(productData, req.files as Express.Multer.File[]);
+        
         return res.status(201).json({
             status: "success",
             message: "Product created successfully",
@@ -91,11 +81,20 @@ export const createProduct = async (req: Request, res: Response) => {
     }
 };
 
-// ✅ UPDATE PRODUCT
+// ✅ UPDATE PRODUCT WITH LOCAL IMAGE DELETION
 export const updateProduct = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const updatedData = req.body;
+
+        // Get existing product to fetch old images
+        const existingProduct = await ProductService.getById(id as string);
+        if (!existingProduct) {
+            return res.status(404).json({
+                status: "error",
+                message: "Product not found"
+            });
+        }
 
         let description = {
             text: '',
@@ -114,7 +113,7 @@ export const updateProduct = async (req: Request, res: Response) => {
             }
         }
 
-        // Parse source if it exists in update (usually source shouldn't be updated, but handle it)
+        // Parse source if it exists in update
         let sourceUpdate = undefined;
         if (updatedData.source) {
             if (typeof updatedData.source === 'string') {
@@ -139,7 +138,6 @@ export const updateProduct = async (req: Request, res: Response) => {
                 text: description.text || '',
                 jsonFields: description.jsonFields || {}
             },
-            // Only include source if provided (usually source shouldn't be changed after creation)
             ...(sourceUpdate && { source: sourceUpdate })
         };
 
@@ -163,11 +161,28 @@ export const updateProduct = async (req: Request, res: Response) => {
     }
 };
 
-// ✅ DELETE PRODUCT
+// ✅ DELETE PRODUCT WITH LOCAL IMAGE CLEANUP
 export const deleteProduct = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+
+        // Get existing product to delete images
+        const existingProduct = await ProductService.getById(id as string);
+        if (!existingProduct) {
+            return res.status(404).json({
+                status: "error",
+                message: "Product not found"
+            });
+        }
+
+        // Delete all product images from local storage
+        if (existingProduct.productImages && existingProduct.productImages.length > 0) {
+            console.log("🗑️ Deleting product images:", existingProduct.productImages);
+            deleteMultipleImages(existingProduct.productImages);
+        }
+
         await ProductService.delete(id as string);
+
         return res.status(200).json({
             status: "success",
             message: "Product deleted successfully",

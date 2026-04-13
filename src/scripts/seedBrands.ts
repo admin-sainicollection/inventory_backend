@@ -67,7 +67,8 @@ const defaultBrands = [
     {
         name: "BMW",
         parentCompany: "Bayerische Motoren Werke AG",
-        brandLogo: "https://cdn.freebiesupply.com/logos/thumbs/2x/bmw-2-logo.png",
+        // brandLogo: "https://cdn.freebiesupply.com/logos/thumbs/2x/bmw-2-logo.png",
+        brandLogo: "/uploads/brands/bmw-2-logo.png",
         manufactureType: ["Cars"]
     },
     {

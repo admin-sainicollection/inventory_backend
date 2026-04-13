@@ -12,3 +12,9 @@ export const deleteLocalImage = (imagePath: string) => {
         fs.unlinkSync(absolutePath);
     }
 };
+
+export const deleteMultipleImages = (imagePaths: string[]) => {
+    for (const imagePath of imagePaths) {
+        deleteLocalImage(imagePath);
+    }
+};
