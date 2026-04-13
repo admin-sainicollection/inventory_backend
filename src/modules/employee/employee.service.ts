@@ -4,6 +4,8 @@ import { uploadBuffer } from '../../config/cloudinary/cloudinary';
 import User from '../users/user.model';
 import Audit from '../audit/audit.model';
 import { registerUser, updateUserService } from '../auth/auth.service';
+import { saveImageLocally } from '../../utils/fileUploadHelper';
+import { deleteMultipleImages } from '../../utils/fileDeleteHelper';
 
 // Types for file handling
 interface UploadedFile {
@@ -79,34 +81,78 @@ const parseFormData = (data: any): Partial<IEmployee> => {
     }
 };
 
+const collectEmployeeImages = (employee: any): string[] => {
+    const images: string[] = [];
+
+    // Photo
+    if (employee.photo) {
+        images.push(employee.photo);
+    }
+
+    // Aadhaar documents
+    if (employee.document?.aadhaar?.aadhaar_photo_front) {
+        images.push(employee.document.aadhaar.aadhaar_photo_front);
+    }
+    if (employee.document?.aadhaar?.aadhaar_photo_back) {
+        images.push(employee.document.aadhaar.aadhaar_photo_back);
+    }
+
+    // PAN document
+    if (employee.document?.pan?.pan_photo) {
+        images.push(employee.document.pan.pan_photo);
+    }
+
+    return images;
+};
+
 const uploadEmployeeFiles = async (files: any) => {
     const uploads: any = {};
 
     if (files?.photo_file?.[0]?.buffer) {
-        uploads.photo = await uploadBuffer(
-            files.photo_file[0].buffer,
-            "employees/photos"
+        // uploads.photo = await uploadBuffer(
+        //     files.photo_file[0].buffer,
+        //     "employees/photos"
+        // );
+        uploads.photo = await saveImageLocally(
+            files?.photo_file?.[0]?.buffer,
+            "employees/photo",
+            files?.photo_file?.[0]?.originalname
         );
     }
 
     if (files?.aadhaar_front_file?.[0]?.buffer) {
-        uploads.aadhaar_photo_front = await uploadBuffer(
-            files.aadhaar_front_file[0].buffer,
-            "employees/aadhaar/front"
+        // uploads.aadhaar_photo_front = await uploadBuffer(
+        //     files.aadhaar_front_file[0].buffer,
+        //     "employees/aadhaar/front"
+        // );
+        uploads.aadhaar_photo_front = await saveImageLocally(
+            files?.aadhaar_front_file?.[0]?.buffer,
+            "employees/aadhar",
+            files?.aadhaar_front_file?.[0]?.originalname
         );
     }
 
     if (files?.aadhaar_back_file?.[0]?.buffer) {
-        uploads.aadhaar_photo_back = await uploadBuffer(
-            files.aadhaar_back_file[0].buffer,
-            "employees/aadhaar/back"
+        // uploads.aadhaar_photo_back = await uploadBuffer(
+        //     files.aadhaar_back_file[0].buffer,
+        //     "employees/aadhaar/back"
+        // );
+        uploads.aadhaar_photo_back = await saveImageLocally(
+            files?.aadhaar_back_file?.[0]?.buffer,
+            "employees/aadhar",
+            files?.aadhaar_back_file?.[0]?.originalname
         );
     }
 
     if (files?.pan_file?.[0]?.buffer) {
-        uploads.pan_photo = await uploadBuffer(
-            files.pan_file[0].buffer,
-            "employees/pan"
+        // uploads.pan_photo = await uploadBuffer(
+        //     files.pan_file[0].buffer,
+        //     "employees/pan"
+        // );
+        uploads.pan_photo = await saveImageLocally(
+            files?.pan_file?.[0]?.buffer,
+            "employees/pan",
+            files?.pan_file?.[0]?.originalname
         );
     }
 
@@ -232,7 +278,7 @@ export const addEmployeeService = async (
         return {
             status: "success",
             message: "Employee and user account created successfully",
-            data: populatedEmployee ,
+            data: populatedEmployee,
         };
 
     } catch (error: any) {
@@ -259,6 +305,9 @@ export const updateEmployeeService = async (
             throw new Error("Employee not found");
         }
 
+        // Store old image paths for deletion
+        const oldImages = collectEmployeeImages(existingEmployee);
+
         const updateData = parseFormData(data);
 
         // Extract user-related fields
@@ -282,9 +331,15 @@ export const updateEmployeeService = async (
         // Handle file uploads for employee
         const uploadedFiles = await uploadEmployeeFiles(files);
 
-        // ✅ PHOTO
+        // Track which images will be replaced (to delete old ones)
+        const imagesToDelete: string[] = [];
+
+        // ✅ PHOTO - Delete old photo if new one is uploaded
         if (uploadedFiles.photo) {
             updateData.photo = uploadedFiles.photo;
+            if (existingEmployee.photo) {
+                imagesToDelete.push(existingEmployee.photo);
+            }
         } else if (updateData.photo?.startsWith("http")) {
             updateData.photo = updateData.photo;
         } else {
@@ -296,18 +351,64 @@ export const updateEmployeeService = async (
         updateData.document.aadhaar ??= existingEmployee.document?.aadhaar || {};
         updateData.document.pan ??= existingEmployee.document?.pan || {};
 
+        // ✅ AADHAAR FRONT - Delete old if new is uploaded
         if (uploadedFiles.aadhaar_photo_front) {
-            updateData.document.aadhaar.aadhaar_photo_front =
-                uploadedFiles.aadhaar_photo_front;
+            updateData.document.aadhaar.aadhaar_photo_front = uploadedFiles.aadhaar_photo_front;
+            if (existingEmployee.document?.aadhaar?.aadhaar_photo_front) {
+                imagesToDelete.push(existingEmployee.document.aadhaar.aadhaar_photo_front);
+            }
         }
 
+        // ✅ AADHAAR BACK - Delete old if new is uploaded
         if (uploadedFiles.aadhaar_photo_back) {
-            updateData.document.aadhaar.aadhaar_photo_back =
-                uploadedFiles.aadhaar_photo_back;
+            updateData.document.aadhaar.aadhaar_photo_back = uploadedFiles.aadhaar_photo_back;
+            if (existingEmployee.document?.aadhaar?.aadhaar_photo_back) {
+                imagesToDelete.push(existingEmployee.document.aadhaar.aadhaar_photo_back);
+            }
         }
 
+        // ✅ PAN PHOTO - Delete old if new is uploaded
         if (uploadedFiles.pan_photo) {
             updateData.document.pan.pan_photo = uploadedFiles.pan_photo;
+            if (existingEmployee.document?.pan?.pan_photo) {
+                imagesToDelete.push(existingEmployee.document.pan.pan_photo);
+            }
+        }
+
+        // ✅ Handle removal of images from frontend (if image fields become empty)
+        // Check if photo was removed
+        if (updateData.photo === "" || updateData.photo === null) {
+            if (existingEmployee.photo) {
+                imagesToDelete.push(existingEmployee.photo);
+            }
+        }
+
+        // Check if aadhaar front was removed
+        if (updateData.document?.aadhaar?.aadhaar_photo_front === "" || updateData.document?.aadhaar?.aadhaar_photo_front === null) {
+            if (existingEmployee.document?.aadhaar?.aadhaar_photo_front) {
+                imagesToDelete.push(existingEmployee.document.aadhaar.aadhaar_photo_front);
+            }
+        }
+
+        // Check if aadhaar back was removed
+        if (updateData.document?.aadhaar?.aadhaar_photo_back === "" || updateData.document?.aadhaar?.aadhaar_photo_back === null) {
+            if (existingEmployee.document?.aadhaar?.aadhaar_photo_back) {
+                imagesToDelete.push(existingEmployee.document.aadhaar.aadhaar_photo_back);
+            }
+        }
+
+        // Check if pan photo was removed
+        if (updateData.document?.pan?.pan_photo === "" || updateData.document?.pan?.pan_photo === null) {
+            if (existingEmployee.document?.pan?.pan_photo) {
+                imagesToDelete.push(existingEmployee.document.pan.pan_photo);
+            }
+        }
+
+        // ✅ Delete old images from local storage
+        const uniqueImagesToDelete = [...new Set(imagesToDelete)];
+        if (uniqueImagesToDelete.length > 0) {
+            console.log("🗑️ Deleting employee images:", uniqueImagesToDelete);
+            deleteMultipleImages(uniqueImagesToDelete);
         }
 
         // ✅ Type conversions for employee data
@@ -349,12 +450,8 @@ export const updateEmployeeService = async (
                     existingEmployee.userId.toString(),
                     userUpdateData
                 );
-                // Note: updateUserService doesn't accept session, so it runs in its own transaction
-                // If you need atomicity, you'd need to modify updateUserService to accept session
             } catch (userError: any) {
                 console.error("Error updating associated user:", userError);
-                // Don't throw here - we still want to return success for employee update
-                // You can decide whether to throw or just log based on your requirements
             }
         }
 
@@ -368,7 +465,7 @@ export const updateEmployeeService = async (
         return {
             status: "success",
             message: "Employee updated successfully",
-            data: populatedEmployee ,
+            data: populatedEmployee,
         };
     } catch (error: any) {
         await session.abortTransaction();
@@ -383,7 +480,7 @@ export const getEmployeesService = async (
     searchQuery: string = '',
     page: number = 1,
     limit: number = 10
-)=> {
+) => {
     try {
         const skip = (page - 1) * limit;
         let query = Employee.find();
@@ -536,6 +633,11 @@ export const deleteEmployeeService = async (id: string): Promise<ServiceResponse
 
         // Store the userId before deleting the employee
         const userId = employee.userId;
+
+        const employeeImages = collectEmployeeImages(employee);
+        if (employeeImages.length > 0) {
+            deleteMultipleImages(employeeImages);
+        }
 
         // Delete the employee
         const deletedEmployee = await Employee.findByIdAndDelete(id).session(session);
