@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import * as BrandService from "./brand.service";
 import { uploadBuffer } from "../../config/cloudinary/cloudinary";
+import { saveImageLocally } from "../../utils/fileUploadHelper";
+import { deleteLocalImage } from "../../utils/fileDeleteHelper";
 
 export const addBrand = async (req: Request, res: Response) => {
     try {
@@ -16,7 +18,7 @@ export const addBrand = async (req: Request, res: Response) => {
 
         // ✅ FIX: Handle manufactureType properly for form data arrays
         let processedManufactureType: string[] = [];
-        
+
         if (manufactureType) {
             if (Array.isArray(manufactureType)) {
                 processedManufactureType = manufactureType;
@@ -36,7 +38,13 @@ export const addBrand = async (req: Request, res: Response) => {
         // If multer memoryStorage used, req.file.buffer will be available
         let brandLogoUrl: string | undefined;
         if (req.file && (req.file as any).buffer) {
-            brandLogoUrl = await uploadBuffer((req.file as any).buffer, "inventory/brands");
+            // brandLogoUrl = await uploadBuffer((req.file as any).buffer, "inventory/brands");
+            brandLogoUrl = await saveImageLocally(
+                req.file.buffer,
+                "brands",
+                req.file.originalname
+            );
+
         } else {
             return res.status(400).json({
                 status: "error",
@@ -69,39 +77,56 @@ export const addBrand = async (req: Request, res: Response) => {
  */
 export const updateBrand = async (req: Request, res: Response) => {
     try {
+        const { id } = req.params;
         const { name, parentCompany, manufactureType } = req.body;
+        
+        // Find existing brand first
+        const existingBrand = await BrandService.getBrandById(id as string);
+        if (!existingBrand) {
+            return res.status(404).json({ status: "error", message: "Brand not found" });
+        }
+        
         const updateData: Record<string, any> = {};
 
         if (name) updateData.name = name;
         if (parentCompany !== undefined) updateData.parentCompany = parentCompany;
 
-        // ✅ FIX: Handle manufactureType properly for updates
         if (manufactureType !== undefined) {
             let processedManufactureType: string[] = [];
-            
+
             if (Array.isArray(manufactureType)) {
                 processedManufactureType = manufactureType;
             } else if (typeof manufactureType === 'string') {
                 processedManufactureType = [manufactureType];
             }
-            
+
             if (processedManufactureType.length === 0) {
                 return res.status(400).json({
                     status: "error",
                     message: "Manufacture type must be a non-empty array"
                 });
             }
-            
+
             updateData.manufactureType = processedManufactureType;
         }
 
-        // If a new logo file is uploaded, upload to Cloudinary and add url to updateData
+        // If a new logo file is uploaded, delete the old logo and save new one
         if (req.file && (req.file as any).buffer) {
-            const brandLogoUrl = await uploadBuffer((req.file as any).buffer, "inventory/brands");
+            // Delete old logo if it exists
+            if (existingBrand.brandLogo) {
+                deleteLocalImage(existingBrand.brandLogo);
+            }
+            
+            // Save new logo
+            const brandLogoUrl = await saveImageLocally(
+                req.file.buffer,
+                "brands",
+                req.file.originalname
+            );
             updateData.brandLogo = brandLogoUrl;
         }
 
-        const brand = await BrandService.updateBrand(req.params.id as string, updateData);
+        const brand = await BrandService.updateBrand(id as string, updateData);
 
         if (!brand) {
             return res.status(404).json({ status: "error", message: "Brand not found" });

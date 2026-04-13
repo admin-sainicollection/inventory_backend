@@ -1,3 +1,4 @@
+import { deleteLocalImage } from "../../utils/fileDeleteHelper";
 import CarModel from "../inventory/compatibility/compatibility.model";
 import Brand, { IBrand } from "./brand.model";
 
@@ -30,9 +31,9 @@ export const createBrand = async (data: {
 export const updateBrand = async (id: string, data: Partial<IBrand>) => {
     // If name is being updated, check for duplicates
     if (data.name) {
-        const existing = await Brand.findOne({ 
-            name: data.name, 
-            _id: { $ne: id } 
+        const existing = await Brand.findOne({
+            name: data.name,
+            _id: { $ne: id }
         });
         if (existing) {
             throw new Error("Brand with this name already exists");
@@ -47,8 +48,8 @@ export const updateBrand = async (id: string, data: Partial<IBrand>) => {
     }
 
     const updated = await Brand.findByIdAndUpdate(
-        id, 
-        data, 
+        id,
+        data,
         { new: true, runValidators: true }
     );
     if (!updated) throw new Error("Brand not found");
@@ -62,16 +63,19 @@ export const deleteBrand = async (id: string) => {
     const brand = await Brand.findById(id);
     if (!brand) throw new Error("Brand not found");
 
-    // ✅ Prevent deletion if used in any car model
-    const usedInCar = await CarModel.findOne({ 
+    const usedInCar = await CarModel.findOne({
         $or: [
             { "brand._id": id },
             { "brand.name": brand.name }
         ]
     });
-    
+
     if (usedInCar) {
         throw new Error("This brand is associated with one or more car models. Please remove those car models before deleting the brand.");
+    }
+
+    if (brand.brandLogo) {
+        deleteLocalImage(brand.brandLogo);
     }
 
     await Brand.findByIdAndDelete(id);
@@ -82,8 +86,8 @@ export const deleteBrand = async (id: string) => {
  * Get all brands with pagination, search, and manufacture type filtering
  */
 export const getAllBrands = async (
-    search?: string | null, 
-    limit?: number, 
+    search?: string | null,
+    limit?: number,
     page?: number,
     manufactureType?: string
 ) => {
@@ -144,7 +148,7 @@ export const getBrandsByManufactureType = async (
     limit?: number,
     page?: number
 ) => {
-    const query = { 
+    const query = {
         manufactureType: { $in: [manufactureType] } // Exact match instead of regex
     };
 
@@ -180,8 +184,8 @@ export const getBrandsByMultipleManufactureTypes = async (
     limit?: number,
     page?: number
 ) => {
-    const query = { 
-        manufactureType: { $in: manufactureTypes } 
+    const query = {
+        manufactureType: { $in: manufactureTypes }
     };
 
     // Pagination setup
@@ -221,7 +225,7 @@ export const checkBrandExists = async (name: string): Promise<boolean> => {
  */
 export const getBrandStats = async () => {
     const totalBrands = await Brand.countDocuments();
-    
+
     const manufactureTypeStats = await Brand.aggregate([
         { $unwind: "$manufactureType" },
         {
