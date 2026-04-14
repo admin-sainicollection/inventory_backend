@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import {  getBankInfo, getBusinessInfo, getSettings, getSignature, getTaxInfo } from "./settings.service";
-import { deleteFile } from "../../utils/deleteFile";
+import { getBankInfo, getBusinessInfo, getSettings, getSignature, getTaxInfo } from "./settings.service";
 import Settings from "./settings.model";
+import { saveImageLocally } from "../../utils/fileUploadHelper";
+import { deleteMultipleImages } from "../../utils/fileDeleteHelper";
 
 
 export const fetchSettings = async (req: Request, res: Response) => {
@@ -63,7 +64,6 @@ const parseJSON = (val: any, def: any) => {
 
 
 
-// ================= SAVE =================
 export const saveSettings = async (req: any, res: Response) => {
   try {
     const files = req.files;
@@ -79,41 +79,74 @@ export const saveSettings = async (req: any, res: Response) => {
       businessType: parseJSON(req.body.businessType, []),
     };
 
-    const existing = await Settings.findOne(); // ✅ ADD THIS
+    const existing = await Settings.findOne();
+
+    // Save business logo locally
+    let businessLogoUrl = existing?.businessLogo;
+    if (files?.businessLogo?.[0]) {
+      businessLogoUrl = await saveImageLocally(
+        files.businessLogo[0].buffer,
+        "settings/businessLogo",
+        files.businessLogo[0].originalname
+      );
+    }
+
+    // Save signature locally
+    let signatureUrl = existing?.owner?.signature;
+    if (files?.signature?.[0]) {
+      signatureUrl = await saveImageLocally(
+        files.signature[0].buffer,
+        "settings/signature",
+        files.signature[0].originalname
+      );
+    }
+
+    // Save Aadhaar front
+    let aadharFrontUrl = existing?.documents?.aadhar?.front;
+    if (files?.aadharFront?.[0]) {
+      aadharFrontUrl = await saveImageLocally(
+        files.aadharFront[0].buffer,
+        "settings/documents/aadhar",
+        files.aadharFront[0].originalname
+      );
+    }
+
+    // Save Aadhaar back
+    let aadharBackUrl = existing?.documents?.aadhar?.back;
+    if (files?.aadharBack?.[0]) {
+      aadharBackUrl = await saveImageLocally(
+        files.aadharBack[0].buffer,
+        "settings/documents/aadhar",
+        files.aadharBack[0].originalname
+      );
+    }
+
+    // Save PAN photo
+    let panPhotoUrl = existing?.documents?.pan?.panPhoto;
+    if (files?.panPhoto?.[0]) {
+      panPhotoUrl = await saveImageLocally(
+        files.panPhoto[0].buffer,
+        "settings/documents/pan",
+        files.panPhoto[0].originalname
+      );
+    }
 
     const data = {
       ...parsedBody,
-
-      businessLogo: files?.businessLogo?.[0]?.path
-        ? getRelativePath(files.businessLogo[0].path)
-        : existing?.businessLogo,
-
+      businessLogo: businessLogoUrl,
       owner: {
         ...parsedBody.owner,
-        signature: files?.signature?.[0]?.path
-          ? getRelativePath(files.signature[0].path)
-          : existing?.owner?.signature
+        signature: signatureUrl
       },
-
       documents: {
         aadhar: {
           ...parsedBody.documents?.aadhar,
-          // aadharPhoto: files?.aadharPhoto?.[0]?.path
-          //   ? getRelativePath(files.aadharPhoto[0].path)
-          //   : existing?.documents?.aadhar?.aadharPhoto
-          front: files?.aadharFront?.[0]?.path
-            ? getRelativePath(files.aadharFront[0].path)
-            : existing?.documents?.aadhar?.front,
-
-          back: files?.aadharBack?.[0]?.path
-            ? getRelativePath(files.aadharBack[0].path)
-            : existing?.documents?.aadhar?.back
+          front: aadharFrontUrl,
+          back: aadharBackUrl
         },
         pan: {
           ...parsedBody.documents?.pan,
-          panPhoto: files?.panPhoto?.[0]?.path
-            ? getRelativePath(files.panPhoto[0].path)
-            : existing?.documents?.pan?.panPhoto
+          panPhoto: panPhotoUrl
         }
       }
     };
@@ -128,16 +161,15 @@ export const saveSettings = async (req: any, res: Response) => {
 
     res.status(200).json({
       success: true,
-      message: existing ? "updated" : "created",
+      message: existing ? "Settings updated successfully" : "Settings created successfully",
       data: result
     });
 
   } catch (err: any) {
+    console.error("Save settings error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
 
 // ================= UPDATE =================
 export const updateSettingsController = async (req: any, res: Response) => {
@@ -160,100 +192,225 @@ export const updateSettingsController = async (req: any, res: Response) => {
       businessType: parseJSON(req.body.businessType, []),
     };
 
-    // 🔥 DELETE OLD FILES
-    if (files?.businessLogo && existing.businessLogo) deleteFile(existing.businessLogo);
-    if (files?.signature && existing.owner?.signature) deleteFile(existing.owner.signature);
-    // if (files?.aadharPhoto && existing.documents?.aadhar?.aadharPhoto) deleteFile(existing.documents.aadhar.aadharPhoto);
-    if (files?.aadharFront && existing.documents?.aadhar?.front)
-      deleteFile(existing.documents.aadhar.front);
+    // Track images to delete (old ones that will be replaced)
+    const imagesToDelete: string[] = [];
 
-    if (files?.aadharBack && existing.documents?.aadhar?.back)
-      deleteFile(existing.documents.aadhar.back);
-    if (files?.panPhoto && existing.documents?.pan?.panPhoto) deleteFile(existing.documents.pan.panPhoto);
+    // Handle Business Logo
+    let businessLogoUrl = existing.businessLogo;
+    if (files?.businessLogo?.[0]) {
+      if (existing.businessLogo) {
+        imagesToDelete.push(existing.businessLogo);
+      }
+      businessLogoUrl = await saveImageLocally(
+        files.businessLogo[0].buffer,
+        "settings/businessLogo",
+        files.businessLogo[0].originalname
+      );
+    }
+
+    // Handle Signature
+    let signatureUrl = existing.owner?.signature;
+    if (files?.signature?.[0]) {
+      if (existing.owner?.signature) {
+        imagesToDelete.push(existing.owner.signature);
+      }
+      signatureUrl = await saveImageLocally(
+        files.signature[0].buffer,
+        "settings/signature",
+        files.signature[0].originalname
+      );
+    }
+
+    // Handle Aadhaar Front
+    let aadharFrontUrl = existing.documents?.aadhar?.front;
+    if (files?.aadharFront?.[0]) {
+      if (existing.documents?.aadhar?.front) {
+        imagesToDelete.push(existing.documents.aadhar.front);
+      }
+      aadharFrontUrl = await saveImageLocally(
+        files.aadharFront[0].buffer,
+        "settings/documents/aadhar",
+        files.aadharFront[0].originalname
+      );
+    }
+
+    // Handle Aadhaar Back
+    let aadharBackUrl = existing.documents?.aadhar?.back;
+    if (files?.aadharBack?.[0]) {
+      if (existing.documents?.aadhar?.back) {
+        imagesToDelete.push(existing.documents.aadhar.back);
+      }
+      aadharBackUrl = await saveImageLocally(
+        files.aadharBack[0].buffer,
+        "settings/documents/aadhar",
+        files.aadharBack[0].originalname
+      );
+    }
+
+    // Handle PAN Photo
+    let panPhotoUrl = existing.documents?.pan?.panPhoto;
+    if (files?.panPhoto?.[0]) {
+      if (existing.documents?.pan?.panPhoto) {
+        imagesToDelete.push(existing.documents.pan.panPhoto);
+      }
+      panPhotoUrl = await saveImageLocally(
+        files.panPhoto[0].buffer,
+        "settings/documents/pan",
+        files.panPhoto[0].originalname
+      );
+    }
+
+    // Handle removal of images from frontend (if fields become empty)
+    // Check if business logo was removed
+    if (parsedBody.businessLogo === "" || parsedBody.businessLogo === null) {
+      if (existing.businessLogo) {
+        imagesToDelete.push(existing.businessLogo);
+      }
+      businessLogoUrl = undefined;
+    }
+
+    // Check if signature was removed
+    if (parsedBody.owner?.signature === "" || parsedBody.owner?.signature === null) {
+      if (existing.owner?.signature) {
+        imagesToDelete.push(existing.owner.signature);
+      }
+      signatureUrl = undefined;
+    }
+
+    // Check if Aadhaar front was removed
+    if (parsedBody.documents?.aadhar?.front === "" || parsedBody.documents?.aadhar?.front === null) {
+      if (existing.documents?.aadhar?.front) {
+        imagesToDelete.push(existing.documents.aadhar.front);
+      }
+      aadharFrontUrl = undefined;
+    }
+
+    // Check if Aadhaar back was removed
+    if (parsedBody.documents?.aadhar?.back === "" || parsedBody.documents?.aadhar?.back === null) {
+      if (existing.documents?.aadhar?.back) {
+        imagesToDelete.push(existing.documents.aadhar.back);
+      }
+      aadharBackUrl = undefined;
+    }
+
+    // Check if PAN photo was removed
+    if (parsedBody.documents?.pan?.panPhoto === "" || parsedBody.documents?.pan?.panPhoto === null) {
+      if (existing.documents?.pan?.panPhoto) {
+        imagesToDelete.push(existing.documents.pan.panPhoto);
+      }
+      panPhotoUrl = undefined;
+    }
+
+    // Delete all old images
+    if (imagesToDelete.length > 0) {
+      console.log("🗑️ Deleting old settings images:", imagesToDelete);
+      deleteMultipleImages(imagesToDelete);
+    }
 
     const data = {
       ...parsedBody,
-
-      businessLogo: files?.businessLogo?.[0]?.path
-        ? getRelativePath(files.businessLogo[0].path)
-        : existing.businessLogo,
-
+      businessLogo: businessLogoUrl,
       owner: {
         ...parsedBody.owner,
-        signature: files?.signature?.[0]?.path
-          ? getRelativePath(files.signature[0].path)
-          : existing.owner?.signature
+        signature: signatureUrl
       },
-
       documents: {
         aadhar: {
           ...parsedBody.documents?.aadhar,
-          front: files?.aadharFront?.[0]?.path
-            ? getRelativePath(files.aadharFront[0].path)
-            : existing.documents?.aadhar?.front,
-
-          back: files?.aadharBack?.[0]?.path
-            ? getRelativePath(files.aadharBack[0].path)
-            : existing.documents?.aadhar?.back
+          front: aadharFrontUrl,
+          back: aadharBackUrl
         },
         pan: {
           ...parsedBody.documents?.pan,
-          panPhoto: files?.panPhoto?.[0]?.path
-            ? getRelativePath(files.panPhoto[0].path)
-            : existing.documents?.pan?.panPhoto
+          panPhoto: panPhotoUrl
         }
       }
     };
-
 
     const updated = await Settings.findByIdAndUpdate(existing._id, data, { new: true });
 
     res.status(200).json({
       success: true,
-      message: "setting updated successfully",
+      message: "Settings updated successfully",
       data: updated
     });
 
   } catch (err: any) {
+    console.error("Update settings error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-import fs from "fs";
-import path from "path";
-
-// 🔥 SIMPLE CLEANUP API
-export const clearUploads = (req: any, res: any) => {
+// ================= DELETE SETTINGS (with image cleanup) =================
+export const deleteSettings = async (req: Request, res: Response) => {
   try {
-    const folder = req.body?.folder; // optional
-
-    const basePath = path.join(process.cwd(), "uploads");
-    const targetPath = folder
-      ? path.join(basePath, folder)
-      : basePath;
-
-    if (!fs.existsSync(targetPath)) {
-      return res.status(404).json({ message: "Folder not found" });
+    const settings = await Settings.findOne();
+    if (!settings) {
+      return res.status(404).json({ success: false, message: "Settings not found" });
     }
 
-    fs.readdirSync(targetPath).forEach((file) => {
-      const filePath = path.join(targetPath, file);
+    // Collect all images to delete
+    const imagesToDelete: string[] = [];
 
-      if (fs.lstatSync(filePath).isDirectory()) {
-        fs.rmSync(filePath, { recursive: true, force: true });
-      } else {
-        fs.unlinkSync(filePath);
-      }
-    });
+    if (settings.businessLogo) imagesToDelete.push(settings.businessLogo);
+    if (settings.owner?.signature) imagesToDelete.push(settings.owner.signature);
+    if (settings.documents?.aadhar?.front) imagesToDelete.push(settings.documents.aadhar.front);
+    if (settings.documents?.aadhar?.back) imagesToDelete.push(settings.documents.aadhar.back);
+    if (settings.documents?.pan?.panPhoto) imagesToDelete.push(settings.documents.pan.panPhoto);
 
-    res.json({
+    // Delete all images from local storage
+    if (imagesToDelete.length > 0) {
+      console.log("🗑️ Deleting all settings images:", imagesToDelete);
+      deleteMultipleImages(imagesToDelete);
+    }
+
+    // Delete settings from database
+    await Settings.findByIdAndDelete(settings._id);
+
+    res.status(200).json({
       success: true,
-      message: folder
-        ? `All files deleted from ${folder}`
-        : "All uploads cleared"
+      message: "Settings deleted successfully"
     });
 
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("Delete settings error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ================= CLEAR UPLOADS (if needed) =================
+export const clearUploads = async (req: Request, res: Response) => {
+  try {
+    const settings = await Settings.findOne();
+    if (settings) {
+      const imagesToDelete: string[] = [];
+
+      if (settings.businessLogo) imagesToDelete.push(settings.businessLogo);
+      if (settings.owner?.signature) imagesToDelete.push(settings.owner.signature);
+      if (settings.documents?.aadhar?.front) imagesToDelete.push(settings.documents.aadhar.front);
+      if (settings.documents?.aadhar?.back) imagesToDelete.push(settings.documents.aadhar.back);
+      if (settings.documents?.pan?.panPhoto) imagesToDelete.push(settings.documents.pan.panPhoto);
+
+      deleteMultipleImages(imagesToDelete);
+
+      // Clear image fields in database
+      await Settings.findByIdAndUpdate(settings._id, {
+        $unset: {
+          businessLogo: "",
+          "owner.signature": "",
+          "documents.aadhar.front": "",
+          "documents.aadhar.back": "",
+          "documents.pan.panPhoto": ""
+        }
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "All uploads cleared successfully"
+    });
+  } catch (err: any) {
+    console.error("Clear uploads error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
