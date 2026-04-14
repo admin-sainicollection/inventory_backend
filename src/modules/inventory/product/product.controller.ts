@@ -177,7 +177,6 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
         // Delete all product images from local storage
         if (existingProduct.productImages && existingProduct.productImages.length > 0) {
-            console.log("🗑️ Deleting product images:", existingProduct.productImages);
             deleteMultipleImages(existingProduct.productImages);
         }
 

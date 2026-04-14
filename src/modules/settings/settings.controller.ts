@@ -303,7 +303,6 @@ export const updateSettingsController = async (req: any, res: Response) => {
 
     // Delete all old images
     if (imagesToDelete.length > 0) {
-      console.log("🗑️ Deleting old settings images:", imagesToDelete);
       deleteMultipleImages(imagesToDelete);
     }
 
@@ -360,7 +359,6 @@ export const deleteSettings = async (req: Request, res: Response) => {
 
     // Delete all images from local storage
     if (imagesToDelete.length > 0) {
-      console.log("🗑️ Deleting all settings images:", imagesToDelete);
       deleteMultipleImages(imagesToDelete);
     }
 

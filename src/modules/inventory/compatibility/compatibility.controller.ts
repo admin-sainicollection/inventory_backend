@@ -425,9 +425,6 @@ export const updateCarModel = async (req: Request, res: Response) => {
     // Also add any images marked for deletion during replacement
     const finalImagesToDelete = [...new Set([...imagesToDelete, ...orphanedImages])];
 
-    console.log("🗑️ Images to delete:", finalImagesToDelete);
-    console.log("📁 New images after update:", allNewImages);
-
     // Delete all marked images
     for (const imageUrl of finalImagesToDelete) {
       if (imageUrl && imageUrl.includes('/uploads/')) {
@@ -482,7 +479,7 @@ export const deleteCarModel = async (req: Request, res: Response) => {
 
     // Delete all generation images
     for (const generation of carModel.generations) {
-      for (const image of generation.images) {
+      for (const image of generation?.images || []) {
         deleteLocalImage(image);
       }
     }

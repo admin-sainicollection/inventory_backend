@@ -13,7 +13,7 @@ const brandSchema = new Schema<IBrand>(
     {
         name: { type: String, required: true, trim: true },
         parentCompany: { type: String, trim: true },
-        brandLogo: { type: String, required:true, trim: true },
+        brandLogo: { type: String, trim: true },
         manufactureType: { type: [String], required: true, enum:["Cars", "Parts"], default: [] },
     },
     { timestamps: true }

@@ -211,7 +211,6 @@ export const ProductService = {
 
         // 4. Delete old images that are no longer needed
         if (imagesToDelete.length > 0) {
-            console.log("🗑️ Deleting old product images:", imagesToDelete);
             deleteMultipleImages(imagesToDelete);
         }
 
@@ -257,7 +256,6 @@ export const ProductService = {
 
         // Delete all product images from local storage
         if (product.productImages && product.productImages.length > 0) {
-            console.log("🗑️ Deleting all product images for product:", product.productImages);
             deleteMultipleImages(product.productImages);
         }
 

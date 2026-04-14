@@ -407,7 +407,6 @@ export const updateEmployeeService = async (
         // ✅ Delete old images from local storage
         const uniqueImagesToDelete = [...new Set(imagesToDelete)];
         if (uniqueImagesToDelete.length > 0) {
-            console.log("🗑️ Deleting employee images:", uniqueImagesToDelete);
             deleteMultipleImages(uniqueImagesToDelete);
         }
 

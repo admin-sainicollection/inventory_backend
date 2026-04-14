@@ -185,7 +185,6 @@ export const seedCategories = async () => {
 
     if (newCategories.length > 0) {
         await Category.insertMany(newCategories);
-        console.log(`Seeded ${newCategories.length} categories`);
     } else {
         console.log("All categories are already up to date");
     }
