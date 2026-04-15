@@ -57,7 +57,6 @@ const productSchema = new Schema<IProduct>(
     barcode: {
       type: String,
       trim: true,
-      unique: true,
       sparse: true, // allows multiple null/undefined values
     },
     productImages: { type: [String] },

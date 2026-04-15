@@ -6,9 +6,6 @@ import { WHATSAPP_VERIFY_TOKEN } from "../../utils";
 
 export const whatsappMessageController = async (req: Request, res: Response) => {
 
-    console.log("🔥 WEBHOOK HIT");
-    console.log(JSON.stringify(req.body, null, 2));
-
     try {
 
         const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
@@ -31,8 +28,6 @@ export const whatsappMessageController = async (req: Request, res: Response) => 
 
             // ❌ No active session → show START button
             if (!session) {
-
-                console.log("No active session → sending START button");
 
                 await sendStartButton(phone);
 
@@ -63,8 +58,6 @@ export const whatsappMessageController = async (req: Request, res: Response) => 
 
             const buttonId = message.interactive?.button_reply?.id;
 
-            console.log("Button clicked:", buttonId);
-
             // START ENQUIRY
             if (buttonId === "START_ENQUIRY") {
 
@@ -81,8 +74,6 @@ export const whatsappMessageController = async (req: Request, res: Response) => 
                     lastMessageAt: new Date()
                 });
 
-                console.log("Session started:", session._id);
-
                 await sendStopButton(phone);
 
                 return res.sendStatus(200);
@@ -90,8 +81,6 @@ export const whatsappMessageController = async (req: Request, res: Response) => 
 
             // STOP ENQUIRY
             if (buttonId === "STOP_ENQUIRY") {
-
-                console.log("Closing enquiry for:", phone);
 
                 await closeEnquiry(phone);
 

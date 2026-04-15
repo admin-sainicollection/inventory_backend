@@ -9,8 +9,6 @@ import { generateNextEnquiryNumber } from "../enquiry/enquiry.service";
 // START BUTTON
 export const sendStartButton = async (to: string) => {
 
-    console.log("Sending START button to:", to);
-
     await axios.post(
         `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
         {
@@ -47,8 +45,6 @@ export const sendStartButton = async (to: string) => {
 
 // STOP BUTTON
 export const sendStopButton = async (to: string) => {
-
-    console.log("Sending STOP button to:", to);
 
     await axios.post(
         `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
@@ -116,8 +112,6 @@ export const closeEnquiry = async (phone: string) => {
     session.lastMessageAt = new Date();
 
     await session.save();
-
-    console.log("Enquiry created for:", phone);
 };
 
 
