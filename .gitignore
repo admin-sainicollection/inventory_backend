@@ -5,6 +5,7 @@
 # Node.js dependencies
 /node_modules
 
+
 # Environment variables (API keys, DB connection strings, secrets)
 .env
 .env.development
@@ -15,6 +16,7 @@
 .env.test.local
 .env.production.local
 .env.*
+/uploads
 
 # Logs
 logs

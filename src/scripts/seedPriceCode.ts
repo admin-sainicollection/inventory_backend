@@ -17,7 +17,6 @@ export const seedPriceCode = async () => {
     try {
         const existing = await PriceCode.findOne({});
         if (existing) {
-            console.log("PriceCode already seeded.");
             return;
         }
 
@@ -26,7 +25,6 @@ export const seedPriceCode = async () => {
         });
 
         await priceCode.save();
-        console.log("PriceCode seeded successfully.");
     } catch (error) {
         console.error("Error seeding PriceCode:", error);
     }

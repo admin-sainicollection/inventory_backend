@@ -90,14 +90,12 @@ export const seedRolesAndAdmin = async () => {
 
     if (!existingRole) {
       await Role.create(roleConfig);
-      console.log(`✅ Role "${roleConfig.name}" created with ${roleConfig.permissions.length} permissions`);
     } else {
       // Update existing role with latest permissions
       await Role.updateOne(
         { name: roleConfig.name },
         { $set: { permissions: roleConfig.permissions } }
       );
-      console.log(`🔄 Role "${roleConfig.name}" updated with ${roleConfig.permissions.length} permissions`);
     }
   }
 

@@ -12,9 +12,7 @@ export const seedCarModels = async () => {
         if (newModels.length) {
             // Insert new models
             await CarModel.insertMany(newModels);
-            console.log(`Seeded ${newModels.length} car models successfully.`);
         } else {
-            console.log("No new car models to seed.");
         }
     } catch (err) {
         console.error("Error seeding car models:", err);
