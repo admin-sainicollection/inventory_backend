@@ -31,9 +31,7 @@ export const seedDefaultUnknownCustomer = async () => {
             });
 
             await defaultParty.save();
-            console.log('✅ Default "Unknown" party created successfully');
         } else {
-            console.log('ℹ️ Default "Unknown" party already exists');
         }
     } catch (error) {
         console.error('❌ Error creating default party:', error);
