@@ -10,9 +10,9 @@ export interface IToken extends Document {
 
 const TokenSchema = new Schema<IToken>({
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    tokenHash: { type: String, required: true, index: true },
+    tokenHash: { type: String, required: true},
     type: { type: String, enum: ["refresh", "emailVerify", "passwordReset"], required: true },
-    expiresAt: { type: Date, required: true, index: true }
+    expiresAt: { type: Date, required: true}
 }, { timestamps: true });
 
 // Auto-delete expired tokens
