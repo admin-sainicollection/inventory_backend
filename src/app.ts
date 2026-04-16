@@ -115,7 +115,8 @@ app.use('/whatsapp', whatsappRoutes)
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));
 
-app.get("*", (req, res) => {
+// always at last
+app.use((req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
