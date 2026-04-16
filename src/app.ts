@@ -67,6 +67,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve uploaded files
 // app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.use("/api/v1/inventory/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs))
@@ -113,6 +114,10 @@ app.use('/whatsapp', whatsappRoutes)
 
 // health
 app.get("/health", (_, res) => res.json({ status: "ok" }));
+
+app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 
 export default app;

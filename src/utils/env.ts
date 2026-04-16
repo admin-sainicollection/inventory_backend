@@ -9,8 +9,8 @@ const env = process.env.APP_ENV ||  "development";
 dotenv.config();
 
 export const APP_ENV = env;
-export const PORT = process.env.PORT || "9999";
-export const BASE_URL_SERVER = process.env.BASE_URL_SERVER || "http://0.0.0.0:3000";
+export const PORT = process.env.PORT ;
+export const BASE_URL_SERVER = process.env.BASE_URL_SERVER ;
 export const FRONTEND_URL = process.env.FRONTEND_URL;
 
 export const MONGO_URL = process.env.MONGO_URL || "";
