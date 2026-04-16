@@ -48,12 +48,5 @@
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.2"
-  },
-  "overrides": {
-    "glob": "^10.3.10",
-    "rimraf": "^5.0.5",
-    "inflight": "npm:lru-cache@^10.0.0",
-    "lodash.get": "npm:noop@^1.0.0",
-    "lodash.isequal": "npm:noop@^1.0.0"
   }
 }
