@@ -6,7 +6,7 @@ import { deleteLocalImage } from "../../utils/fileDeleteHelper";
 
 export const addBrand = async (req: Request, res: Response) => {
     try {
-        const { name, parentCompany, manufactureType } = req.body;
+        const { name, parentCompany, description, manufactureType } = req.body;
 
         // Validate required fields
         if (!name) {
@@ -45,17 +45,19 @@ export const addBrand = async (req: Request, res: Response) => {
                 req.file.originalname
             );
 
-        } else {
-            return res.status(400).json({
-                status: "error",
-                message: "Brand logo is required"
-            });
-        }
+        } 
+        // else {
+        //     return res.status(400).json({
+        //         status: "error",
+        //         message: "Brand logo is required"
+        //     });
+        // }
 
         const brandPayload = {
             name,
             parentCompany: parentCompany || undefined,
-            brandLogo: brandLogoUrl,
+            brandLogo: brandLogoUrl || '',
+            description,
             manufactureType: processedManufactureType,
         };
 
@@ -78,7 +80,7 @@ export const addBrand = async (req: Request, res: Response) => {
 export const updateBrand = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { name, parentCompany, manufactureType } = req.body;
+        const { name, parentCompany,description, manufactureType } = req.body;
         
         // Find existing brand first
         const existingBrand = await BrandService.getBrandById(id as string);
@@ -89,6 +91,7 @@ export const updateBrand = async (req: Request, res: Response) => {
         const updateData: Record<string, any> = {};
 
         if (name) updateData.name = name;
+        if (description) updateData.description = description;
         if (parentCompany !== undefined) updateData.parentCompany = parentCompany;
 
         if (manufactureType !== undefined) {
