@@ -188,7 +188,7 @@ export const removePhoneFromParty = async (partyId: string, phoneIndex: number) 
     }
 
     // Remove the phone at the specified index
-    party.contact.phone.splice(phoneIndex, 1);
+    // party?.contact?.phone.splice(phoneIndex, 1);
     await party.save();
 
     return party;

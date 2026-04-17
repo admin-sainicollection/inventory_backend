@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type EntityCategory = | "PARTY" | "WALK_IN_CUSTOMER" | "REGULAR_CUSTOMER"
+export type EntityCategory =  "PARTY" | "WALK_IN_CUSTOMER" | "REGULAR_CUSTOMER" | "WEBSITE"
 // export type EnquiryStatus = | "PENDING" | "RESOLVED" | ""
 
 export interface IParty extends Document {
@@ -15,9 +15,9 @@ export interface IParty extends Document {
     assigningEmployeeId?:string;
     // type?: string[];
     contact: {
-        phone: {
-            label: string;
-            phoneNo: string; // Changed from number to string to preserve formatting
+        phone?: {
+            label?: string;
+            phoneNo?: string; // Changed from number to string to preserve formatting
         }[];
         email?: string[];
     };
@@ -58,7 +58,7 @@ export const partySchema = new Schema<IParty>(
         // },
         entityCategory: {
             type: String,
-            enum: ["PARTY","WALK_IN_CUSTOMER", "REGULAR_CUSTOMER"],
+            enum: ["PARTY","WALK_IN_CUSTOMER", "REGULAR_CUSTOMER","WEBSITE"],
             required: true,
             default:"PARTY"
         },
@@ -94,18 +94,15 @@ export const partySchema = new Schema<IParty>(
             phone: [{
                 label: {
                     type: String,
-                    required: true,
                     trim: true,
                 },
                 phoneNo: {
                     type: String, // Changed to String to preserve formatting
-                    required: true,
                     trim: true
                 }
             }],
             email: [{
                 type: String,
-                required: false,
                 trim: true,
                 lowercase: true
             }]
