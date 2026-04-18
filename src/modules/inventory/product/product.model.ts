@@ -17,9 +17,12 @@ export interface IProduct extends Document {
   brand?: string;
   vender?: string;
   mrp?: number;
+  unitPrice?:number;
   purchaseDiscount?: number;
   purchasePrice?: number;
+  discountB2C?:number;
   sellingPriceB2C?: number;
+  discountB2B?:number;
   sellingPriceB2B?: number;
   description?: IDescription;
   compatibility?: ICarModel[];
@@ -84,6 +87,10 @@ const productSchema = new Schema<IProduct>(
       type: Number,
       trim: true
     },
+    unitPrice: {
+      type: Number,
+      trim: true
+    },
     purchaseDiscount: {
       type: Number,
       trim: true
@@ -92,9 +99,17 @@ const productSchema = new Schema<IProduct>(
       type: Number,
       min: [0, "Purchase price cannot be negative"],
     },
+    discountB2C: {
+      type: Number,
+      trim:true
+    },
     sellingPriceB2C: {
       type: Number,
       min: [0, "Selling price cannot be negative"],
+    },
+    discountB2B: {
+      type: Number,
+      trim:true
     },
     sellingPriceB2B: {
       type: Number,

@@ -29,6 +29,10 @@ export const createProductSchema = z.object({
     .coerce.number()
     .nonnegative("MRP price cannot be negative")
     .optional(),
+  unitPrice: z
+    .coerce.number()
+    .nonnegative("Unit price cannot be negative")
+    .optional(),
   purchaseDiscount: z
     .coerce.number()
     .nonnegative("Purchase discount cannot be negative")
@@ -37,9 +41,17 @@ export const createProductSchema = z.object({
     .coerce.number()
     .nonnegative("Purchase price cannot be negative")
     .optional(),
+  discountB2C: z
+    .coerce.number()
+    .nonnegative("B2C discount cannot be negative")
+    .optional(),
   sellingPriceB2C: z
     .coerce.number()
     .nonnegative("Selling price to customer cannot be negative")
+    .optional(),
+  discountB2B: z
+    .coerce.number()
+    .nonnegative("B2B discount cannot be negative")
     .optional(),
   sellingPriceB2B: z
     .coerce.number()
