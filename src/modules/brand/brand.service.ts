@@ -8,7 +8,8 @@ import Brand, { IBrand } from "./brand.model";
 export const createBrand = async (data: {
     name: string;
     parentCompany?: string;
-    brandLogo: string;
+    brandLogo?: string;
+    description?:string;
     manufactureType: string[];
 }) => {
     // Check if brand with same name already exists
@@ -18,8 +19,8 @@ export const createBrand = async (data: {
     }
 
     // Validate required fields
-    if (!data.name || !data.brandLogo || !data.manufactureType || data.manufactureType.length === 0) {
-        throw new Error("Name, brandLogo, and manufactureType are required fields");
+    if (!data.name || !data.manufactureType  || data.manufactureType.length === 0) {
+        throw new Error("Name and manufactureType are required fields");
     }
 
     return await Brand.create(data);
@@ -98,7 +99,8 @@ export const getAllBrands = async (
         query.$or = [
             { name: { $regex: search, $options: "i" } },
             { parentCompany: { $regex: search, $options: "i" } },
-            { manufactureType: { $regex: search, $options: "i" } }
+            { manufactureType: { $regex: search, $options: "i" } },
+            { description: { $regex: search, $options: "i" } },
         ];
     }
 
@@ -109,7 +111,7 @@ export const getAllBrands = async (
 
     // Pagination setup
     const currentPage = page || 1;
-    const perPage = limit || 50; // Increased default limit
+    const perPage = limit || 100000; // Increased default limit
     const skip = (currentPage - 1) * perPage;
 
     // Get total count for pagination

@@ -123,7 +123,7 @@ export const getAllParties = async (q?: string, entityCategory?: string, page?: 
 
     // Pagination setup
     const currentPage = page || 1;
-    const perPage = limit || 50;
+    const perPage = limit || 100000;
     const skip = (currentPage - 1) * perPage;
 
     // Get total count for pagination
@@ -188,7 +188,7 @@ export const removePhoneFromParty = async (partyId: string, phoneIndex: number) 
     }
 
     // Remove the phone at the specified index
-    party.contact.phone.splice(phoneIndex, 1);
+    // party?.contact?.phone.splice(phoneIndex, 1);
     await party.save();
 
     return party;

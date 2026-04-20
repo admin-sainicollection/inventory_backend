@@ -95,8 +95,8 @@ export const getAllEnquiriesController = async (req: Request, res: Response): Pr
       assigned_employee_id,
       startDate,
       endDate,
-      page = '1',
-      limit = '50'
+      page ,
+      limit
     } = req.query;
 
     const filterOptions: FilterOptions = {

@@ -27,7 +27,7 @@ export const createProduct = async (req: Request, res: Response) => {
 
         // Parse source if it's a string
         let source = {
-            type: 'manual' as 'manual' | 'price-list' | 'import' | 'api',
+            type: 'manual' as 'manual'| 'price-list'| 'oem'| 'oes'| 'import'| 'lot',
             id: "",
             date: new Date(),
             metadata: {}

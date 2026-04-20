@@ -222,7 +222,7 @@ export const updateProductReturn = async (id: string, data: Partial<CreateProduc
 export const getAllProductReturn = async (filters: FilterOptions = {}) => {
     try {
         const {
-            limit = 50,
+            limit = 1000000,
             page = 1,
             search,
             status,

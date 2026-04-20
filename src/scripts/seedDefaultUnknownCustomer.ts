@@ -21,7 +21,7 @@ export const seedDefaultUnknownCustomer = async () => {
                 contact: {
                     phone: [{
                         label: 'mobile',
-                        phoneNo: '0000000000'
+                        phoneNo: '9000000000'
                     }],
                     email: ['unknown@system.local']
                 },
