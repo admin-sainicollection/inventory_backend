@@ -90,7 +90,7 @@ export class PriceListService {
   // Get all price list entries with search, pagination and filters
   async getAllPriceLists(
     page: number = 1,
-    limit: number = 10,
+    limit: number = 10000000,
     filters: GetAllFilters = {}
   ): Promise<{
     data: IPriceList[],

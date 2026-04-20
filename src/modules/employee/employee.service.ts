@@ -478,7 +478,7 @@ export const getEmployeesService = async (
     filters: Record<string, any> = {},
     searchQuery: string = '',
     page: number = 1,
-    limit: number = 10
+    limit: number = 10000
 ) => {
     try {
         const skip = (page - 1) * limit;

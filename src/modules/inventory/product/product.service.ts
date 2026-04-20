@@ -271,7 +271,7 @@ export const ProductService = {
         limit?: number | undefined;
         page?: number | undefined;
     }): Promise<{ products: IProduct[]; total: number }> {
-        const { q, limit = 10, page = 1 } = query;
+        const { q, limit = 10000000, page = 1 } = query;
         const skip = (page - 1) * limit;
 
         let searchQuery: any = {};
