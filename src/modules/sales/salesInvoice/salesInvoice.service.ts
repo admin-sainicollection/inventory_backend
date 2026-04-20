@@ -241,7 +241,7 @@ export const getAllSalesInvoice = async (filters: FilterOptions = {}) => {
     try {
         const {
             gstType = "all",
-            limit = 50,
+            limit = 100000,
             page = 1,
             search,
             status,

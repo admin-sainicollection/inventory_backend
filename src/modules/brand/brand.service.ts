@@ -111,7 +111,7 @@ export const getAllBrands = async (
 
     // Pagination setup
     const currentPage = page || 1;
-    const perPage = limit || 50; // Increased default limit
+    const perPage = limit || 100000; // Increased default limit
     const skip = (currentPage - 1) * perPage;
 
     // Get total count for pagination
