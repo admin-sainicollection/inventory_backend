@@ -5,7 +5,7 @@ export const partyValidationSchema = z.object({
     nickName: z.string().optional(),
     // role: z.string().optional().default("party"),
     withGST: z.boolean().optional().default(false),
-    entityCategory: z.enum(["PARTY", "WALK_IN_CUSTOMER", "REGULAR_CUSTOMER"]).default("PARTY"),
+    entityCategory: z.enum(["PARTY", "WALK_IN_CUSTOMER", "REGULAR_CUSTOMER", "WEBSITE"]).default("PARTY"),
     // enquiryStatus: z.enum(["PENDING", "RESOLVED"]).optional().default("PENDING"),
     enquiryStatus: z.string().optional(),
     enquiry: z.string().optional(),
@@ -20,7 +20,7 @@ export const partyValidationSchema = z.object({
                     .min(1, "Phone number is required")
                     .regex(/^[6-9]\d{9}$/, "Invalid Indian phone number format")
             })
-        ).min(1, "At least one phone number is required"),
+        ).optional(),
         email: z.array(
             z.string().email("Invalid email address").toLowerCase().trim()
         ).optional().default([]),

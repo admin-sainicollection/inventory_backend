@@ -110,7 +110,7 @@ export const getAllVendors = async (q?: string, page?: number, limit?: number) =
 
     // Pagination setup
     const currentPage = page || 1;
-    const perPage = limit || 50;
+    const perPage = limit || 100000;
     const skip = (currentPage - 1) * perPage;
 
     // Get total count for pagination

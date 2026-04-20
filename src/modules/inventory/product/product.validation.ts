@@ -7,8 +7,8 @@ export const createProductSchema = z.object({
 
   partNo: z
     .string()
-    .min(1, "Part No is required")
-    .transform((val) => val.toUpperCase()),
+    .transform((val) => val.toUpperCase())
+    .optional(),
 
   barcode: z.string().optional(),
 
@@ -19,26 +19,44 @@ export const createProductSchema = z.object({
       error: "Quantity must be a number",
     })
     .int()
-    .nonnegative("Quantity cannot be negative"),
+    .nonnegative("Quantity cannot be negative")
+    .optional(),
 
-  category: z.string().min(1, "Category is required"),
-  brand: z.string().min(1, "Brand is required"),
-  vender: z.string().min(1, "Vendor is required"),
+  category: z.string().optional(),
+  brand: z.string().optional(),
+  vender: z.string().optional(),
   mrp: z
     .coerce.number()
-    .nonnegative("MRP price cannot be negative"),
+    .nonnegative("MRP price cannot be negative")
+    .optional(),
+  unitPrice: z
+    .coerce.number()
+    .nonnegative("Unit price cannot be negative")
+    .optional(),
   purchaseDiscount: z
     .coerce.number()
-    .nonnegative("Purchase discount cannot be negative"),
+    .nonnegative("Purchase discount cannot be negative")
+    .optional(),
   purchasePrice: z
     .coerce.number()
-    .nonnegative("Purchase price cannot be negative"),
+    .nonnegative("Purchase price cannot be negative")
+    .optional(),
+  discountB2C: z
+    .coerce.number()
+    .nonnegative("B2C discount cannot be negative")
+    .optional(),
   sellingPriceB2C: z
     .coerce.number()
-    .nonnegative("Selling price to customer cannot be negative"),
+    .nonnegative("Selling price to customer cannot be negative")
+    .optional(),
+  discountB2B: z
+    .coerce.number()
+    .nonnegative("B2B discount cannot be negative")
+    .optional(),
   sellingPriceB2B: z
     .coerce.number()
-    .nonnegative("Selling price to business cannot be negative"),
+    .nonnegative("Selling price to business cannot be negative")
+    .optional(),
 
   description: z.object({
     text: z.string().optional(),
@@ -50,7 +68,7 @@ export const createProductSchema = z.object({
   attributes: z.record(z.string(), z.any()).optional(),
 
   source: z.object({
-    type: z.enum(['manual', 'price-list', 'import', 'api']).default('manual'),
+    type: z.enum(['manual', 'price-list', 'oem', 'oes', 'import', 'lot']).default('manual').optional(),
     id: z.string().optional(),
     date: z.date().optional().default(() => new Date()),
     metadata: z.record(z.string(), z.any()).optional()
