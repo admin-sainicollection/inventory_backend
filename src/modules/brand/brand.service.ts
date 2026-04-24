@@ -156,7 +156,7 @@ export const getBrandsByManufactureType = async (
 
     // Pagination setup
     const currentPage = page || 1;
-    const perPage = limit || 50;
+    const perPage = limit || 1000000;
     const skip = (currentPage - 1) * perPage;
 
     // Get total count for pagination
