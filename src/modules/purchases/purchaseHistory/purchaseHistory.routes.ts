@@ -4,6 +4,6 @@ import { getPurchaseHistoryController } from "./purchaseHistory.controller";
 
 const router = Router();
 
-router.get("/purchase/purchase-history/:purchaseId", protect,  authorizePermission('payment-out:history'), getPurchaseHistoryController)
+router.get("/purchase/purchase-history/:purchaseId", protect,  authorizePermission('purchase-invoice:history'), getPurchaseHistoryController)
 
 export default router;
