@@ -84,7 +84,7 @@ export const getEmployees = async (req: TypedRequest<{}, ParamsDictionary, {
         const {
             search,
             page = '1',
-            limit = '10',
+            limit = '10000' ,
             status,
             gender,
             employee_type,
