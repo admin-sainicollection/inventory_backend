@@ -30,7 +30,7 @@ export interface UpdatePriceListData {
   description?: {
     text?: string;
     jsonFields?: Record<string, any>;
-} | undefined;
+  } | undefined;
   status?: 'active' | 'inactive' | undefined;
 }
 
@@ -202,6 +202,32 @@ export class PriceListService {
       return await PriceList.findByIdAndDelete(id);
     } catch (error: any) {
       throw new Error(`Failed to delete price list: ${error.message}`);
+    }
+  }
+
+  async deleteMultiplePriceLists(ids: string[]): Promise<{ deletedCount: number; deletedItems: IPriceList[] }> {
+    try {
+      // Validate IDs
+      if (!ids || ids.length === 0) {
+        throw new Error('No IDs provided for deletion');
+      }
+
+      // Find all price lists to be deleted
+      const priceListsToDelete = await PriceList.find({ _id: { $in: ids } });
+
+      if (priceListsToDelete.length === 0) {
+        return { deletedCount: 0, deletedItems: [] };
+      }
+
+      // Delete all matching price lists
+      const result = await PriceList.deleteMany({ _id: { $in: ids } });
+
+      return {
+        deletedCount: result.deletedCount || 0,
+        deletedItems: priceListsToDelete
+      };
+    } catch (error: any) {
+      throw new Error(`Failed to delete price lists: ${error.message}`);
     }
   }
 

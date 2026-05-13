@@ -1,10 +1,10 @@
 // controllers/priceListController.ts
 import { Request, Response } from 'express';
-import { 
-  priceListService, 
-  CreatePriceListData, 
+import {
+  priceListService,
+  CreatePriceListData,
   UpdatePriceListData,
-  GetAllFilters 
+  GetAllFilters
 } from './priceList.service';
 
 export const priceListController = {
@@ -12,7 +12,7 @@ export const priceListController = {
   createPriceList: async (req: Request, res: Response) => {
     try {
       const priceListData: CreatePriceListData = req.body;
-      
+
       // Process description data to ensure proper structure
       const processedData = {
         ...priceListData,
@@ -26,7 +26,7 @@ export const priceListController = {
       };
 
       const priceList = await priceListService.createPriceList(processedData);
-      
+
       res.status(201).json({
         success: true,
         message: 'Price list created successfully',
@@ -44,7 +44,7 @@ export const priceListController = {
   bulkCreatePriceList: async (req: Request, res: Response) => {
     try {
       const { entries } = req.body;
-      
+
       if (!Array.isArray(entries)) {
         return res.status(400).json({
           success: false,
@@ -65,7 +65,7 @@ export const priceListController = {
       }));
 
       const result = await priceListService.bulkCreatePriceList(processedEntries);
-      
+
       const response: any = {
         success: true,
         message: `Successfully created ${result.inserted.length} entries`,
@@ -94,15 +94,15 @@ export const priceListController = {
     try {
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
       const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
-      
+
       // Build filters
       const filters: GetAllFilters = {};
-      
+
       // Search across multiple fields
       if (req.query.search) {
         filters.search = req.query.search as string;
       }
-      
+
       // Individual filters
       if (req.query.status) {
         filters.status = req.query.status as 'active' | 'inactive';
@@ -118,7 +118,7 @@ export const priceListController = {
       }
 
       const result = await priceListService.getAllPriceLists(page, limit, filters);
-      
+
       res.json({
         success: true,
         data: result.data,
@@ -143,7 +143,7 @@ export const priceListController = {
     try {
       const { id } = req.params;
       const priceList = await priceListService.getPriceListById(id as string);
-      
+
       if (!priceList) {
         return res.status(404).json({
           success: false,
@@ -192,7 +192,7 @@ export const priceListController = {
     try {
       const { id } = req.params;
       const updateData: UpdatePriceListData = req.body;
-      
+
       // Process description data to ensure proper structure
       const processedData = {
         ...updateData,
@@ -203,7 +203,7 @@ export const priceListController = {
       };
 
       const updatedPriceList = await priceListService.updatePriceList(id as string, processedData);
-      
+
       if (!updatedPriceList) {
         return res.status(404).json({
           success: false,
@@ -229,7 +229,7 @@ export const priceListController = {
     try {
       const { id } = req.params;
       const deletedPriceList = await priceListService.deletePriceList(id as string);
-      
+
       if (!deletedPriceList) {
         return res.status(404).json({
           success: false,
@@ -246,6 +246,54 @@ export const priceListController = {
       res.status(500).json({
         success: false,
         message: error.message
+      });
+    }
+  },
+
+  deleteBulkPriceLists: async (req: Request, res: Response) => {
+    try {
+      const { ids } = req.body;
+
+      // Validate request body
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide an array of IDs to delete'
+        });
+      }
+
+      // Optional: Limit bulk delete size for safety
+      // const MAX_BULK_DELETE = 100;
+      // if (ids.length > MAX_BULK_DELETE) {
+      //     return res.status(400).json({
+      //         success: false,
+      //         message: `Cannot delete more than ${MAX_BULK_DELETE} items at once`
+      //     });
+      // }
+
+      const result = await priceListService.deleteMultiplePriceLists(ids);
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No price lists found with the provided IDs'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: `${result.deletedCount} price list(s) deleted successfully`,
+        data: {
+          deletedCount: result.deletedCount,
+          deletedIds: result.deletedItems.map(item => item._id),
+          deletedItems: result.deletedItems
+        }
+      });
+    } catch (error: any) {
+      console.error('Bulk delete price lists error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to delete price lists'
       });
     }
   }
