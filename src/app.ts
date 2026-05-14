@@ -39,7 +39,7 @@ import settingsRoutes from "./modules/settings/settings.routes";
 import dotenv from "dotenv";
 import { swaggerSpecs, swaggerUi } from "./docs/swagger";
 import path from "path";
-import { WHATSAPP_VERIFY_TOKEN } from "./utils";
+import { APP_ENV, WHATSAPP_VERIFY_TOKEN } from "./utils";
 dotenv.config();
 
 
@@ -67,8 +67,9 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve uploaded files
 // app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+// app.use(express.static(path.join(__dirname, "public")));
+// app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use("/uploads", express.static(APP_ENV === "production" ? "/home/u319537805/uploads" : path.join(process.cwd(), "uploads")));
 
 app.use("/api/v1/inventory/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs))
 

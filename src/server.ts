@@ -28,5 +28,4 @@ import { BASE_URL_SERVER } from "./utils";
             console.log("Running on production server");
           }
     })
-    console.log("Working directory ----->",process.cwd())
 })()
