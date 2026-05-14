@@ -9,7 +9,6 @@ import { seedRolesAndAdmin } from "./scripts/seedRolesAndAdmin";
 import { APP_ENV, PORT } from "./utils";
 import { BASE_URL_SERVER } from "./utils";
 
-
 (async () => {
     await connectDB();
     await seedRolesAndAdmin();
