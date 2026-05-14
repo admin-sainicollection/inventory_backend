@@ -24,12 +24,12 @@ export const saveImageLocally = async (
   const fileName = `${timestamp}-${cleanName}`;
   const fullPath = path.join(uploadPath, fileName);
 
-  console.log("Saving image to:", fullPath);
-  console.log("Folder exists:", fs.existsSync(uploadPath));
+  // console.log("Saving image to:", fullPath);
+  // console.log("Folder exists:", fs.existsSync(uploadPath));
 
   fs.writeFileSync(fullPath, buffer);
 
-  console.log("NODE_ENV =", APP_ENV);
-  console.log("BASE_UPLOAD_PATH =", BASE_UPLOAD_PATH);
+  // console.log("NODE_ENV =", APP_ENV);
+  // console.log("BASE_UPLOAD_PATH =", BASE_UPLOAD_PATH);
   return `/uploads/${folder}/${fileName}`;
 };
