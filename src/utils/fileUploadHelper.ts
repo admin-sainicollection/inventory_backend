@@ -29,7 +29,5 @@ export const saveImageLocally = async (
 
   fs.writeFileSync(fullPath, buffer);
 
-  // console.log("NODE_ENV =", APP_ENV);
-  // console.log("BASE_UPLOAD_PATH =", BASE_UPLOAD_PATH);
   return `/uploads/${folder}/${fileName}`;
 };
