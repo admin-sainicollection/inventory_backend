@@ -67,7 +67,6 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve uploaded files
 // app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-// app.use(express.static(path.join(__dirname, "public")));
 // app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/uploads", express.static(APP_ENV === "production" ? "/home/u319537805/uploads" : path.join(process.cwd(), "uploads")));
 
