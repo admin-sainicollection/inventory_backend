@@ -3,6 +3,7 @@ import {  IStatusHistory, IStatusNote, Priority, Source, StatusType } from "./en
 
 export interface CreateEnquiryData {
     enquiry_date?: Date;
+    enquiryImages?:string[];
     party_id?: string;
     subject: string;
     description: string;
@@ -20,6 +21,7 @@ export interface CreateEnquiryData {
 export interface UpdateEnquiryData {
     enquiry_date?: Date;
     party_id?: string;
+    enquiryImages?:string[];
     subject?: string;
     description?: string;
     assigned_employee_id?: string;

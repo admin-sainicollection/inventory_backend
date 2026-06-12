@@ -28,6 +28,7 @@ export interface IStatusNote {
 export interface IEnquiry extends Document {
     enquiry_no: string
     enquiry_date: Date
+    enquiryImages?:string[]
     party_id?: mongoose.Types.ObjectId
     subject?: string
     description?: string
@@ -129,6 +130,7 @@ export const enquirySchema = new Schema<IEnquiry>({
         index: true,
         uppercase: true,
     },
+    enquiryImages: { type: [String] },
     enquiry_date: {
         type: Date,
         required: true,
