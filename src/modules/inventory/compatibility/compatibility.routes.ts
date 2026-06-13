@@ -7,8 +7,8 @@ import { upload } from "../../../middlewares/upload.middleware";
 
 const router = Router();
 
-router.post('/compatibility/add-car-model', protect, upload.fields([{ name: "baseImage", maxCount: 1 }, { name: "generationImages", maxCount: 5 }]), authorizePermission('car:create'), Controller.addCarModel);
-router.put('/compatibility/update-car-model/:id', protect, upload.fields([{ name: "baseImage", maxCount: 1 }, { name: "generationImages", maxCount: 5 }]), authorizePermission('car:update'), Controller.updateCarModel);
+router.post('/compatibility/add-car-model', protect, upload.fields([{ name: "baseImage", maxCount: 1 }, { name: "generationImages", maxCount: 50 }]), authorizePermission('car:create'), Controller.addCarModel);
+router.put('/compatibility/update-car-model/:id', protect, upload.fields([{ name: "baseImage", maxCount: 1 }, { name: "generationImages", maxCount: 50 }]), authorizePermission('car:update'), Controller.updateCarModel);
 router.delete('/compatibility/delete-car-model', protect, restrictToRoles('admin'), validate(deleteCarModelSchema), Controller.deleteCarModel);
 router.get('/compatibility/get-car-model/:id', protect, authorizePermission('car:read'), Controller.getCarModelById);
 router.get('/compatibility/get-all-car-models',protect, authorizePermission('car:list'), Controller.getAllCarModels);
