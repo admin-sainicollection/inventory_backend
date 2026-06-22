@@ -1,6 +1,8 @@
 import { Enquiry, IEnquiry, StatusType, Priority, IStatusHistory, IStatusNote } from './enquiry.model';
-import {  Types } from 'mongoose';
+import { Types } from 'mongoose';
 import { CreateEnquiryData, FilterOptions, PaginatedResult, UpdateEnquiryData } from './types';
+import { saveImageLocally } from '../../utils/fileUploadHelper';
+import { deleteMultipleImages } from '../../utils/fileDeleteHelper';
 
 // Generate next enquiry number
 export const generateNextEnquiryNumber = async (): Promise<string> => {
@@ -25,7 +27,7 @@ export const generateNextEnquiryNumber = async (): Promise<string> => {
 };
 
 // Create new enquiry with status tracking
-export const createEnquiry = async (enquiryData: CreateEnquiryData): Promise<IEnquiry> => {
+export const createEnquiry = async (enquiryData: CreateEnquiryData, files?: Express.Multer.File[]): Promise<IEnquiry> => {
     try {
         // Generate enquiry number
         const enquiry_no = await generateNextEnquiryNumber();
@@ -53,9 +55,19 @@ export const createEnquiry = async (enquiryData: CreateEnquiryData): Promise<IEn
             });
         }
 
+        let uploadedImages: string[] = [];
+        if (files && files.length > 0) {
+            uploadedImages = await Promise.all(
+                files.map(async (file) =>
+                    await saveImageLocally(file.buffer, "enquiry", file.originalname)
+                )
+            );
+        }
+
         const enquiry = new Enquiry({
             enquiry_no,
             enquiry_date: enquiryData.enquiry_date ? new Date(enquiryData.enquiry_date) : new Date(),
+            enquiryImages: uploadedImages,
             party_id: enquiryData.party_id,
             subject: enquiryData.subject,
             description: enquiryData.description,
@@ -88,7 +100,7 @@ export const createEnquiry = async (enquiryData: CreateEnquiryData): Promise<IEn
 };
 
 // Update enquiry with status tracking
-export const updateEnquiry = async (id: string, updateData: UpdateEnquiryData, userId?: string): Promise<IEnquiry | null> => {
+export const updateEnquiry = async (id: string, updateData: UpdateEnquiryData, userId?: string, files?: Express.Multer.File[]): Promise<IEnquiry | null> => {
     try {
         if (!Types.ObjectId.isValid(id)) {
             throw new Error('Invalid enquiry ID');
@@ -98,6 +110,8 @@ export const updateEnquiry = async (id: string, updateData: UpdateEnquiryData, u
         if (!existingEnquiry) {
             throw new Error('Enquiry not found');
         }
+
+        const oldImages = existingEnquiry.enquiryImages || [];
 
         // Handle status-specific validations
         if (updateData.status === 'CLOSED' && !updateData.closed_result) {
@@ -111,6 +125,48 @@ export const updateEnquiry = async (id: string, updateData: UpdateEnquiryData, u
         // Prepare update object
         const updateObj: any = { ...updateData };
         const now = new Date();
+
+        // Handle image updates separately (always process images regardless of status change)
+        let finalImages: string[] = oldImages;
+
+        // Parse images to keep from updateData
+        let imagesToKeep: string[] = [];
+        if (updateData.enquiryImages) {
+            if (Array.isArray(updateData.enquiryImages)) {
+                imagesToKeep = updateData.enquiryImages;
+            } else if (typeof updateData.enquiryImages === 'string') {
+                try {
+                    imagesToKeep = JSON.parse(updateData.enquiryImages);
+                } catch (error) {
+                    console.warn('Failed to parse enquiryImages, using empty array');
+                    imagesToKeep = [];
+                }
+            }
+        }
+
+        // Process new uploaded images
+        let newImages: string[] = [];
+        if (files && files.length > 0) {
+            newImages = await Promise.all(
+                files.map(async (file) =>
+                    await saveImageLocally(file.buffer, "enquiry", file.originalname)
+                )
+            );
+        }
+
+        // Determine which images to delete (images that were in old but not in keep list)
+        const imagesToDelete = oldImages.filter(oldImg => !imagesToKeep.includes(oldImg));
+
+        // Delete images from storage
+        if (imagesToDelete.length > 0) {
+            await deleteMultipleImages(imagesToDelete);
+        }
+
+        // Combine kept images with new uploaded images
+        finalImages = [...imagesToKeep, ...newImages];
+
+        // Always update enquiryImages in the update object
+        updateObj.enquiryImages = finalImages;
 
         // Track status changes
         if (updateData.status && updateData.status !== existingEnquiry.status) {
@@ -139,6 +195,7 @@ export const updateEnquiry = async (id: string, updateData: UpdateEnquiryData, u
             // Use findByIdAndUpdate with $push to add to arrays
             const updateQuery: any = {
                 $set: {
+                    enquiryImages: finalImages,
                     status: updateData.status,
                     status_changed_at: now,
                     status_changed_by: userId ? new Types.ObjectId(userId) : existingEnquiry.assigned_employee_id,
@@ -172,12 +229,13 @@ export const updateEnquiry = async (id: string, updateData: UpdateEnquiryData, u
 
             return updatedEnquiry;
         } else {
-            // If status is not changing, just update other fields
+            // If status is not changing, just update other fields including images
             updateObj.updatedAt = now;
+            updateObj.enquiryImages = finalImages; // Ensure images are updated even when status doesn't change
 
             const updatedEnquiry = await Enquiry.findByIdAndUpdate(
                 id,
-                updateObj,
+                { $set: updateObj },
                 { new: true, runValidators: true }
             )
                 .populate('party', 'partyName nickName contact')
@@ -312,8 +370,8 @@ export const getAllEnquiries = async (filters: FilterOptions = {}): Promise<Pagi
 
 // Add status note to enquiry
 export const addStatusNote = async (
-    enquiryId: string, 
-    note: string, 
+    enquiryId: string,
+    note: string,
     userId?: string
 ): Promise<IEnquiry | null> => {
     try {
@@ -327,8 +385,8 @@ export const addStatusNote = async (
         }
 
         const statusNote = {
-            previous_status: enquiry.status_history.length > 0 
-                ? enquiry.status_history[enquiry.status_history.length - 1]?.to_status 
+            previous_status: enquiry.status_history.length > 0
+                ? enquiry.status_history[enquiry.status_history.length - 1]?.to_status
                 : undefined,
             current_status: enquiry.status,
             note,
@@ -398,6 +456,15 @@ export const deleteEnquiry = async (id: string): Promise<boolean> => {
     try {
         if (!Types.ObjectId.isValid(id)) {
             throw new Error('Invalid enquiry ID');
+        }
+
+        const enquiry = await Enquiry.findById(id);
+        if (!enquiry) {
+            throw new Error('Enquiry not found');
+        }
+
+        if (enquiry.enquiryImages && enquiry.enquiryImages.length > 0) {
+            deleteMultipleImages(enquiry.enquiryImages);
         }
 
         const result = await Enquiry.findByIdAndDelete(id);
