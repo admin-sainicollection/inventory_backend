@@ -15,6 +15,7 @@ export interface ICarModel extends Document {
         from: string; // changed from number → string
         to: string;   // changed from number → string
         images?: string[];
+        description?:string;
     }[];
 }
 
@@ -35,6 +36,7 @@ export const carModelSchema = new Schema<ICarModel>(
                 from: { type: String, required: true, trim: true },
                 to: { type: String, required: true, trim: true },
                 images: { type: [String], default: [] },
+                description:{type: String}
             },
         ],
     },

@@ -17,6 +17,7 @@ const generationSchema = z.object({
   from: z.coerce.string().min(1, "Start year is required"),
   to: z.coerce.string().optional(),
   images: z.array(z.string()).optional(),
+  description:z.string().optional()
 });
 
 /**
