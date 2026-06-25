@@ -57,7 +57,8 @@ export const seedRolesAndAdmin = async () => {
         'account:list',
         'sales:list',
         'purchase:list',
-        'configuration:list'
+        'configuration:list',
+        'vendor:show'
       ]
     },
     {

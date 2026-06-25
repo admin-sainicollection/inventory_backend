@@ -39,7 +39,7 @@ export const AVAILABLE_PERMISSIONS = [
     { category: 'Ledger', permissions: ['ledger:create', 'ledger:read', 'ledger:print', 'ledger:update'] },
 
     // Price list
-    { category: 'Price List', permissions: ['price-list:create', 'price-list:upload', 'price-list:list', 'price-list:read', 'price-list:update', 'price-list:move', 'price-list:delete'] },
+    { category: 'Price List', permissions: ['price-list:create', 'price-list:upload', 'price-list:list', 'price-list:read', 'price-list:update', 'price-list:move', 'price-list:delete', 'vendor:show-vendor'] },
 
     // Attendance
     { category: 'Attendance', permissions: ['attendance:create', 'attendance:read', 'attendance:check', 'attendance:update'] },
