@@ -28,9 +28,10 @@
     "mongoose": "^8.18.2",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^2.2.1",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^9.0.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
+    "yaml": "^2.9.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {
