@@ -16,7 +16,7 @@ export interface IDailyLedger extends Document {
     voucher?: string,
     sourceType: SourceType;
     sourceId?: string;
-    srNo?: string,
+    srNo?: number,
     withGST?: boolean;
     credit?: number,
     debit?: number,
@@ -71,9 +71,8 @@ export const dailyLedgerSchema = new Schema<IDailyLedger>(
             default: false
         },
         srNo: {
-            type: String,
-            required: false,
-            trim: true
+            type: Number,
+            required: false
         },
         credit: {
             type: Number,

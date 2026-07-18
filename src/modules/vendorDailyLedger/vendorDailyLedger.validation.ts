@@ -5,6 +5,8 @@ export const addVendorDailyLedgerValidation = z.object({
 
     date: z.string().optional(),
 
+    srNo: z.string().trim().optional(),
+
     voucher: z.string().trim().optional(),
 
     credit: z.number().min(0, "Credit cannot be negative").optional(),

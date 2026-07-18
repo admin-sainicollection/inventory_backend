@@ -7,6 +7,7 @@ export interface IVendorDailyLedger extends Document {
     voucher?: string,
     credit?: number,
     debit?: number,
+    srNo?: number,
     description?: string,
     // tdsDeductBySelf?: number,
     status?: "active" | "inactive",
@@ -31,7 +32,10 @@ export const vendorDailyLedgerSchema = new Schema<IVendorDailyLedger>(
             required: false,
             trim: true
         },
-       
+        srNo: {
+            type: Number,
+            required: false
+        },
         credit: {
             type: Number,
             required: false,
